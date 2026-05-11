@@ -584,23 +584,28 @@ function New-ADHCReport {
 		if ($Data.DNS.QuickChecks) {
 			$qc = $Data.DNS.QuickChecks
 			$htmlDNS += "<div class='quick-check-container'>"
+
+			# Fix #7: TotalZoneCount konsistent aus Forward+Reverse berechnen
+			# (nicht aus $qc.TotalZoneCount, das Forwarder mitzählen kann)
+			$effectiveTotalZones = @($Data.DNS.ForwardZones).Count + @($Data.DNS.ReverseZones).Count
+			$missingScavCount    = @($qc.MissingScavenging).Count
 		
 			# --- Kachel 1: Scavenging ---
 			$scavClass = "status-ok"
-			if ($qc.MissingScavenging.Count -gt 0) {
-				$scavClass = if ($qc.MissingScavenging.Count -eq $qc.TotalZoneCount) { "status-error" } else { "status-warning" }
+			if ($missingScavCount -gt 0) {
+				$scavClass = if ($missingScavCount -ge $effectiveTotalZones) { "status-error" } else { "status-warning" }
 			}
 		
-			if ($qc.MissingScavenging.Count -eq 0) {
+			if ($missingScavCount -eq 0) {
 				$scavContent = $I18n.Labels.Active
-			} elseif ($qc.MissingScavenging.Count -eq $qc.TotalZoneCount) {
+			} elseif ($missingScavCount -ge $effectiveTotalZones) {
 				$scavContent = $I18n.Labels.ScavengingGlobalInactive
 			} else {
 				$maxDisplay = 2
 				$displayedZones = $qc.MissingScavenging | Select-Object -First $maxDisplay
 				$scavContent = "$($I18n.Labels.Inactive): " + ($displayedZones -join ", ")
-				if ($qc.MissingScavenging.Count -gt $maxDisplay) {
-					$remaining = $qc.MissingScavenging.Count - $maxDisplay
+				if ($missingScavCount -gt $maxDisplay) {
+					$remaining = $missingScavCount - $maxDisplay
 					$scavContent += " (+ ${remaining})"
 				}
 			}
@@ -609,7 +614,7 @@ function New-ADHCReport {
 							<div class='qbox-label'>Scavenging (Aging)</div>
 							<div class='status-text ${scavClass}' style='font-size: 1.1rem; font-weight: 700;'>${scavContent}</div>
 							<div style='font-size: 0.75rem; color: #888; margin-top: auto; padding-top: 10px;'>
-								Geprüft in $($qc.TotalZoneCount) Zonen
+								$($I18n.Labels.ScavengingCheckedIn -f $effectiveTotalZones)
 							</div>
 						</div>"
 		

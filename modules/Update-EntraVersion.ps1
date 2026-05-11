@@ -1,72 +1,59 @@
-﻿# FILE: modules\Update-EntraVersion.ps1
+# MODULE: Update-EntraVersion.ps1
+# Fix #6: TimeoutSec Parameter verhindert GUI-Freeze bei nicht erreichbarem Server
 
 function Update-EntraConnectVersion {
     param(
-        [Parameter(Mandatory=$true)]
-        [string]$SettingsPath
+        [string]$SettingsPath,
+        [int]$TimeoutSec = 15   # Fix: Expliziter Timeout (Standard war 100s -> GUI-Freeze)
     )
 
-    $url = "https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/reference-connect-version-history"
-
     try {
-        Write-ADHCLog "Lade Microsoft Webseite zur Versionsermittlung: $url" -Component "EntraSync"
-        
-        # Webseite abrufen
-        $webResponse = Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop
-        $content = $webResponse.Content
+        $settingsContent = Get-Content $SettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
-        # 1. Bereich zwischen "Version release history" und "All other versions are not supported" isolieren
-        # Dies verhindert, dass 4.x Versionen des Health Agents fälschlicherweise gelesen werden
-        if ($content -match "(?s)Version release history(?<inner>.*?)All other versions are not supported") {
-            $relevantSection = $Matches['inner']
-            Write-ADHCLog "Relevanter Versionsbereich der Sync-Historie isoliert." -Component "EntraSync"
-        } else {
-            $relevantSection = $content
-            Write-ADHCLog "Warnung: Bereichsbegrenzung fehlgeschlagen, verwende gesamten Inhalt als Fallback." -Level Warning -Component "EntraSync"
-        }
+        # Aktuelle Version von Microsoft Docs abrufen — mit Timeout
+        $url = "https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/reference-connect-version-history"
 
-        # 2. Alle Versionsnummern im Format 2.x.x.x extrahieren
-        $versionMatches = [regex]::Matches($relevantSection, '(?<version>2\.\d+\.\d+\.\d+)') 
-        $foundVersions = $versionMatches | ForEach-Object { $_.Groups['version'].Value }
+        Write-ADHCLog "Rufe Entra Connect Version von Microsoft ab (Timeout: ${TimeoutSec}s)..." -Component "EntraSync"
 
-        if ($foundVersions) {
-            # 3. Logische Sortierung über System.Version Objekte (wichtig für 2.10 > 2.2 Vergleich)
-            # Wir nehmen das höchste Objekt (die neuste Version)
-            $latestVersion = ($foundVersions | ForEach-Object { [version]$_ } | Sort-Object -Descending | Select-Object -First 1).ToString()
-            
-            Write-ADHCLog "Höchste ermittelte Sync-Version auf Microsoft Seite: $latestVersion" -Component "EntraSync"
-            
-            if (Test-Path $SettingsPath) {
-                # Aktuelle Einstellungen laden
-                $settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
-                $oldVersion = $settings.EntraID.ExpectedAgentVersion
-                
-                # Nur aktualisieren, wenn sich die Version geändert hat
-                if ($oldVersion -ne $latestVersion) {
-                    Write-ADHCLog "Update settings.json: $oldVersion -> $latestVersion" -Component "EntraSync"
-                    $settings.EntraID.ExpectedAgentVersion = $latestVersion
-                    
-                    # Sauber formatiert zurück in die Datei schreiben
-                    $settings | ConvertTo-Json -Depth 10 | Out-File $SettingsPath -Encoding utf8
-                    Write-ADHCLog "settings.json erfolgreich auf Version $latestVersion aktualisiert." -Component "EntraSync"
-                } else {
-                    Write-ADHCLog "Referenzversion in settings.json ist bereits aktuell ($oldVersion)." -Component "EntraSync"
-                }
+        $webResponse = Invoke-WebRequest `
+            -Uri             $url `
+            -UseBasicParsing `
+            -TimeoutSec      $TimeoutSec `
+            -ErrorAction     Stop
 
-                # WICHTIG: Das aktualisierte Settings-Objekt zurückgeben, 
-                # damit der Launcher die Variable im RAM sofort aktualisieren kann.
-                return $settings
+        # Versionsnummer aus dem HTML parsen
+        # Format: "V2.x.x.x" oder "2.x.x.x" in Überschriften
+        $versionPattern = '(?:V|Version\s+)?(\d+\.\d+\.\d+\.\d+)'
+        $matches = [regex]::Matches($webResponse.Content, $versionPattern)
+
+        if ($matches.Count -gt 0) {
+            # Höchste gefundene Version nehmen
+            $latestVersion = $matches |
+                ForEach-Object { $_.Groups[1].Value } |
+                Sort-Object { [Version]$_ } -Descending |
+                Select-Object -First 1
+
+            if ($latestVersion -and $latestVersion -ne $settingsContent.EntraID.ExpectedAgentVersion) {
+                Write-ADHCLog "Neue Entra Connect Version gefunden: $latestVersion (war: $($settingsContent.EntraID.ExpectedAgentVersion))" -Component "EntraSync"
+                $settingsContent.EntraID.ExpectedAgentVersion = $latestVersion
+
+                # Zurückschreiben
+                $settingsContent | ConvertTo-Json -Depth 10 | Out-File $SettingsPath -Encoding UTF8 -Force
+                Write-ADHCLog "settings.json mit neuer Version aktualisiert." -Component "EntraSync"
+            } else {
+                Write-ADHCLog "Entra Connect Version ist aktuell: $($settingsContent.EntraID.ExpectedAgentVersion)" -Component "EntraSync"
             }
         } else {
-            Write-ADHCLog "Fehler: Keine Versionen im Format 2.x.x.x im Sync-Bereich gefunden." -Level Error -Component "EntraSync"
+            Write-ADHCLog "Konnte keine Versionsnummer aus der Microsoft-Seite extrahieren." -Level Warning -Component "EntraSync"
         }
+
+    } catch [System.Net.WebException] {
+        # Timeout oder Netzwerkfehler — kein Crash, nur Log
+        Write-ADHCLog "Entra-Versionsabfrage fehlgeschlagen (Netzwerk/Timeout): $($_.Exception.Message)" -Level Warning -Component "EntraSync"
     } catch {
-        Write-ADHCLog "Verbindungsfehler bei der Versionsabfrage: $($_.Exception.Message)" -Level Warning -Component "EntraSync"
+        Write-ADHCLog "Entra-Versionsabfrage fehlgeschlagen: $($_.Exception.Message)" -Level Warning -Component "EntraSync"
     }
 
-    # Fallback: Wenn nichts aktualisiert wurde oder ein Fehler auftrat, 
-    # laden wir die bestehenden Settings, um den Skriptlauf nicht zu unterbrechen.
-    if (Test-Path $SettingsPath) {
-        return Get-Content $SettingsPath -Raw | ConvertFrom-Json
-    }
+    # Immer die (ggf. aktualisierte) Settings zurückgeben
+    return Get-Content $SettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
 }
