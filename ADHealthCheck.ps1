@@ -1,12 +1,12 @@
-﻿<#
+<#
 .SYNOPSIS
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.2.0
-    Changelog:  - Prerequisite-Check: PowerShell-Version, Admin-Rechte,
-                  RSAT-AD, DNS-Modul, WinRM, .NET Framework
-                - Automatische Installations-Abfrage bei fehlenden Features
+    Version:    2.3.0
+    Changelog:  - Self-Update: automatischer Versionscheck gegen GitHub
+                - Download aller Dateien mit Backup der alten Version
+                - Prereq-Check aus v2.2.0
                 - Alle bisherigen Fixes aus v2.1.0
 #>
 
@@ -340,6 +340,178 @@ function Test-ADHCPrerequisites {
 
 # Prereq-Check ausführen (gibt Feature-Status zurück)
 $prereqResult = Test-ADHCPrerequisites
+
+# ===========================================================================
+# SELF-UPDATE CHECK
+# Vergleicht lokale Version mit der aktuellen Version auf GitHub.
+# Bei neuer Version: Download aller geänderten Dateien mit Bestätigung.
+# ===========================================================================
+
+# Aktuelle lokale Version (muss mit dem Header-Kommentar übereinstimmen)
+$script:LocalVersion = "2.3.0"
+
+# GitHub Repository-Konfiguration
+$GitHubUser   = "janibrb"
+$GitHubRepo   = "ADHealthCheck"
+$GitHubBranch = "main"
+$GitHubRaw    = "https://raw.githubusercontent.com/$GitHubUser/$GitHubRepo/$GitHubBranch"
+
+function Invoke-ADHCUpdateCheck {
+    param(
+        [string]$ScriptRoot,
+        [int]$TimeoutSec = 10
+    )
+
+    Write-Host ""
+    Write-Host "  Prüfe auf Updates (GitHub)..." -ForegroundColor Cyan -NoNewline
+
+    try {
+        # Version aus dem Remote-Launcher lesen
+        $remoteUrl     = "$GitHubRaw/ADHealthCheck.ps1"
+        $remoteContent = Invoke-WebRequest -Uri $remoteUrl -UseBasicParsing `
+                            -TimeoutSec $TimeoutSec -ErrorAction Stop
+
+        # Versionsnummer aus Header extrahieren: "Version:    x.y.z"
+        $remoteVersion = $null
+        if ($remoteContent.Content -match 'Version:\s+([\d]+\.[\d]+\.[\d]+)') {
+            $remoteVersion = $Matches[1]
+        }
+
+        if (-not $remoteVersion) {
+            Write-Host " Version nicht lesbar." -ForegroundColor Yellow
+            return
+        }
+
+        # Versionen vergleichen
+        $localVer  = [Version]$script:LocalVersion
+        $remoteVer = [Version]$remoteVersion
+
+        if ($remoteVer -le $localVer) {
+            Write-Host " Aktuell (v$script:LocalVersion)." -ForegroundColor Green
+            return
+        }
+
+        # Neuere Version gefunden
+        Write-Host ""
+        Write-Host ""
+        Write-Host "  ╔══════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+        Write-Host "  ║   UPDATE VERFUEGBAR                                      ║" -ForegroundColor Yellow
+        Write-Host "  ║   Lokal:  v$($script:LocalVersion.PadRight(49))║" -ForegroundColor Yellow
+        Write-Host "  ║   GitHub: v$($remoteVersion.PadRight(49))║" -ForegroundColor Yellow
+        Write-Host "  ╚══════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "  Update jetzt herunterladen? [J/N]: " -ForegroundColor Cyan -NoNewline
+        $answer = Read-Host
+
+        if ($answer -notmatch '^[JjYy]') {
+            Write-Host "  Update übersprungen. Starte mit v$script:LocalVersion..." -ForegroundColor Gray
+            Write-Host ""
+            return
+        }
+
+        # Liste aller Dateien die heruntergeladen werden sollen
+        # Struktur: @{ RemotePfad = Lokaler Zielpfad }
+        $updateFiles = @{
+            "ADHealthCheck.ps1"                    = Join-Path $ScriptRoot "ADHealthCheck.ps1"
+            "modules/ADHealthCheck.Diag.psm1"      = Join-Path $ScriptRoot "modules\ADHealthCheck.Diag.psm1"
+            "modules/ADHealthCheck.Diag.psd1"      = Join-Path $ScriptRoot "modules\ADHealthCheck.Diag.psd1"
+            "modules/ADHealthCheck.Reporting.psm1" = Join-Path $ScriptRoot "modules\ADHealthCheck.Reporting.psm1"
+            "modules/ADHealthCheck.Reporting.psd1" = Join-Path $ScriptRoot "modules\ADHealthCheck.Reporting.psd1"
+            "modules/ADHealthCheck.Utils.psm1"     = Join-Path $ScriptRoot "modules\ADHealthCheck.Utils.psm1"
+            "modules/ADHealthCheck.Utils.psd1"     = Join-Path $ScriptRoot "modules\ADHealthCheck.Utils.psd1"
+            "modules/ADHealthCheck.DNS.psm1"       = Join-Path $ScriptRoot "modules\ADHealthCheck.DNS.psm1"
+            "modules/ADHealthCheck.DNS.psd1"       = Join-Path $ScriptRoot "modules\ADHealthCheck.DNS.psd1"
+            "modules/ADHealthCheck.EntraSync.psm1" = Join-Path $ScriptRoot "modules\ADHealthCheck.EntraSync.psm1"
+            "modules/ADHealthCheck.EntraSync.psd1" = Join-Path $ScriptRoot "modules\ADHealthCheck.EntraSync.psd1"
+            "modules/Update-EntraVersion.ps1"      = Join-Path $ScriptRoot "modules\Update-EntraVersion.ps1"
+            "config/recommendations.json"          = Join-Path $ScriptRoot "config\recommendations.json"
+            "config/i18n.de.json"                  = Join-Path $ScriptRoot "config\i18n.de.json"
+            "config/i18n.en.json"                  = Join-Path $ScriptRoot "config\i18n.en.json"
+            "config/mapping.json"                  = Join-Path $ScriptRoot "config\mapping.json"
+            "templates/report.template.html"       = Join-Path $ScriptRoot "templates\report.template.html"
+        }
+
+        # Backup-Verzeichnis anlegen
+        $backupDir = Join-Path $ScriptRoot "output\backup\v$script:LocalVersion"
+        if (-not (Test-Path $backupDir)) {
+            New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+        }
+
+        Write-Host ""
+        Write-Host "  Lade Update v$remoteVersion herunter..." -ForegroundColor Cyan
+        Write-Host "  Backup der aktuellen Version unter: output\backup\v$script:LocalVersion" -ForegroundColor Gray
+        Write-Host ""
+
+        $downloadErrors = @()
+        $downloadCount  = 0
+
+        foreach ($entry in $updateFiles.GetEnumerator()) {
+            $remotePath = $entry.Key
+            $localPath  = $entry.Value
+            $fileName   = Split-Path $localPath -Leaf
+
+            Write-Host "  ► $fileName..." -NoNewline
+
+            try {
+                # Backup der bestehenden Datei
+                if (Test-Path $localPath) {
+                    $backupTarget = Join-Path $backupDir ($remotePath.Replace("/", "_"))
+                    Copy-Item $localPath $backupTarget -Force | Out-Null
+                }
+
+                # Neue Version herunterladen
+                $url      = "$GitHubRaw/$remotePath"
+                $response = Invoke-WebRequest -Uri $url -UseBasicParsing `
+                                -TimeoutSec $TimeoutSec -ErrorAction Stop
+
+                # Zielverzeichnis sicherstellen
+                $targetDir = Split-Path $localPath -Parent
+                if (-not (Test-Path $targetDir)) {
+                    New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+                }
+
+                # Binär speichern (Encoding bleibt exakt wie auf GitHub)
+                [System.IO.File]::WriteAllBytes($localPath, $response.Content)
+
+                Write-Host " OK" -ForegroundColor Green
+                $downloadCount++
+
+            } catch {
+                Write-Host " FEHLER: $($_.Exception.Message)" -ForegroundColor Red
+                $downloadErrors += $remotePath
+            }
+        }
+
+        # Zusammenfassung
+        Write-Host ""
+        if ($downloadErrors.Count -eq 0) {
+            Write-Host "  ╔══════════════════════════════════════════════════════════╗" -ForegroundColor Green
+            Write-Host "  ║   UPDATE ERFOLGREICH: v$script:LocalVersion -> v$remoteVersion" -ForegroundColor Green
+            Write-Host "  ║   $downloadCount Dateien aktualisiert." -ForegroundColor Green
+            Write-Host "  ║                                                          ║" -ForegroundColor Green
+            Write-Host "  ║   Bitte Script neu starten:  .\ADHealthCheck.ps1        ║" -ForegroundColor Green
+            Write-Host "  ╚══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+        } else {
+            Write-Host "  Update teilweise fehlgeschlagen:" -ForegroundColor Yellow
+            Write-Host "  $downloadCount Dateien OK, $($downloadErrors.Count) Fehler:" -ForegroundColor Yellow
+            $downloadErrors | ForEach-Object { Write-Host "  • $_" -ForegroundColor Red }
+            Write-Host ""
+            Write-Host "  Backup verfuegbar unter: output\backup\v$script:LocalVersion" -ForegroundColor Gray
+        }
+
+        Write-Host ""
+        Read-Host "  Enter druecken zum Beenden (dann Script neu starten)"
+        exit 0
+
+    } catch [System.Net.WebException] {
+        Write-Host " Keine Verbindung zu GitHub (Timeout/Netzwerk)." -ForegroundColor Gray
+    } catch {
+        Write-Host " Update-Check fehlgeschlagen: $($_.Exception.Message)" -ForegroundColor Gray
+    }
+}
+
+# Update-Check ausführen (schlägt stillschweigend fehl wenn kein Internet)
+Invoke-ADHCUpdateCheck -ScriptRoot $ScriptRoot
 
 # ---------------------------------------------------------------------------
 # Module laden (nach Prereq-Check — AD-Modul ist jetzt garantiert verfügbar)
