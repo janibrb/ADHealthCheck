@@ -800,7 +800,7 @@ function New-ADHCReport {
 					$activeRecs += [PSCustomObject]@{
 						Id          = $rule.Id
 						Category    = $rule.Category
-						Area        = $rule.SubCategory
+						Area        = (if ($rule.SubCategory -is [string]) { $rule.SubCategory } else { $rule.SubCategory.$LangCode })
 						Description = $rule.Recommendation.$LangCode
 						Priority    = $rule.Priority
 					}
@@ -846,7 +846,7 @@ function New-ADHCReport {
 			if ($schemaOwner -and $namingOwner -and ($schemaOwner -ne $namingOwner)) {
 				$rule = $recJson.FSMO | Where-Object { $_.Id -eq "AD-FSMO-06" }
 				$activeRecs += [PSCustomObject]@{
-					Id = $rule.Id; Category = $rule.Category; Area = $rule.SubCategory
+					Id = $rule.Id; Category = $rule.Category; Area = (if ($rule.SubCategory -is [string]) { $rule.SubCategory } else { $rule.SubCategory.$LangCode })
 					Description = $rule.Recommendation.$LangCode; Priority = $rule.Priority
 				}
 			}
@@ -855,7 +855,7 @@ function New-ADHCReport {
 			if ($allOwners.Count -gt 1) {
 				$rule = $recJson.FSMO | Where-Object { $_.Id -eq "AD-FSMO-07" }
 				$activeRecs += [PSCustomObject]@{
-					Id = $rule.Id; Category = $rule.Category; Area = $rule.SubCategory
+					Id = $rule.Id; Category = $rule.Category; Area = (if ($rule.SubCategory -is [string]) { $rule.SubCategory } else { $rule.SubCategory.$LangCode })
 					Description = $rule.Recommendation.$LangCode; Priority = $rule.Priority
 				}
 			}
@@ -868,7 +868,7 @@ function New-ADHCReport {
 			if ($dcs.Count -gt 1 -and $stats.RecycleBin -eq $false -and $isGC) {
 				$rule = $recJson.FSMO | Where-Object { $_.Id -eq "AD-FSMO-08" }
 				$activeRecs += [PSCustomObject]@{
-					Id = $rule.Id; Category = $rule.Category; Area = $rule.SubCategory
+					Id = $rule.Id; Category = $rule.Category; Area = (if ($rule.SubCategory -is [string]) { $rule.SubCategory } else { $rule.SubCategory.$LangCode })
 					Description = "$($rule.Recommendation.$LangCode) (Server: $infraOwner)"; Priority = $rule.Priority
 				}
 			}
@@ -904,7 +904,7 @@ function New-ADHCReport {
 					$activeRecs += [PSCustomObject]@{
 						Id          = $rule.Id
 						Category    = $rule.Category
-						Area        = $rule.SubCategory
+						Area        = (if ($rule.SubCategory -is [string]) { $rule.SubCategory } else { $rule.SubCategory.$LangCode })
 						# Wir hängen die Serverliste an die Beschreibung an
 						Description = "$($rule.Recommendation.$LangCode) (Betroffene Server: $serverList)"
 						Priority    = $rule.Priority
@@ -963,12 +963,8 @@ function New-ADHCReport {
 		
 				if ($failedServers.Count -gt 0) {
 					# LOKALISIERUNG: Wir übersetzen den Bereich (Area) dynamisch
-					$localizedArea = switch ($rule.SubCategory) {
-						"Betriebssystem"    { $I18n.Labels.OperatingSystem }
-						"Server Gesundheit" { $I18n.Labels.ServerHealth }
-						"Konnektivität"      { $I18n.Labels.Connectivity }
-						Default              { $rule.SubCategory }
-					}
+					# SubCategory ist jetzt ein {de/en} Objekt — direkt auflösen
+					$localizedArea = if ($rule.SubCategory -is [string]) { $rule.SubCategory } else { $rule.SubCategory.$LangCode }
 		
 					$activeRecs += [PSCustomObject]@{
 						Id          = $rule.Id
@@ -1149,12 +1145,8 @@ function New-ADHCReport {
 				}
 		
 				if ($isTriggered) {
-					$translatedArea = switch ($rule.SubCategory) {
-						"Konten-Hygiene"      { $I18n.Labels.AccountHygiene }
-						"Kennwort-Hygiene"    { $I18n.Labels.PasswordHygiene }
-						"Privilegierte Gruppen" { $I18n.Labels.PrivilegedGroups }
-						Default                { $rule.SubCategory }
-					}
+					# SubCategory ist jetzt ein {de/en} Objekt — direkt auflösen
+				$translatedArea = if ($rule.SubCategory -is [string]) { $rule.SubCategory } else { $rule.SubCategory.$LangCode }
 		
 					$activeRecs += [PSCustomObject]@{
 						Id          = $rule.Id

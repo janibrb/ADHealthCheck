@@ -1,4 +1,4 @@
-
+﻿﻿
 <#
 .SYNOPSIS
     Haupt-Launcher fuer AD Health Check mit GUI
@@ -30,15 +30,14 @@ $ModulePath  = Join-Path $ScriptRoot "modules"
 $script:UseMockData = $false
 
 # ---------------------------------------------------------------------------
-# Module laden — via .psd1 Manifeste (Versionsprüfung + saubere Abhängigkeiten)
+# Module laden
 # ---------------------------------------------------------------------------
 try {
-    # Utils zuerst — alle anderen Module hängen davon ab (Write-ADHCLog)
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.Utils.psd1")     -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.Diag.psd1")      -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.DNS.psd1")       -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.EntraSync.psd1") -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.Reporting.psd1") -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.Utils.psm1")    -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.Diag.psm1")     -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.DNS.psm1")      -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.EntraSync.psm1") -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.Reporting.psm1") -Force -ErrorAction Stop
 } catch {
     Write-Host "FATAL ERROR: Ein Modul konnte nicht geladen werden." -ForegroundColor Red
     Write-Host "Grund: $($_.Exception.Message)" -ForegroundColor Yellow
