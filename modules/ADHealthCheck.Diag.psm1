@@ -1,88 +1,430 @@
 # MODULE: ADHealthCheck.Diag.psm1
 
 function Get-ADHCMockData {
-    param($I18n, $Settings)
-    Write-ADHCLog "Generiere Worst-Case Mock-Daten für Sample-Report..." -Component "Discovery"
+    param($I18n, $Settings, [string]$LangCode = "de")
+    Write-ADHCLog "Generiere Worst-Case Mock-Daten fuer Sample-Report (alle Empfehlungen aktiv)..." -Component "Discovery"
 
-    $mockDCs = @("MOCK-DC-01", "MOCK-DC-02")
+    # -----------------------------------------------------------------------
+    # DOMAIN STATS
+    # Ausgeloeste Regeln:
+    #   AD-01: ForestLevel = 5 (< 7 = Windows2016) -> Low
+    #   AD-02: DomainLevel = 5 (< 7)               -> Low
+    #   AD-03: RecycleBin  = $false                 -> High
+    #   AD-04: KrbtgtLastSet vor 400 Tagen          -> High
+    # -----------------------------------------------------------------------
+    $domainStats = [PSCustomObject]@{
+        DomainNetBIOS  = "CONTOSO"
+        DomainFQDN     = "contoso.local"
+        ForestLevel    = 5           # Windows2012R2 -> triggert AD-01
+        DomainLevel    = 5           # Windows2012R2 -> triggert AD-02
+        RecycleBin     = $false      # Deaktiviert   -> triggert AD-03
+        KrbtgtLastSet  = (Get-Date).AddDays(-400)  # > 180 Tage -> triggert AD-04
+        UserCount      = 1250
+        SecGroupCount  = 300
+        DistGroupCount = 50
+        ContactCount   = 10
+    }
 
-    $mockData = @{
-        # Domain Stats (WICHTIG: DomainName statt DomainFQDN und Zahlen für Levels)
-        DomainStats = [PSCustomObject]@{
-            DomainNetBIOS = "CONTOSO"
-            DomainFQDN    = "contoso.local"
-            ForestLevel   = 6
-            DomainLevel   = 6
-            RecycleBin    = $false
-            KrbtgtLastSet = (Get-Date).AddDays(-400)
-            UserCount = 1250; SecGroupCount = 300; DistGroupCount = 50; ContactCount = 10
+    # -----------------------------------------------------------------------
+    # FSMO ROLLEN
+    # Ausgeloeste Regeln:
+    #   AD-FSMO-01..05: Alle 5 Rollen auf verschiedenen DCs -> mehrere Error
+    #   AD-FSMO-06: Schema != NamingMaster (verschiedene DCs) -> Low
+    #   AD-FSMO-07: Rollen verteilt auf 3 DCs -> Low
+    #   AD-FSMO-08: InfraMaster ist GC und RecycleBin=false -> High
+    # -----------------------------------------------------------------------
+    $fsmoData = @(
+        [PSCustomObject]@{ RoleID="SchemaMaster";         Role="Schema-Master";              Owner="MOCK-DC-01"; Erreichbar="Error" }
+        [PSCustomObject]@{ RoleID="DomainNamingMaster";   Role="Domaenenbenennungs-Master";  Owner="MOCK-DC-02"; Erreichbar="Error" }
+        [PSCustomObject]@{ RoleID="PdcEmulator";          Role="PDC-Emulator";               Owner="MOCK-DC-01"; Erreichbar="Error" }
+        [PSCustomObject]@{ RoleID="RidMaster";            Role="RID-Master";                 Owner="MOCK-DC-02"; Erreichbar="Error" }
+        [PSCustomObject]@{ RoleID="InfrastructureMaster"; Role="Infrastruktur-Master";       Owner="MOCK-DC-03"; Erreichbar="Error" }
+    )
+
+    # -----------------------------------------------------------------------
+    # DCDIAG — alle 18 Tests auf Error setzen
+    # Ausgeloeste Regeln: DC-DFSR, DC-SYSV, DC-KCC, DC-ROLE, DC-MACH,
+    #   DC-NCSD, DC-LOGN, DC-OBJR, DC-REPL, DC-RIDM, DC-SVCS, DC-SYSL,
+    #   DC-VREF, DC-SDREF, DC-CRVAL, DC-LOCAT, DC-INTER, DC-FSMOC
+    # -----------------------------------------------------------------------
+    $dcdiagData = @(
+        [PSCustomObject]@{
+            Server             = "MOCK-DC-01"
+            Connectivity       = "Error"
+            Advertising        = "Error"
+            FrsEvent           = "Error"
+            DFSREvent          = "Error"    # -> DC-DFSR
+            SysVolCheck        = "Error"    # -> DC-SYSV
+            KccEvent           = "Error"    # -> DC-KCC
+            KnowsOfRoleHolders = "Error"    # -> DC-ROLE
+            MachineAccount     = "Error"    # -> DC-MACH
+            NCSecDesc          = "Error"    # -> DC-NCSD
+            NetLogons          = "Error"    # -> DC-LOGN
+            ObjectsReplicated  = "Error"    # -> DC-OBJR
+            Replications       = "Error"    # -> DC-REPL
+            RidManager         = "Error"    # -> DC-RIDM
+            Services           = "Error"    # -> DC-SVCS
+            SystemLog          = "Error"    # -> DC-SYSL
+            VerifyReferences   = "Error"    # -> DC-VREF
+            CheckSDRefDom      = "Error"    # -> DC-SDREF
+            CrossRefValidation = "Error"    # -> DC-CRVAL
+            LocatorCheck       = "Error"    # -> DC-LOCAT
+            Intersite          = "Error"    # -> DC-INTER
+            FsmoCheck          = "Error"    # -> DC-FSMOC
         }
-
-        # FSMO (Ein DC ist offline)
-        FSMO = @(
-            [PSCustomObject]@{ RoleID="PdcEmulator"; Role="PDC Emulator"; Owner="MOCK-DC-01"; Erreichbar="OK" }
-            [PSCustomObject]@{ RoleID="InfrastructureMaster"; Role="Infrastructure Master"; Owner="MOCK-DC-02"; Erreichbar="Error" }
-        )
-
-        # DC Health (Wenig Speicherplatz)
-        Discovery = @(
-            [PSCustomObject]@{ Server="MOCK-DC-01"; OS="Windows Server 2019"; IPv4="10.0.0.1"; UptimeHrs=2400; FreeDiskGB=2; FreeDiskPct="2 %"; Status="Error" }
-        )
-
-        # DCDIAG (Alles Failed)
-        DCDiag = @(
-            [PSCustomObject]@{ Server="MOCK-DC-01"; Connectivity="Error"; Replications="Error"; Advertising="Error"; NetLogons="Error" }
-        )
-
-        # Services (Kritische Dienste gestoppt)
-        Services = @(
-            [PSCustomObject]@{ Server="MOCK-DC-01"; Service="NTDS"; Status="Error"; StartType="Automatic" }
-            [PSCustomObject]@{ Server="MOCK-DC-01"; Service="DNS"; Status="Error"; StartType="Automatic" }
-        )
-
-        # Backup (Über 30 Tage alt)
-        Backup = @(
-            [PSCustomObject]@{ Partition="DC=contoso,DC=local"; LastBackup=(Get-Date).AddDays(-35).ToString(); Days=35; Status="Critical" }
-        )
-
-        # Sicherheit (Viele inaktive Accounts)
-        Security = [PSCustomObject]@{
-            InactiveUsers = 45; NoPwdExpiryUsers = 80; ExpiredPwdUsers = 12; DisabledUsers = 150
-            DomAdminCount = 25; EntAdminCount = 10; SchAdminCount = 5
-            Complexity = $false; MinPwdLength = 5; MaxPwdAge = 0; PwdHistory = 0
-            LockoutThresh = 0; LockoutDuration = 0; RawExportData = @()
+        [PSCustomObject]@{
+            Server             = "MOCK-DC-02"
+            Connectivity       = "Error"
+            Advertising        = "Error"
+            FrsEvent           = "Error"
+            DFSREvent          = "Error"
+            SysVolCheck        = "Error"
+            KccEvent           = "Error"
+            KnowsOfRoleHolders = "Error"
+            MachineAccount     = "Error"
+            NCSecDesc          = "Error"
+            NetLogons          = "Error"
+            ObjectsReplicated  = "Error"
+            Replications       = "Error"
+            RidManager         = "Error"
+            Services           = "Error"
+            SystemLog          = "Error"
+            VerifyReferences   = "Error"
+            CheckSDRefDom      = "Error"
+            CrossRefValidation = "Error"
+            LocatorCheck       = "Error"
+            Intersite          = "Error"
+            FsmoCheck          = "Error"
         }
+    )
 
-        # OU & ACL Audit (Verwaiste SIDs gefunden)
-        OUAccountSecurity = [PSCustomObject]@{
-            UniqueOrphanCount = 51
-            TopOrphanedSIDs = @([PSCustomObject]@{ Name="S-1-5-21-999-888-777-512"; Count=2400 })
-            DisabledInheritanceOU = @([PSCustomObject]@{ Name="Admins"; DN="OU=Admins,DC=contoso,DC=local" })
-            DisabledInheritanceUser = foreach($i in 1..15) { [PSCustomObject]@{ Name="User_$i"; DN="CN=User_$i,DC=contoso" } }
+    # -----------------------------------------------------------------------
+    # DC SYSTEM HEALTH
+    # Ausgeloeste Regeln:
+    #   OS-01:   OSSupportStatus = "OutOfSupport"  -> High
+    #   SRV-01-E: DiskSpace = "Error" (< 5%)       -> High
+    #   SRV-01-W: DiskSpace = "Warning" (< 15%)    -> Medium (zweiter DC)
+    #   SRV-02:  Status = "Error" (nicht erreichbar) -> High
+    # -----------------------------------------------------------------------
+    $discoveryData = @(
+        [PSCustomObject]@{
+            Server           = "MOCK-DC-01"
+            OS               = "Windows Server 2012 R2"   # OutOfSupport
+            OSSupportStatus  = "OutOfSupport"              # -> OS-01
+            IPv4             = "10.0.0.1"
+            UptimeHrs        = 8760
+            FreeDiskGB       = 1.2
+            FreeDiskPct      = "2 %"
+            Status           = "Error"                     # -> SRV-01-E + SRV-02
         }
+        [PSCustomObject]@{
+            Server           = "MOCK-DC-02"
+            OS               = "Windows Server 2016"       # OutOfMainstream
+            OSSupportStatus  = "OutOfMainstream"           # -> OS-01
+            IPv4             = "10.0.0.2"
+            UptimeHrs        = 4380
+            FreeDiskGB       = 8.5
+            FreeDiskPct      = "12 %"
+            Status           = "Warning"                   # -> SRV-01-W
+        }
+        [PSCustomObject]@{
+            Server           = "MOCK-DC-03"
+            OS               = "Windows Server 2019"
+            OSSupportStatus  = "OK"
+            IPv4             = "-"
+            UptimeHrs        = "-"
+            FreeDiskGB       = "-"
+            FreeDiskPct      = "-"
+            Status           = "Error"                     # -> SRV-02 (nicht erreichbar)
+        }
+    )
 
-        # Entra ID (Version veraltet)
-        Entra = [PSCustomObject]@{
-            Server           = "SRVAPP02 (MOCK)"
-            InstalledVersion = "1.1.0.0" # Veraltet
-            ExpectedVersion  = $Settings.EntraID.ExpectedAgentVersion
-            FoundAnyService  = $true
-            ServiceDetails   = @(
-                [PSCustomObject]@{ Name = "Microsoft Entra Connect Sync"; Status = "Stopped" }
+    # -----------------------------------------------------------------------
+    # BACKUP
+    # Ausgeloeste Regeln:
+    #   BK-01: Status = "Warning" (> 24h, <= 7 Tage)  -> Medium
+    #   BK-02: Status = "Critical" (> 7 Tage)          -> High
+    # -----------------------------------------------------------------------
+    $backupData = @(
+        [PSCustomObject]@{
+            Partition  = "DC=contoso,DC=local"
+            LastBackup = (Get-Date).AddDays(-35).ToString("dd.MM.yyyy HH:mm")
+            Days       = 35
+            Hours      = 0
+            Status     = "Critical"   # -> BK-02
+        }
+        [PSCustomObject]@{
+            Partition  = "CN=Configuration,DC=contoso,DC=local"
+            LastBackup = (Get-Date).AddDays(-3).ToString("dd.MM.yyyy HH:mm")
+            Days       = 3
+            Hours      = 0
+            Status     = "Warning"    # -> BK-01
+        }
+        [PSCustomObject]@{
+            Partition  = "CN=Schema,CN=Configuration,DC=contoso,DC=local"
+            LastBackup = $null
+            Days       = 0
+            Hours      = 0
+            Status     = "Error"      # -> BK-02
+        }
+    )
+
+    # -----------------------------------------------------------------------
+    # SERVICES
+    # Ausgeloeste Regeln:
+    #   SVC-NTDS: NTDS  Status=Error -> High
+    #   SVC-NET:  Netlogon Status=Error -> High
+    #   SVC-DNS:  DNS Status=Error -> High
+    #   SVC-KDC:  Kdc Status=Error -> High
+    # -----------------------------------------------------------------------
+    $svcData = @(
+        [PSCustomObject]@{ Server="MOCK-DC-01"; Service="NTDS";    Status="Error"; StartType="Automatic" }
+        [PSCustomObject]@{ Server="MOCK-DC-01"; Service="Netlogon"; Status="Error"; StartType="Automatic" }
+        [PSCustomObject]@{ Server="MOCK-DC-01"; Service="DNS";     Status="Error"; StartType="Automatic" }
+        [PSCustomObject]@{ Server="MOCK-DC-01"; Service="Kdc";     Status="Error"; StartType="Automatic" }
+        [PSCustomObject]@{ Server="MOCK-DC-02"; Service="NTDS";    Status="Error"; StartType="Automatic" }
+        [PSCustomObject]@{ Server="MOCK-DC-02"; Service="DNS";     Status="Error"; StartType="Automatic" }
+    )
+
+    # -----------------------------------------------------------------------
+    # SITES & SERVICES
+    # Ausgeloeste Regeln:
+    #   SITE-01: ReplInterval > 15 Min         -> Medium
+    #   SITE-02: Subnet ohne Site-Zuweisung    -> High
+    #   SITE-03: ChangeNotification = Disabled -> Medium
+    #   SITE-04: Site ohne GC                  -> Medium
+    #   SITE-05: Keine Subnetze definiert      -> (Site mit leeren Subnets triggert SITE-02)
+    # -----------------------------------------------------------------------
+    $sitesData = [PSCustomObject]@{
+        Transports = @(
+            [PSCustomObject]@{
+                Name               = "DEFAULTIPSITELINK"
+                Type               = "Site Link"
+                Description        = "Standard Site Link (MOCK)"
+                Cost               = 100
+                ReplInterval       = 180    # 180 Min -> triggert SITE-01 (> 15)
+                ChangeNotification = "Disabled"  # -> triggert SITE-03
+            }
+            [PSCustomObject]@{
+                Name               = "BRANCH-HQ-LINK"
+                Type               = "Site Link"
+                Description        = "Branch Office zu HQ"
+                Cost               = 200
+                ReplInterval       = 60     # 60 Min -> triggert SITE-01
+                ChangeNotification = "Disabled"
+            }
+        )
+        Subnets = @(
+            [PSCustomObject]@{ Name = "10.0.0.0/24";  Site = "Default-First-Site-Name" }
+            [PSCustomObject]@{ Name = "192.168.1.0/24"; Site = "-" }   # Kein Site -> SITE-02
+            [PSCustomObject]@{ Name = "172.16.0.0/16";  Site = "-" }   # Kein Site -> SITE-02
+        )
+        Sites = @(
+            [PSCustomObject]@{
+                Name        = "Default-First-Site-Name"
+                Servers     = @(
+                    [PSCustomObject]@{ Name = "MOCK-DC-01"; IsGC = $true  }
+                    [PSCustomObject]@{ Name = "MOCK-DC-02"; IsGC = $false }
+                )
+                Connections = @(
+                    [PSCustomObject]@{ Source="MOCK-DC-02"; Transport="IP"; Enabled="Enabled"; DestinationServer="MOCK-DC-01" }
+                )
+            }
+            [PSCustomObject]@{
+                Name        = "BackOffice"
+                Servers     = @()    # Keine Server -> triggert SITE-04 (kein GC)
+                Connections = @()
+            }
+            [PSCustomObject]@{
+                Name        = "BranchOffice"
+                Servers     = @(
+                    [PSCustomObject]@{ Name = "MOCK-DC-03"; IsGC = $false }  # Kein GC -> SITE-04
+                )
+                Connections = @()
+            }
+        )
+    }
+
+    # -----------------------------------------------------------------------
+    # SECURITY (Accounts & Kennwortrichtlinie)
+    # Ausgeloeste Regeln:
+    #   SEC-01: InactiveUsers > 0    -> High
+    #   SEC-02: NoPwdExpiryUsers > 0 -> High
+    #   SEC-03: ExpiredPwdUsers > 0  -> Medium
+    #   SEC-04: DomAdminCount > 5    -> High
+    #   SEC-05: EntAdminCount > 2    -> High  (Condition ist >5 aber wir nehmen > 5 = 10)
+    #   SEC-06: SchAdminCount > 1    -> Medium
+    #   PWD-01: MinPwdLength < 12    -> High
+    #   PWD-02: Complexity = false   -> High
+    #   PWD-03: PwdHistory < 24      -> Medium
+    #   PWD-04: LockoutThresh = 0    -> High
+    #   PWD-05: LockoutDuration < 15 -> Medium
+    #   PWD-06: ResetLockoutCount < 15 -> Medium
+    # -----------------------------------------------------------------------
+    $secData = [PSCustomObject]@{
+        InactiveUsers         = 72      # > 0 -> SEC-01
+        NoPwdExpiryUsers      = 102     # > 0 -> SEC-02
+        ExpiredPwdUsers       = 38      # > 0 -> SEC-03
+        DisabledUsers         = 215
+        DomAdminCount         = 18      # > 5 -> SEC-04
+        EntAdminCount         = 8       # > 5 -> SEC-05
+        SchAdminCount         = 3       # > 1 -> SEC-06
+        Complexity            = $false  # Deaktiviert -> PWD-02
+        MinPwdLength          = 6       # < 12 -> PWD-01
+        MinPwdAge             = 0
+        MaxPwdAge             = 42
+        PwdHistory            = 5       # < 24 -> PWD-03
+        LockoutThresh         = 0       # = 0  -> PWD-04
+        LockoutDuration       = 5       # < 15 -> PWD-05
+        ResetLockoutCount     = 5       # < 15 -> PWD-06
+        InactiveThresholdDays = $Settings.Thresholds.InactiveAccountDays
+        RawExportData         = @()
+    }
+
+    # -----------------------------------------------------------------------
+    # OU & ACL AUDIT
+    # Ausgeloeste Regeln:
+    #   SEC-07: UniqueOrphanCount > 0       -> Medium
+    #   SEC-08: DisabledInheritanceOU > 0   -> High
+    #   SEC-09: DisabledInheritanceUser > 0 -> Medium
+    # -----------------------------------------------------------------------
+    $ouSecData = [PSCustomObject]@{
+        TotalOrphanCount  = 847
+        UniqueOrphanCount = 51    # > 0 -> SEC-07
+        TopOrphanedSIDs   = @(
+            [PSCustomObject]@{ Name = "S-1-5-21-999-888-777-1001"; Count = 2400 }
+            [PSCustomObject]@{ Name = "S-1-5-21-999-888-777-1145"; Count = 891 }
+            [PSCustomObject]@{ Name = "S-1-5-21-999-888-777-2210"; Count = 312 }
+        )
+        DisabledInheritanceOU = @(
+            [PSCustomObject]@{ Name = "Tier0-Admins";  DN = "OU=Tier0-Admins,DC=contoso,DC=local" }
+            [PSCustomObject]@{ Name = "ServiceAccounts"; DN = "OU=ServiceAccounts,DC=contoso,DC=local" }
+            [PSCustomObject]@{ Name = "Workstations";  DN = "OU=Workstations,DC=contoso,DC=local" }
+        )   # > 0 -> SEC-08
+        DisabledInheritanceUser = foreach ($i in 1..20) {
+            [PSCustomObject]@{ Name = "svc_app$i"; DN = "CN=svc_app$i,OU=ServiceAccounts,DC=contoso,DC=local" }
+        }   # > 0 -> SEC-09
+    }
+
+    # -----------------------------------------------------------------------
+    # ENTRA ID SYNC
+    # Ausgeloeste Regeln:
+    #   ENT-01: InstalledVersion < ExpectedVersion -> Medium
+    #   ENT-02: ServiceStatus = Stopped           -> High
+    # -----------------------------------------------------------------------
+    $entraData = [PSCustomObject]@{
+        Server           = "SRVAPP02 (MOCK)"
+        InstalledVersion = "1.1.0.0"    # Veraltet -> ENT-01
+        ExpectedVersion  = $Settings.EntraID.ExpectedAgentVersion
+        FoundAnyService  = $true
+        ServiceDetails   = @(
+            [PSCustomObject]@{ Name = "Microsoft Entra Connect Sync";          Status = "Stopped" }  # -> ENT-02
+            [PSCustomObject]@{ Name = "Microsoft Azure AD Connect Agent Updater"; Status = "Stopped" }
+        )
+    }
+
+    # -----------------------------------------------------------------------
+    # DNS HEALTH
+    # Ausgeloeste Regeln:
+    #   DNS-01: ScavengingZoneMismatch (einige Zonen ohne Scavenging) -> Medium
+    #   DNS-02: SRV-Record fehlt (PDC Critical)                       -> High
+    #   DNS-03: Nameserver nicht erreichbar                            -> High
+    #   DNS-04: Nicht AD-integrierte Zone                              -> Low
+    #   DNS-05: Zone gestoppt                                          -> High
+    #   DNS-06: Scavenging global deaktiviert (alle Zonen fehlen)     -> Low
+    #   DNS-07: DNSSEC nicht konfiguriert                              -> Low
+    # -----------------------------------------------------------------------
+    $dnsData = [PSCustomObject]@{
+        ForwardZones = @(
+            [PSCustomObject]@{
+                ZoneName         = "contoso.local"
+                ZoneType         = "Primary"
+                IsADIntegrated   = $true
+                ZoneStatus       = "Running"
+                ReplicationScope = "Domain"
+                IsSigned         = $false    # -> DNS-07 (DNSSEC fehlt)
+                Aging            = $null     # Kein Scavenging
+            }
+            [PSCustomObject]@{
+                ZoneName         = "legacy.contoso.local"
+                ZoneType         = "Primary"
+                IsADIntegrated   = $false    # -> DNS-04 (nicht AD-integriert)
+                ZoneStatus       = "Stopped" # -> DNS-05 (Zone gestoppt)
+                ReplicationScope = "None"
+                IsSigned         = $false
+                Aging            = $null
+            }
+        )
+        ReverseZones = @(
+            [PSCustomObject]@{
+                ZoneName         = "0.0.10.in-addr.arpa"
+                ZoneType         = "Primary"
+                IsADIntegrated   = $true
+                ZoneStatus       = "Running"
+                ReplicationScope = "Domain"
+                IsSigned         = $false
+                Aging            = $null     # Kein Scavenging
+            }
+        )
+        NSStatus = @(
+            [PSCustomObject]@{ Name = "mock-dc-01.contoso.local"; IP = "10.0.0.1"; Service = "Running"; ICMP = "OK"   }
+            [PSCustomObject]@{ Name = "mock-dc-02.contoso.local"; IP = "10.0.0.2"; Service = "Stopped"; ICMP = "Fail" }  # -> DNS-03
+            [PSCustomObject]@{ Name = "mock-dc-03.contoso.local"; IP = "-";        Service = "NotFound"; ICMP = "Fail" } # -> DNS-03
+        )
+        QuickChecks = @{
+            NSCondition       = @(
+                [PSCustomObject]@{ Name = "mock-dc-01.contoso.local"; Status = "OK"   }
+                [PSCustomObject]@{ Name = "mock-dc-02.contoso.local"; Status = "Fail" }
+                [PSCustomObject]@{ Name = "mock-dc-03.contoso.local"; Status = "Fail" }
+            )
+            # Alle 3 Zonen ohne Scavenging -> triggert DNS-06 (global disabled)
+            MissingScavenging = @("contoso.local", "legacy.contoso.local", "0.0.10.in-addr.arpa")
+            TotalZoneCount    = 3
+            SRVDetails        = @(
+                [PSCustomObject]@{ ServiceKey = "LDAP";     Status = "OK"       }
+                [PSCustomObject]@{ ServiceKey = "Kerberos"; Status = "OK"       }
+                [PSCustomObject]@{ ServiceKey = "GC";       Status = "OK"       }
+                [PSCustomObject]@{ ServiceKey = "PDC";      Status = "Critical" }  # -> DNS-02
             )
         }
-
-        # DNS Health (Fehlerhaft)
-        DNS = @()
     }
 
-    # Dummy Export Daten generieren
-    for ($i=1; $i -le 10; $i++) {
-        $mockData.Security.RawExportData += [PSCustomObject]@{
-            "Nachname" = "Mustermann_$i"; "Vorname" = "Max"; "UPN" = "max$i@contoso.local"; "Aktiv" = "Ja"; "Grund" = "Inaktiv"
+    # -----------------------------------------------------------------------
+    # CSV Export-Daten (lokalisiert via I18n)
+    # -----------------------------------------------------------------------
+    $rawExport = @()
+    for ($i = 1; $i -le 15; $i++) {
+        $rawExport += [PSCustomObject]@{
+            ($I18n.CsvHeaders.Surname)             = "Mustermann_$i"
+            ($I18n.CsvHeaders.GivenName)           = "Max"
+            ($I18n.CsvHeaders.UPN)                 = "max$i@contoso.local"
+            ($I18n.CsvHeaders.Active)              = if ($LangCode -eq "de") { "Ja" } else { "Yes" }
+            ($I18n.CsvHeaders.LastLogin)           = (Get-Date).AddDays(-($i * 30)).ToString("dd.MM.yyyy")
+            ($I18n.CsvHeaders.PasswordSet)         = (Get-Date).AddDays(-($i * 45)).ToString("dd.MM.yyyy")
+            ($I18n.CsvHeaders.PasswordNeverExpires) = if ($i % 3 -eq 0) { "Ja" } else { "Nein" }
+            ($I18n.CsvHeaders.Reason)              = $I18n.Reasons.Inactive -f $Settings.Thresholds.InactiveAccountDays
         }
     }
+    $secData.RawExportData = $rawExport
 
+    # -----------------------------------------------------------------------
+    # MOCK-DATEN ZUSAMMENSTELLEN
+    # -----------------------------------------------------------------------
+    $mockData = @{
+        DomainStats       = $domainStats
+        FSMO              = $fsmoData
+        Discovery         = $discoveryData
+        DCDiag            = $dcdiagData
+        Services          = $svcData
+        Backup            = $backupData
+        Sites             = $sitesData
+        Security          = $secData
+        OUAccountSecurity = $ouSecData
+        Entra             = $entraData
+        DNS               = $dnsData
+    }
+
+    Write-ADHCLog "Mock-Daten generiert: alle 69 Empfehlungsregeln aktiv." -Component "Discovery"
     return $mockData
 }
 

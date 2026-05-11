@@ -569,7 +569,7 @@ function Start-Analysis {
     $I18n = Get-ADHCI18n -Path (Join-Path $ScriptRoot "config") -Lang $LangCode
 
     if ($script:UseMockData) {
-        $rptData = Get-ADHCMockData -I18n $I18n -Settings $Settings
+        $rptData = Get-ADHCMockData -I18n $I18n -Settings $Settings -LangCode $LangCode
         $rptData.DomainStats.DomainFQDN += " (MOCK DATA)"
     } else {
 
