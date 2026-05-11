@@ -3,14 +3,11 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.1.0
-    Fixes:      - Get-ADSecurityInfo Signatur (I18n + LangCode Parameter)
-                - $script:UseMockData wird nach Sample-Report zurückgesetzt
-                - ProgressCallback für ACL-Analyse verdrahtet (Fortschrittsbalken)
-                - Input-Validierung vor Start-Analysis
-                - settings.json Safe-Merge (kein Datenverlust)
-                - Timeout bei Entra-Versionsabfrage
-                - Debug Write-Host entfernt
+    Version:    2.2.0
+    Changelog:  - Prerequisite-Check: PowerShell-Version, Admin-Rechte,
+                  RSAT-AD, DNS-Modul, WinRM, .NET Framework
+                - Automatische Installations-Abfrage bei fehlenden Features
+                - Alle bisherigen Fixes aus v2.1.0
 #>
 
 param(
@@ -25,16 +22,332 @@ $ScriptRoot  = $PSScriptRoot
 $OutputPath  = Join-Path $PSScriptRoot "output"
 $ModulePath  = Join-Path $ScriptRoot "modules"
 
-# $script:UseMockData sauber initialisieren (Fix #2)
 $script:UseMockData = $false
 
+# ===========================================================================
+# PREREQUISITE-CHECK
+# Prüft alle Abhängigkeiten VOR dem Laden der Module.
+# Fehlende optionale Features können direkt installiert werden.
+# ===========================================================================
+function Test-ADHCPrerequisites {
+
+    # Hilfsfunktion: farbige Statuszeile
+    function Write-CheckResult {
+        param([string]$Label, [string]$Status, [string]$Detail = "")
+        $color = switch ($Status) {
+            "OK"      { "Green"  }
+            "WARN"    { "Yellow" }
+            "FEHLER"  { "Red"    }
+            default   { "White"  }
+        }
+        $padLabel = $Label.PadRight(45, '.')
+        Write-Host "  $padLabel " -NoNewline
+        Write-Host "[$Status]" -ForegroundColor $color -NoNewline
+        if ($Detail) { Write-Host "  $Detail" -ForegroundColor Gray } else { Write-Host "" }
+    }
+
+    Write-Host ""
+    Write-Host "  ╔══════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "  ║     ADHealthCheck — Systemvoraussetzungen        ║" -ForegroundColor Cyan
+    Write-Host "  ╚══════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
+
+    $allCriticalOk = $true
+    $installQueue  = @()   # Sammelt Features die installiert werden sollen
+
+    # -------------------------------------------------------------------
+    # 1. ADMINISTRATOR-RECHTE (Kritisch — ohne Admin kein AD-Zugriff)
+    # -------------------------------------------------------------------
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+                 [Security.Principal.WindowsBuiltInRole]::Administrator)
+    if ($isAdmin) {
+        Write-CheckResult "Administrator-Rechte" "OK"
+    } else {
+        Write-CheckResult "Administrator-Rechte" "FEHLER" "Skript muss als Administrator ausgefuehrt werden"
+        Write-Host ""
+        Write-Host "  ABBRUCH: Bitte PowerShell als Administrator starten und erneut ausfuehren." -ForegroundColor Red
+        Write-Host "  Tipp: Rechtsklick auf PowerShell -> 'Als Administrator ausfuehren'" -ForegroundColor Yellow
+        Write-Host ""
+        Read-Host "  Enter druecken zum Beenden"
+        exit 1
+    }
+
+    # -------------------------------------------------------------------
+    # 2. POWERSHELL-VERSION (Kritisch — min. 5.1 Desktop)
+    # -------------------------------------------------------------------
+    $psVer   = $PSVersionTable.PSVersion
+    $psEdition = $PSVersionTable.PSEdition
+    $psOk    = ($psVer.Major -gt 5) -or ($psVer.Major -eq 5 -and $psVer.Minor -ge 1)
+    $psCore  = ($psEdition -eq "Core")   # PS Core (6+) wird nicht unterstützt (WinForms!)
+
+    if ($psCore) {
+        Write-CheckResult "PowerShell-Version" "FEHLER" "PowerShell Core $psVer nicht unterstuetzt — benoetigt Desktop 5.1"
+        Write-Host ""
+        Write-Host "  ABBRUCH: Bitte Windows PowerShell 5.1 (nicht PowerShell Core/7) verwenden." -ForegroundColor Red
+        Write-Host ""
+        Read-Host "  Enter druecken zum Beenden"
+        exit 1
+    } elseif ($psOk) {
+        Write-CheckResult "PowerShell-Version" "OK" "v$psVer (Desktop)"
+    } else {
+        Write-CheckResult "PowerShell-Version" "FEHLER" "v$psVer gefunden — benoetigt >= 5.1"
+        $allCriticalOk = $false
+    }
+
+    # -------------------------------------------------------------------
+    # 3. .NET FRAMEWORK (Kritisch — WinForms benötigt .NET 4.5+)
+    # -------------------------------------------------------------------
+    try {
+        $dotnetKey = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" -ErrorAction Stop
+        $release   = $dotnetKey.Release
+        # Release 379893 = .NET 4.5.2 / 528040 = .NET 4.8
+        if ($release -ge 379893) {
+            $dotnetVer = switch ($true) {
+                ($release -ge 528040) { "4.8" }
+                ($release -ge 461808) { "4.7.2" }
+                ($release -ge 460798) { "4.7" }
+                ($release -ge 394802) { "4.6.2" }
+                ($release -ge 379893) { "4.5.2" }
+                default               { "4.x" }
+            }
+            Write-CheckResult ".NET Framework" "OK" "v$dotnetVer"
+        } else {
+            Write-CheckResult ".NET Framework" "FEHLER" "v4.5+ benoetigt (Release $release gefunden)"
+            $allCriticalOk = $false
+        }
+    } catch {
+        Write-CheckResult ".NET Framework" "WARN" ".NET 4.x Registry-Key nicht gefunden"
+    }
+
+    # -------------------------------------------------------------------
+    # 4. RSAT: ActiveDirectory-Modul (Kritisch — Kernfunktion)
+    # -------------------------------------------------------------------
+    $adModAvail = Get-Module -ListAvailable -Name ActiveDirectory -ErrorAction SilentlyContinue
+    if ($adModAvail) {
+        Write-CheckResult "RSAT: ActiveDirectory-Modul" "OK" "v$($adModAvail[0].Version)"
+    } else {
+        Write-CheckResult "RSAT: ActiveDirectory-Modul" "FEHLER" "Nicht installiert — benoetigt fuer alle AD-Abfragen"
+        $allCriticalOk = $false
+        $installQueue += [PSCustomObject]@{
+            Name        = "RSAT: ActiveDirectory-Modul"
+            Critical    = $true
+            InstallCmd  = {
+                $osInfo = Get-WmiObject Win32_OperatingSystem
+                if ($osInfo.ProductType -eq 1) {
+                    # Windows 10/11 Client
+                    if (Get-Command Add-WindowsCapability -ErrorAction SilentlyContinue) {
+                        Add-WindowsCapability -Online -Name "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0" -ErrorAction Stop
+                    } else {
+                        throw "Add-WindowsCapability nicht verfuegbar. Bitte RSAT manuell installieren."
+                    }
+                } else {
+                    # Windows Server
+                    Install-WindowsFeature RSAT-AD-PowerShell -ErrorAction Stop
+                }
+            }
+        }
+    }
+
+    # -------------------------------------------------------------------
+    # 5. RSAT: DNS-Server-Tools (Optional — nur fuer DNS-Sektion)
+    # -------------------------------------------------------------------
+    $dnsModAvail = Get-Module -ListAvailable -Name DnsServer -ErrorAction SilentlyContinue
+    if ($dnsModAvail) {
+        Write-CheckResult "RSAT: DNS-Server-Tools" "OK" "v$($dnsModAvail[0].Version)"
+    } else {
+        Write-CheckResult "RSAT: DNS-Server-Tools" "WARN" "Nicht installiert — DNS-Analyse wird deaktiviert"
+        $installQueue += [PSCustomObject]@{
+            Name        = "RSAT: DNS-Server-Tools"
+            Critical    = $false
+            InstallCmd  = {
+                $osInfo = Get-WmiObject Win32_OperatingSystem
+                if ($osInfo.ProductType -eq 1) {
+                    Add-WindowsCapability -Online -Name "Rsat.Dns.Tools~~~~0.0.1.0" -ErrorAction Stop
+                } else {
+                    Install-WindowsFeature RSAT-DNS-Server -ErrorAction Stop
+                }
+            }
+        }
+    }
+
+    # -------------------------------------------------------------------
+    # 6. RSAT: GroupPolicy-Tools (Optional — für GPO-Checks, zukünftig)
+    # -------------------------------------------------------------------
+    $gpModAvail = Get-Module -ListAvailable -Name GroupPolicy -ErrorAction SilentlyContinue
+    if ($gpModAvail) {
+        Write-CheckResult "RSAT: GroupPolicy-Tools" "OK" "v$($gpModAvail[0].Version)"
+    } else {
+        Write-CheckResult "RSAT: GroupPolicy-Tools" "WARN" "Nicht installiert — GPO-Analyse nicht verfuegbar"
+        $installQueue += [PSCustomObject]@{
+            Name        = "RSAT: GroupPolicy-Tools"
+            Critical    = $false
+            InstallCmd  = {
+                $osInfo = Get-WmiObject Win32_OperatingSystem
+                if ($osInfo.ProductType -eq 1) {
+                    Add-WindowsCapability -Online -Name "Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0" -ErrorAction Stop
+                } else {
+                    Install-WindowsFeature GPMC -ErrorAction Stop
+                }
+            }
+        }
+    }
+
+    # -------------------------------------------------------------------
+    # 7. WinRM (Optional — für Remote-Abfragen zu DCs und Entra-Server)
+    # -------------------------------------------------------------------
+    try {
+        $winrmSvc = Get-Service WinRM -ErrorAction Stop
+        if ($winrmSvc.Status -eq "Running") {
+            Write-CheckResult "WinRM-Dienst" "OK" "Gestartet"
+        } else {
+            Write-CheckResult "WinRM-Dienst" "WARN" "Gestoppt — Remote-Abfragen (Entra-Check) beeintraechtigt"
+            $installQueue += [PSCustomObject]@{
+                Name       = "WinRM aktivieren"
+                Critical   = $false
+                InstallCmd = { Enable-PSRemoting -Force -ErrorAction Stop }
+            }
+        }
+    } catch {
+        Write-CheckResult "WinRM-Dienst" "WARN" "Status konnte nicht ermittelt werden"
+    }
+
+    # -------------------------------------------------------------------
+    # 8. Ausführungsrichtlinie (Warnung wenn zu restriktiv)
+    # -------------------------------------------------------------------
+    $execPolicy = Get-ExecutionPolicy -Scope Process
+    $effPolicy  = Get-ExecutionPolicy
+    if ($effPolicy -in @("Restricted", "AllSigned")) {
+        Write-CheckResult "Ausfuehrungsrichtlinie" "WARN" "$effPolicy — Skript-Ausfuehrung evtl. eingeschraenkt"
+    } else {
+        Write-CheckResult "Ausfuehrungsrichtlinie" "OK" "$effPolicy"
+    }
+
+    # -------------------------------------------------------------------
+    # 9. Netzwerk / AD-Erreichbarkeit
+    # -------------------------------------------------------------------
+    try {
+        $domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+        Write-CheckResult "AD-Domaene erreichbar" "OK" $domainObj.Name
+    } catch {
+        Write-CheckResult "AD-Domaene erreichbar" "WARN" "Keine Domäne gefunden oder nicht erreichbar"
+    }
+
+    # -------------------------------------------------------------------
+    # INSTALLATIONS-DIALOG
+    # -------------------------------------------------------------------
+    Write-Host ""
+
+    if ($installQueue.Count -gt 0) {
+        $criticalMissing  = $installQueue | Where-Object { $_.Critical }
+        $optionalMissing  = $installQueue | Where-Object { -not $_.Critical }
+
+        if ($criticalMissing) {
+            Write-Host "  ┌─ KRITISCHE ABHÄNGIGKEITEN FEHLEN ─────────────────────┐" -ForegroundColor Red
+            foreach ($item in $criticalMissing) {
+                Write-Host "  │  • $($item.Name)" -ForegroundColor Red
+            }
+            Write-Host "  └───────────────────────────────────────────────────────┘" -ForegroundColor Red
+            Write-Host ""
+        }
+
+        if ($optionalMissing) {
+            Write-Host "  ┌─ OPTIONALE FEATURES FEHLEN ────────────────────────────┐" -ForegroundColor Yellow
+            foreach ($item in $optionalMissing) {
+                Write-Host "  │  • $($item.Name)" -ForegroundColor Yellow
+            }
+            Write-Host "  └────────────────────────────────────────────────────────┘" -ForegroundColor Yellow
+            Write-Host ""
+        }
+
+        # Interaktive Abfrage
+        $toInstall = @()
+        foreach ($item in $installQueue) {
+            $label   = if ($item.Critical) { "[KRITISCH]" } else { "[Optional]" }
+            $color   = if ($item.Critical) { "Red" }        else { "Yellow" }
+            Write-Host "  $label " -ForegroundColor $color -NoNewline
+            Write-Host "$($item.Name) installieren?" -NoNewline
+            Write-Host " [J/N]: " -NoNewline -ForegroundColor Cyan
+            $answer = Read-Host
+            if ($answer -match '^[JjYy]') {
+                $toInstall += $item
+            }
+        }
+
+        # Installation durchführen
+        if ($toInstall.Count -gt 0) {
+            Write-Host ""
+            Write-Host "  Installiere fehlende Features..." -ForegroundColor Cyan
+
+            $installErrors = @()
+            foreach ($item in $toInstall) {
+                Write-Host "  ► $($item.Name)..." -NoNewline
+                try {
+                    & $item.InstallCmd
+                    Write-Host " OK" -ForegroundColor Green
+                } catch {
+                    Write-Host " FEHLER: $($_.Exception.Message)" -ForegroundColor Red
+                    $installErrors += $item.Name
+                }
+            }
+
+            if ($installErrors.Count -gt 0) {
+                Write-Host ""
+                Write-Host "  Folgende Features konnten nicht installiert werden:" -ForegroundColor Red
+                $installErrors | ForEach-Object { Write-Host "  • $_" -ForegroundColor Red }
+            }
+
+            # Nach Installation: kritische Module erneut prüfen
+            $stillMissingCritical = $toInstall | Where-Object {
+                $_.Critical -and -not (Get-Module -ListAvailable -Name ActiveDirectory -EA SilentlyContinue)
+            }
+
+            if ($stillMissingCritical) {
+                Write-Host ""
+                Write-Host "  ABBRUCH: Kritische Module sind nach der Installation immer noch nicht verfuegbar." -ForegroundColor Red
+                Write-Host "  Bitte System neu starten und Skript erneut ausfuehren." -ForegroundColor Yellow
+                Write-Host ""
+                Read-Host "  Enter druecken zum Beenden"
+                exit 1
+            }
+
+            Write-Host ""
+            Write-Host "  Installation abgeschlossen. Starte ADHealthCheck..." -ForegroundColor Green
+            Write-Host ""
+        } elseif ($criticalMissing) {
+            # Kritische Features abgelehnt -> Abbruch
+            Write-Host ""
+            Write-Host "  ABBRUCH: Ohne die kritischen Abhängigkeiten kann ADHealthCheck nicht gestartet werden." -ForegroundColor Red
+            Write-Host ""
+            Read-Host "  Enter druecken zum Beenden"
+            exit 1
+        } else {
+            # Nur optionale abgelehnt -> Warnung aber weiter
+            Write-Host "  Optionale Features wurden nicht installiert. Betroffene Sektionen werden deaktiviert." -ForegroundColor Yellow
+            Write-Host ""
+        }
+    } else {
+        Write-Host "  Alle Voraussetzungen erfuellt. Starte ADHealthCheck..." -ForegroundColor Green
+        Write-Host ""
+        Start-Sleep -Milliseconds 800
+    }
+
+    # Rückgabe: DNS-Modul verfügbar?
+    return @{
+        DNSModuleAvailable = [bool](Get-Module -ListAvailable -Name DnsServer -EA SilentlyContinue)
+        GPOModuleAvailable = [bool](Get-Module -ListAvailable -Name GroupPolicy -EA SilentlyContinue)
+    }
+}
+
+# Prereq-Check ausführen (gibt Feature-Status zurück)
+$prereqResult = Test-ADHCPrerequisites
+
 # ---------------------------------------------------------------------------
-# Module laden
+# Module laden (nach Prereq-Check — AD-Modul ist jetzt garantiert verfügbar)
 # ---------------------------------------------------------------------------
 try {
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.Utils.psm1")    -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.Diag.psm1")     -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.DNS.psm1")      -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.Utils.psm1")     -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.Diag.psm1")      -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.DNS.psm1")       -Force -ErrorAction Stop
     Import-Module (Join-Path $ModulePath "ADHealthCheck.EntraSync.psm1") -Force -ErrorAction Stop
     Import-Module (Join-Path $ModulePath "ADHealthCheck.Reporting.psm1") -Force -ErrorAction Stop
 } catch {
@@ -449,6 +762,29 @@ $chkSelectAllRec.Add_CheckedChanged({
 })
 
 $gbChecks.Height = $chkY + 45
+
+# ---------------------------------------------------------------------------
+# Prereq-Ergebnis auf GUI anwenden:
+# Fehlende optionale Module -> Checkboxen deaktivieren + Tooltip anzeigen
+# ---------------------------------------------------------------------------
+$toolTip = New-Object System.Windows.Forms.ToolTip
+$toolTip.AutoPopDelay = 8000
+$toolTip.InitialDelay = 400
+
+if (-not $prereqResult.DNSModuleAvailable) {
+    $chkDNS.Checked  = $false
+    $chkDNS.Enabled  = $false
+    $chkDNS.ForeColor = [System.Drawing.Color]::Gray
+    $chkRecDNS.Checked = $false
+    $chkRecDNS.Enabled = $false
+    $toolTip.SetToolTip($chkDNS, "Nicht verfuegbar: RSAT DNS-Tools nicht installiert")
+    $toolTip.SetToolTip($chkRecDNS, "Nicht verfuegbar: RSAT DNS-Tools nicht installiert")
+}
+
+if (-not $prereqResult.GPOModuleAvailable) {
+    # GPO-Sektion existiert noch nicht im GUI — nur für zukünftige Erweiterung
+    # (kein Checkbox vorhanden, daher kein Disable nötig)
+}
 
 # --- FORTSCHRITTSBEREICH ---
 $yStatusTop = $gbChecks.Location.Y + $gbChecks.Height + 15
