@@ -1,0 +1,52 @@
+﻿{
+    "DefaultLanguage":  "de",
+    "Company":  {
+                    "Name":  "LAKE Solutions AG",
+                    "Address":  "Hertistrasse 2, 8304 Wallisellen",
+                    "LogoUrl":  "./templates/logo-lake-transparent.png"
+                },
+    "Paths":  {
+                  "Output":  "./output/reports",
+                  "Data":  "./output/data",
+                  "Logs":  "./output/logs"
+              },
+    "Thresholds":  {
+                       "DiskFreePercentWarning":  15,
+                       "DiskFreePercentCritical":  5,
+                       "InactiveAccountDays":  90,
+                       "ReplicationLatencyMaxMinutes":  45,
+                       "MaxEventLogAgeDays":  30,
+                       "KrbtgtPasswordAgeDays":  180
+                   },
+    "EntraID":  {
+                    "SyncServer":  "SRVAPP02",
+                    "AutoUpdateVersion":  true,
+                    "ExpectedAgentVersion":  "2.6.3.0",
+                    "ServicesToCheck":  [
+                                            "Microsoft Azure AD Connect Agent Updater",
+                                            "Microsoft Azure AD Connect Authentication Agent",
+                                            "Microsoft Azure AD Sync",
+                                            "Microsoft Entra Connect Health Agent"
+                                        ]
+                },
+    "Execution":  {
+                      "ParallelThrottle":  10,
+                      "LogLevel":  "Info"
+                  },
+    "DNS":  {
+                "TargetServer":  "SRVDC01.ad.tibits.ch"
+            },
+    "ShowRecommendations":  {
+                                "Sites":  true,
+                                "Security":  true,
+                                "DNS":  true,
+                                "Backup":  true,
+                                "DCDIag":  false,
+                                "DCSystem":  true,
+                                "Entra":  true,
+                                "DomainOverview":  true,
+                                "FSMO":  true,
+                                "OUAccountSecurity":  true,
+                                "Services":  true
+                            }
+}

@@ -1,0 +1,28 @@
+﻿{
+    "ForestMode": {
+        "Windows2000Forest": "Windows 2000",
+        "Windows2003InterimForest": "Windows 2003 Interim",
+        "Windows2003Forest": "Windows 2003",
+        "Windows2008Forest": "Windows Server 2008",
+        "Windows2008R2Forest": "Windows Server 2008 R2",
+        "Windows2012Forest": "Windows Server 2012",
+        "Windows2012R2Forest": "Windows Server 2012 R2",
+        "Windows2016Forest": "Windows Server 2016",
+        "Windows2025Forest": "Windows Server 2025"
+    },
+    "DomainMode": {
+        "Windows2000Domain": "Windows 2000",
+        "Windows2003InterimDomain": "Windows 2003 Interim",
+        "Windows2003Domain": "Windows 2003",
+        "Windows2008Domain": "Windows Server 2008",
+        "Windows2008R2Domain": "Windows Server 2008 R2",
+        "Windows2012Domain": "Windows Server 2012",
+        "Windows2012R2Domain": "Windows Server 2012 R2",
+        "Windows2016Domain": "Windows Server 2016",
+        "Windows2025Domain": "Windows Server 2025"
+    },
+    "ServiceStatus": {
+        "Running": "Running",
+        "Stopped": "Stopped"
+    }
+}
