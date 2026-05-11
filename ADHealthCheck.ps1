@@ -1,11 +1,10 @@
-﻿<#
+<#
 .SYNOPSIS
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.3.1
-    Changelog:  - Behebung Update Routine
-				- Self-Update: automatischer Versionscheck gegen GitHub
+    Version:    2.3.0
+    Changelog:  - Self-Update: automatischer Versionscheck gegen GitHub
                 - Download aller Dateien mit Backup der alten Version
                 - Prereq-Check aus v2.2.0
                 - Alle bisherigen Fixes aus v2.1.0
@@ -349,13 +348,13 @@ $prereqResult = Test-ADHCPrerequisites
 # ===========================================================================
 
 # Aktuelle lokale Version (muss mit dem Header-Kommentar übereinstimmen)
-$script:LocalVersion = "2.3.1"
+$script:LocalVersion = "2.3.0"
 
 # GitHub Repository-Konfiguration
-$GitHubUser   = "janibrb"
-$GitHubRepo   = "ADHealthCheck"
-$GitHubBranch = "main"
-$GitHubRaw    = "https://raw.githubusercontent.com/$GitHubUser/$GitHubRepo/$GitHubBranch"
+$script:GitHubUser   = "janibrb"
+$script:GitHubRepo   = "ADHealthCheck"
+$script:GitHubBranch = "main"
+$script:GitHubRaw    = "https://raw.githubusercontent.com/$script:GitHubUser/$script:GitHubRepo/$script:GitHubBranch"
 
 function Invoke-ADHCUpdateCheck {
     param(
@@ -368,7 +367,13 @@ function Invoke-ADHCUpdateCheck {
 
     try {
         # Version aus dem Remote-Launcher lesen
-        $remoteUrl     = "$GitHubRaw/ADHealthCheck.ps1"
+        $remoteUrl = "$script:GitHubRaw/ADHealthCheck.ps1"
+
+        if (-not $script:GitHubRaw) {
+            Write-Host " Konfigurationsfehler (GitHubRaw leer)." -ForegroundColor Red
+            return
+        }
+
         $remoteContent = Invoke-WebRequest -Uri $remoteUrl -UseBasicParsing `
                             -TimeoutSec $TimeoutSec -ErrorAction Stop
 
@@ -446,26 +451,13 @@ function Invoke-ADHCUpdateCheck {
         $downloadErrors = @()
         $downloadCount  = 0
 
-        # WebClient ist in PS5.1 zuverlässiger als Invoke-WebRequest für Datei-Downloads:
-        # - Folgt Redirects automatisch (GitHub Raw gibt 301 zurück)
-        # - Schreibt Binärdaten direkt ohne Encoding-Probleme
-        # - Kein Content-Type Konflikt mit WriteAllBytes
-        # Subklasse mit Timeout-Unterstützung (WebClient hat keinen nativen Timeout)
-        $webClientType = @"
-using System.Net;
-public class TimedWebClient : WebClient {
-    public int TimeoutMs { get; set; }
-    public TimedWebClient(int timeoutMs) { TimeoutMs = timeoutMs; }
-    protected override WebRequest GetWebRequest(System.Uri uri) {
-        var req = base.GetWebRequest(uri);
-        req.Timeout = TimeoutMs;
-        return req;
-    }
-}
-"@
-        Add-Type -TypeDefinition $webClientType -ErrorAction SilentlyContinue
-        $webClient = New-Object TimedWebClient(($TimeoutSec * 1000))
-        $webClient.Headers.Add("User-Agent", "ADHealthCheck-Updater/1.0")
+        # Invoke-WebRequest mit -OutFile ist in PS5.1 der robusteste Download-Weg:
+        # - Schreibt direkt auf Disk (kein Speicher-Problem bei grossen Dateien)
+        # - Kein Add-Type / C#-Kompilierung nötig (kein "Type already exists"-Fehler)
+        # - $ProgressPreference = SilentlyContinue verhindert Fortschrittsanzeige im Terminal
+        #   (die normalerweise den Download massiv verlangsamt)
+        $savedProgress = $ProgressPreference
+        $ProgressPreference = 'SilentlyContinue'
 
         foreach ($entry in $updateFiles.GetEnumerator()) {
             $remotePath = $entry.Key
@@ -487,9 +479,10 @@ public class TimedWebClient : WebClient {
                     New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
                 }
 
-                # Datei direkt herunterladen (WebClient.DownloadFile schreibt binär, folgt Redirects)
-                $url = "$GitHubRaw/$remotePath"
-                $webClient.DownloadFile($url, $localPath)
+                # Download direkt auf Disk (-OutFile schreibt binär, folgt Redirects)
+                $url = "$script:GitHubRaw/$remotePath"
+                Invoke-WebRequest -Uri $url -OutFile $localPath `
+                    -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
 
                 Write-Host " OK" -ForegroundColor Green
                 $downloadCount++
@@ -509,7 +502,8 @@ public class TimedWebClient : WebClient {
             }
         }
 
-        $webClient.Dispose()
+        # Progress-Einstellung wiederherstellen
+        $ProgressPreference = $savedProgress
 
         # Zusammenfassung
         Write-Host ""
