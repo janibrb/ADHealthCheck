@@ -230,7 +230,6 @@ Add-Type -AssemblyName System.Drawing
 
 $form                  = New-Object System.Windows.Forms.Form
 $form.Text             = "AD Health Check (LAKE Solutions AG)"
-$form.Size             = New-Object System.Drawing.Size(520, 920)
 $form.StartPosition    = "CenterScreen"
 $form.FormBorderStyle  = "FixedDialog"
 $form.BackColor        = [System.Drawing.Color]::White
@@ -473,7 +472,7 @@ $btnSample.Font       = New-Object System.Drawing.Font("Segoe UI", 10, [System.D
 $form.Controls.Add($btnSample)
 
 # Form-Höhe dynamisch anpassen
-$form.ClientSize = New-Object System.Drawing.Size(490, ($yBtnTop + 75))
+$form.ClientSize = New-Object System.Drawing.Size(490, ($yBtnTop + 120))
 
 # ---------------------------------------------------------------------------
 # Sample-Button Handler
