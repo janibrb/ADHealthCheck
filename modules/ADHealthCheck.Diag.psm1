@@ -1,4 +1,4 @@
-﻿# MODULE: ADHealthCheck.Diag.psm1
+# MODULE: ADHealthCheck.Diag.psm1
 
 function Get-ADHCMockData {
     param($I18n, $Settings)
