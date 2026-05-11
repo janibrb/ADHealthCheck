@@ -228,26 +228,50 @@ if ($NoGui) {
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$form                  = New-Object System.Windows.Forms.Form
-$form.Text             = "AD Health Check (LAKE Solutions AG)"
-$form.StartPosition    = "CenterScreen"
-$form.FormBorderStyle  = "FixedDialog"
-$form.BackColor        = [System.Drawing.Color]::White
-
 $fontTitle = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
 $fontLabel = New-Object System.Drawing.Font("Segoe UI", 9)
 $fontInput = New-Object System.Drawing.Font("Segoe UI", 10)
 $colorBlue = [System.Drawing.Color]::FromArgb(0, 74, 135)
 $colorCyan = [System.Drawing.Color]::FromArgb(0, 169, 206)
 
+# ---------------------------------------------------------------------------
+# Form — Höhe wird auf nutzbaren Bildschirmbereich begrenzt (Taskleiste!)
+# ---------------------------------------------------------------------------
+$screenH      = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea.Height
+$formWidth    = 510
+$contentWidth = 470   # Scrollpanel-Innenbreite
+
+# Gesamthöhe des Inhalts berechnen (wird nach Erstellung auf Panel gesetzt)
+# Formhöhe = Min(Inhalt + Rahmen, verfügbarer Bildschirm - 20px Puffer)
+$form                 = New-Object System.Windows.Forms.Form
+$form.Text            = "AD Health Check (LAKE Solutions AG)"
+$form.Width           = $formWidth
+$form.StartPosition   = "CenterScreen"
+$form.FormBorderStyle = "Sizable"          # Resizable — User kann Fenster anpassen
+$form.MinimumSize     = New-Object System.Drawing.Size($formWidth, 400)
+$form.BackColor       = [System.Drawing.Color]::White
+
+# ---------------------------------------------------------------------------
+# ScrollablePanel — nimmt gesamten Inhalt auf, scrollt bei kleinem Bildschirm
+# ---------------------------------------------------------------------------
+$scrollPanel                    = New-Object System.Windows.Forms.Panel
+$scrollPanel.Dock               = [System.Windows.Forms.DockStyle]::Fill
+$scrollPanel.AutoScroll         = $true
+$scrollPanel.BackColor          = [System.Drawing.Color]::White
+$form.Controls.Add($scrollPanel)
+
+# ---------------------------------------------------------------------------
+# Ab hier alle Controls auf $scrollPanel (statt $form)
+# ---------------------------------------------------------------------------
+
 # --- HEADER ---
 $lblTitle           = New-Object System.Windows.Forms.Label
 $lblTitle.Text      = "Report Konfiguration"
 $lblTitle.Font      = $fontTitle
 $lblTitle.ForeColor = $colorBlue
-$lblTitle.Location  = New-Object System.Drawing.Point(25, 20)
+$lblTitle.Location  = New-Object System.Drawing.Point(20, 20)
 $lblTitle.AutoSize  = $true
-$form.Controls.Add($lblTitle)
+$scrollPanel.Controls.Add($lblTitle)
 
 # --- EINGABEFELDER ---
 [int]$yPos = 70
@@ -256,77 +280,77 @@ $form.Controls.Add($lblTitle)
 $lblLang          = New-Object System.Windows.Forms.Label
 $lblLang.Text     = "Sprache / Language:"
 $lblLang.Font     = $fontLabel
-$lblLang.Location = New-Object System.Drawing.Point(30, $yPos)
+$lblLang.Location = New-Object System.Drawing.Point(25, $yPos)
 $lblLang.AutoSize = $true
-$form.Controls.Add($lblLang)
+$scrollPanel.Controls.Add($lblLang)
 
-$cbLang                = New-Object System.Windows.Forms.ComboBox
-$cbLang.Location       = New-Object System.Drawing.Point(250, ($yPos - 3))
-$cbLang.Width          = 180
-$cbLang.DropDownStyle  = "DropDownList"
+$cbLang               = New-Object System.Windows.Forms.ComboBox
+$cbLang.Location      = New-Object System.Drawing.Point(240, ($yPos - 3))
+$cbLang.Width         = 185
+$cbLang.DropDownStyle = "DropDownList"
 [void]$cbLang.Items.Add("de")
 [void]$cbLang.Items.Add("en")
-$cbLang.SelectedItem   = $Language
-$form.Controls.Add($cbLang)
+$cbLang.SelectedItem  = $Language
+$scrollPanel.Controls.Add($cbLang)
 
 # Entra ID Sync Server
 $yPos += 40
 $lblSync          = New-Object System.Windows.Forms.Label
 $lblSync.Text     = "EntraID / ADSync Server:"
 $lblSync.Font     = $fontLabel
-$lblSync.Location = New-Object System.Drawing.Point(30, $yPos)
+$lblSync.Location = New-Object System.Drawing.Point(25, $yPos)
 $lblSync.AutoSize = $true
-$form.Controls.Add($lblSync)
+$scrollPanel.Controls.Add($lblSync)
 
 $txtSync          = New-Object System.Windows.Forms.TextBox
-$txtSync.Location = New-Object System.Drawing.Point(250, ($yPos - 3))
-$txtSync.Width    = 180
+$txtSync.Location = New-Object System.Drawing.Point(240, ($yPos - 3))
+$txtSync.Width    = 185
 $txtSync.Font     = $fontInput
 $txtSync.Text     = $Settings.EntraID.SyncServer
-$form.Controls.Add($txtSync)
+$scrollPanel.Controls.Add($txtSync)
 
 # Inaktive Tage
 $yPos += 40
 $lblDays          = New-Object System.Windows.Forms.Label
 $lblDays.Text     = "Inaktive Accounts (< X-Tage):"
 $lblDays.Font     = $fontLabel
-$lblDays.Location = New-Object System.Drawing.Point(30, $yPos)
+$lblDays.Location = New-Object System.Drawing.Point(25, $yPos)
 $lblDays.AutoSize = $true
-$form.Controls.Add($lblDays)
+$scrollPanel.Controls.Add($lblDays)
 
 $numDays          = New-Object System.Windows.Forms.NumericUpDown
-$numDays.Location = New-Object System.Drawing.Point(250, ($yPos - 3))
-$numDays.Width    = 180
+$numDays.Location = New-Object System.Drawing.Point(240, ($yPos - 3))
+$numDays.Width    = 185
 $numDays.Font     = $fontInput
 $numDays.Minimum  = 1
 $numDays.Maximum  = 999
 $numDays.Value    = [decimal]$Settings.Thresholds.InactiveAccountDays
-$form.Controls.Add($numDays)
+$scrollPanel.Controls.Add($numDays)
 
 # DNS Server
 $yPos += 40
 $lblDNSTarget          = New-Object System.Windows.Forms.Label
 $lblDNSTarget.Text     = "DNS Abfrage Server:"
 $lblDNSTarget.Font     = $fontLabel
-$lblDNSTarget.Location = New-Object System.Drawing.Point(30, $yPos)
+$lblDNSTarget.Location = New-Object System.Drawing.Point(25, $yPos)
 $lblDNSTarget.AutoSize = $true
-$form.Controls.Add($lblDNSTarget)
+$scrollPanel.Controls.Add($lblDNSTarget)
 
 $txtDNSServer          = New-Object System.Windows.Forms.TextBox
-$txtDNSServer.Location = New-Object System.Drawing.Point(250, ($yPos - 3))
-$txtDNSServer.Width    = 180
+$txtDNSServer.Location = New-Object System.Drawing.Point(240, ($yPos - 3))
+$txtDNSServer.Width    = 185
 $txtDNSServer.Font     = $fontInput
 $txtDNSServer.Text     = $defaultDNSServer
-$form.Controls.Add($txtDNSServer)
+$scrollPanel.Controls.Add($txtDNSServer)
 
 # --- CHECKBOXEN ---
 $yPos += 50
 $gbChecks          = New-Object System.Windows.Forms.GroupBox
 $gbChecks.Text     = "Analyse-Umfang & Empfehlungen"
 $gbChecks.Font     = $fontLabel
-$gbChecks.Location = New-Object System.Drawing.Point(25, $yPos)
-$gbChecks.Size     = New-Object System.Drawing.Size(460, 440)
-$form.Controls.Add($gbChecks)
+$gbChecks.Location = New-Object System.Drawing.Point(20, $yPos)
+$gbChecks.Size     = New-Object System.Drawing.Size(455, 440)
+$scrollPanel.Controls.Add($gbChecks)
 
 $lblCol1          = New-Object System.Windows.Forms.Label
 $lblCol1.Text     = "Bereich"
@@ -337,42 +361,42 @@ $gbChecks.Controls.Add($lblCol1)
 
 $lblCol2          = New-Object System.Windows.Forms.Label
 $lblCol2.Text     = "Empfehlungen"
-$lblCol2.Location = New-Object System.Drawing.Point(310, 25)
+$lblCol2.Location = New-Object System.Drawing.Point(305, 25)
 $lblCol2.Font     = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
 $lblCol2.AutoSize = $true
 $gbChecks.Controls.Add($lblCol2)
 
 $checks = @(
-    @{ Name="DomainStats";       Label="Domain Infrastruktur";             Var="chkDomain";  RecVar="chkRecDC"       },
-    @{ Name="FSMO";              Label="Betriebsmaster (FSMO)";            Var="chkFSMO";    RecVar="chkRecFSMO"     },
-    @{ Name="DCDiag";            Label="Verzeichnisdienst (AD)";           Var="chkDCDiag";  RecVar="chkRecDCDiag"   },
-    @{ Name="DCSystem";          Label="Domain Controller Health";         Var="chkDC";      RecVar="chkRecDCSystem" },
-    @{ Name="Backup";            Label="Disaster Recovery Readiness";      Var="chkBackup";  RecVar="chkRecBackup"   },
-    @{ Name="Services";          Label="AD Systemdienste";                 Var="chkSvc";     RecVar="chkRecSvc"      },
-    @{ Name="Sites";             Label="AD Standorte und Replikation";     Var="chkSites";   RecVar="chkRecSites"    },
-    @{ Name="Security";          Label="Identitäts-Sicherheit (Accounts)"; Var="chkSec";     RecVar="chkRecSec"      },
-    @{ Name="OUAccountSecurity"; Label="AD Objekt- und ACL-Audit";         Var="chkOUSec";   RecVar="chkRecOUSec"    },
-    @{ Name="Entra";             Label="Entra ID Sync";                    Var="chkEntra";   RecVar="chkRecEntra"    },
-    @{ Name="DNS";               Label="Namensauflösung (DNS Health)";     Var="chkDNS";     RecVar="chkRecDNS"      }
+    @{ Name="DomainStats";       Label="Domain Infrastruktur";              Var="chkDomain";  RecVar="chkRecDC"       },
+    @{ Name="FSMO";              Label="Betriebsmaster (FSMO)";             Var="chkFSMO";    RecVar="chkRecFSMO"     },
+    @{ Name="DCDiag";            Label="Verzeichnisdienst (AD)";            Var="chkDCDiag";  RecVar="chkRecDCDiag"   },
+    @{ Name="DCSystem";          Label="Domain Controller Health";          Var="chkDC";      RecVar="chkRecDCSystem" },
+    @{ Name="Backup";            Label="Disaster Recovery Readiness";       Var="chkBackup";  RecVar="chkRecBackup"   },
+    @{ Name="Services";          Label="AD Systemdienste";                  Var="chkSvc";     RecVar="chkRecSvc"      },
+    @{ Name="Sites";             Label="AD Standorte und Replikation";      Var="chkSites";   RecVar="chkRecSites"    },
+    @{ Name="Security";          Label="Identitaets-Sicherheit (Accounts)"; Var="chkSec";     RecVar="chkRecSec"      },
+    @{ Name="OUAccountSecurity"; Label="AD Objekt- und ACL-Audit";          Var="chkOUSec";   RecVar="chkRecOUSec"    },
+    @{ Name="Entra";             Label="Entra ID Sync";                     Var="chkEntra";   RecVar="chkRecEntra"    },
+    @{ Name="DNS";               Label="Namensaufloesung (DNS Health)";     Var="chkDNS";     RecVar="chkRecDNS"      }
 )
 
-$chkY                 = 55
-$allScopeCheckboxes   = New-Object System.Collections.Generic.List[System.Windows.Forms.CheckBox]
-$allRecCheckboxes     = New-Object System.Collections.Generic.List[System.Windows.Forms.CheckBox]
+$chkY               = 55
+$allScopeCheckboxes = New-Object System.Collections.Generic.List[System.Windows.Forms.CheckBox]
+$allRecCheckboxes   = New-Object System.Collections.Generic.List[System.Windows.Forms.CheckBox]
 
 foreach ($c in $checks) {
-    $cb           = New-Object System.Windows.Forms.CheckBox
-    $cb.Text      = $c.Label
-    $cb.Location  = New-Object System.Drawing.Point(20, $chkY)
-    $cb.AutoSize  = $true
-    $cb.Checked   = $true
+    $cb          = New-Object System.Windows.Forms.CheckBox
+    $cb.Text     = $c.Label
+    $cb.Location = New-Object System.Drawing.Point(20, $chkY)
+    $cb.AutoSize = $true
+    $cb.Checked  = $true
     $gbChecks.Controls.Add($cb)
     Set-Variable -Name $c.Var -Value $cb
     $allScopeCheckboxes.Add($cb)
 
     $cbRec          = New-Object System.Windows.Forms.CheckBox
     $cbRec.Text     = "Anzeigen"
-    $cbRec.Location = New-Object System.Drawing.Point(310, $chkY)
+    $cbRec.Location = New-Object System.Drawing.Point(305, $chkY)
     $cbRec.AutoSize = $true
     $cbRec.Checked  = $false
     $gbChecks.Controls.Add($cbRec)
@@ -385,7 +409,7 @@ $chkY += 15
 
 # Master-Checkbox Bereiche
 $chkSelectAllScope           = New-Object System.Windows.Forms.CheckBox
-$chkSelectAllScope.Text      = "Alle abwählen"
+$chkSelectAllScope.Text      = "Alle abwaehlen"
 $chkSelectAllScope.Location  = New-Object System.Drawing.Point(20, $chkY)
 $chkSelectAllScope.AutoSize  = $true
 $chkSelectAllScope.Checked   = $true
@@ -397,17 +421,17 @@ $chkSelectAllScope.Add_CheckedChanged({
     foreach ($cb in $allScopeCheckboxes) { $cb.Checked = $chkSelectAllScope.Checked }
     if ($chkSelectAllScope.Checked) {
         $chkSelectAllScope.ForeColor = $colorBlue
-        $chkSelectAllScope.Text      = "Alle abwählen"
+        $chkSelectAllScope.Text      = "Alle abwaehlen"
     } else {
         $chkSelectAllScope.ForeColor = [System.Drawing.Color]::Gray
-        $chkSelectAllScope.Text      = "Alle auswählen"
+        $chkSelectAllScope.Text      = "Alle auswaehlen"
     }
 })
 
 # Master-Checkbox Empfehlungen
 $chkSelectAllRec           = New-Object System.Windows.Forms.CheckBox
-$chkSelectAllRec.Text      = "Alle auswählen"
-$chkSelectAllRec.Location  = New-Object System.Drawing.Point(310, $chkY)
+$chkSelectAllRec.Text      = "Alle auswaehlen"
+$chkSelectAllRec.Location  = New-Object System.Drawing.Point(305, $chkY)
 $chkSelectAllRec.AutoSize  = $true
 $chkSelectAllRec.Checked   = $false
 $chkSelectAllRec.Font      = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Italic)
@@ -418,61 +442,71 @@ $chkSelectAllRec.Add_CheckedChanged({
     foreach ($cb in $allRecCheckboxes) { $cb.Checked = $chkSelectAllRec.Checked }
     if ($chkSelectAllRec.Checked) {
         $chkSelectAllRec.ForeColor = $colorBlue
-        $chkSelectAllRec.Text      = "Alle abwählen"
+        $chkSelectAllRec.Text      = "Alle abwaehlen"
     } else {
         $chkSelectAllRec.ForeColor = [System.Drawing.Color]::Gray
-        $chkSelectAllRec.Text      = "Alle auswählen"
+        $chkSelectAllRec.Text      = "Alle auswaehlen"
     }
 })
 
 $gbChecks.Height = $chkY + 45
 
-# --- FORTSCHRITTSBEREICH (Fix #3 — sichtbarer Status während ACL-Analyse) ---
+# --- FORTSCHRITTSBEREICH ---
 $yStatusTop = $gbChecks.Location.Y + $gbChecks.Height + 15
 
 $lblStatus           = New-Object System.Windows.Forms.Label
 $lblStatus.Text      = "Bereit."
 $lblStatus.Font      = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Italic)
 $lblStatus.ForeColor = [System.Drawing.Color]::Gray
-$lblStatus.Location  = New-Object System.Drawing.Point(30, $yStatusTop)
+$lblStatus.Location  = New-Object System.Drawing.Point(20, $yStatusTop)
 $lblStatus.Size      = New-Object System.Drawing.Size(440, 18)
-$form.Controls.Add($lblStatus)
+$scrollPanel.Controls.Add($lblStatus)
 
-$progressBar               = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location      = New-Object System.Drawing.Point(30, ($yStatusTop + 22))
-$progressBar.Size          = New-Object System.Drawing.Size(440, 14)
-$progressBar.Style         = "Continuous"
-$progressBar.Minimum       = 0
-$progressBar.Maximum       = 100
-$progressBar.Value         = 0
-$progressBar.Visible       = $false
-$form.Controls.Add($progressBar)
+$progressBar          = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Location = New-Object System.Drawing.Point(20, ($yStatusTop + 22))
+$progressBar.Size     = New-Object System.Drawing.Size(440, 14)
+$progressBar.Style    = "Continuous"
+$progressBar.Minimum  = 0
+$progressBar.Maximum  = 100
+$progressBar.Value    = 0
+$progressBar.Visible  = $false
+$scrollPanel.Controls.Add($progressBar)
 
 # --- BUTTONS ---
 $yBtnTop = $yStatusTop + 50
 
-$btnRun               = New-Object System.Windows.Forms.Button
-$btnRun.Text          = "Report erstellen"
-$btnRun.Location      = New-Object System.Drawing.Point(30, $yBtnTop)
-$btnRun.Size          = New-Object System.Drawing.Size(200, 45)
-$btnRun.BackColor     = $colorCyan
-$btnRun.ForeColor     = [System.Drawing.Color]::White
-$btnRun.FlatStyle     = "Flat"
-$btnRun.Font          = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-$form.Controls.Add($btnRun)
+$btnRun           = New-Object System.Windows.Forms.Button
+$btnRun.Text      = "Report erstellen"
+$btnRun.Location  = New-Object System.Drawing.Point(20, $yBtnTop)
+$btnRun.Size      = New-Object System.Drawing.Size(200, 45)
+$btnRun.BackColor = $colorCyan
+$btnRun.ForeColor = [System.Drawing.Color]::White
+$btnRun.FlatStyle = "Flat"
+$btnRun.Font      = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$scrollPanel.Controls.Add($btnRun)
 
-$btnSample            = New-Object System.Windows.Forms.Button
-$btnSample.Text       = "Sample Report"
-$btnSample.Location   = New-Object System.Drawing.Point(250, $yBtnTop)
-$btnSample.Size       = New-Object System.Drawing.Size(200, 45)
-$btnSample.BackColor  = [System.Drawing.Color]::FromArgb(100, 100, 100)
-$btnSample.ForeColor  = [System.Drawing.Color]::White
-$btnSample.FlatStyle  = "Flat"
-$btnSample.Font       = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-$form.Controls.Add($btnSample)
+$btnSample           = New-Object System.Windows.Forms.Button
+$btnSample.Text      = "Sample Report"
+$btnSample.Location  = New-Object System.Drawing.Point(240, $yBtnTop)
+$btnSample.Size      = New-Object System.Drawing.Size(200, 45)
+$btnSample.BackColor = [System.Drawing.Color]::FromArgb(100, 100, 100)
+$btnSample.ForeColor = [System.Drawing.Color]::White
+$btnSample.FlatStyle = "Flat"
+$btnSample.Font      = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$scrollPanel.Controls.Add($btnSample)
 
-# Form-Höhe dynamisch anpassen
-$form.ClientSize = New-Object System.Drawing.Size(490, ($yBtnTop + 120))
+# ---------------------------------------------------------------------------
+# Gesamtinhaltshöhe berechnen und Form-Höhe auf Bildschirm begrenzen
+# Scrollbar übernimmt den Rest automatisch
+# ---------------------------------------------------------------------------
+$totalContentHeight = $yBtnTop + 70   # Unterkante Buttons + Puffer
+$scrollPanel.AutoScrollMinSize = New-Object System.Drawing.Size($contentWidth, $totalContentHeight)
+
+# Form-Höhe = min(Inhalt + Titelleiste, nutzbarer Bildschirm - 20px Puffer)
+$titleBarHeight  = 39   # Titelleiste + Rahmen
+$desiredFormH    = $totalContentHeight + $titleBarHeight
+$finalFormH      = [Math]::Min($desiredFormH, ($screenH - 20))
+$form.Height     = $finalFormH
 
 # ---------------------------------------------------------------------------
 # Sample-Button Handler
