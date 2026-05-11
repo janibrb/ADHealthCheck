@@ -125,9 +125,11 @@ function Get-ADDNSHealthStatus {
         }
 		
 		# --- Quick Check: Scavenging Status ---
+		# Fix: $allTestedZones (nur Forward+Reverse) statt $allZones (enthält Forwarder)
+		# Konsistent mit TotalZoneCount in Reporting
 		$zonesWithoutScavenging = @()
-		$allTestedZones = $forwardZones + $reverseZones
-		foreach ($zone in ($allZones)) {
+		$allTestedZones = @($forwardZones) + @($reverseZones)
+		foreach ($zone in $allTestedZones) {
 			if ($null -eq $zone.Aging -or $zone.Aging.AgingState -eq $false) {
 				$zonesWithoutScavenging += $zone.ZoneName
 			}

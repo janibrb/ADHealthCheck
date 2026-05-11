@@ -30,14 +30,15 @@ $ModulePath  = Join-Path $ScriptRoot "modules"
 $script:UseMockData = $false
 
 # ---------------------------------------------------------------------------
-# Module laden
+# Module laden — via .psd1 Manifeste (Versionsprüfung + saubere Abhängigkeiten)
 # ---------------------------------------------------------------------------
 try {
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.Utils.psm1")    -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.Diag.psm1")     -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.DNS.psm1")      -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.EntraSync.psm1") -Force -ErrorAction Stop
-    Import-Module (Join-Path $ModulePath "ADHealthCheck.Reporting.psm1") -Force -ErrorAction Stop
+    # Utils zuerst — alle anderen Module hängen davon ab (Write-ADHCLog)
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.Utils.psd1")     -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.Diag.psd1")      -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.DNS.psd1")       -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.EntraSync.psd1") -Force -ErrorAction Stop
+    Import-Module (Join-Path $ModulePath "ADHealthCheck.Reporting.psd1") -Force -ErrorAction Stop
 } catch {
     Write-Host "FATAL ERROR: Ein Modul konnte nicht geladen werden." -ForegroundColor Red
     Write-Host "Grund: $($_.Exception.Message)" -ForegroundColor Yellow
@@ -374,10 +375,10 @@ $checks = @(
     @{ Name="Backup";            Label="Disaster Recovery Readiness";       Var="chkBackup";  RecVar="chkRecBackup"   },
     @{ Name="Services";          Label="AD Systemdienste";                  Var="chkSvc";     RecVar="chkRecSvc"      },
     @{ Name="Sites";             Label="AD Standorte und Replikation";      Var="chkSites";   RecVar="chkRecSites"    },
-    @{ Name="Security";          Label="Identitaets-Sicherheit (Accounts)"; Var="chkSec";     RecVar="chkRecSec"      },
+    @{ Name="Security";          Label="Identitäts-Sicherheit (Accounts)"; Var="chkSec";     RecVar="chkRecSec"      },
     @{ Name="OUAccountSecurity"; Label="AD Objekt- und ACL-Audit";          Var="chkOUSec";   RecVar="chkRecOUSec"    },
     @{ Name="Entra";             Label="Entra ID Sync";                     Var="chkEntra";   RecVar="chkRecEntra"    },
-    @{ Name="DNS";               Label="Namensaufloesung (DNS Health)";     Var="chkDNS";     RecVar="chkRecDNS"      }
+    @{ Name="DNS";               Label="Namensauflösung (DNS Health)";     Var="chkDNS";     RecVar="chkRecDNS"      }
 )
 
 $chkY               = 55
@@ -409,7 +410,7 @@ $chkY += 15
 
 # Master-Checkbox Bereiche
 $chkSelectAllScope           = New-Object System.Windows.Forms.CheckBox
-$chkSelectAllScope.Text      = "Alle abwaehlen"
+$chkSelectAllScope.Text      = "Alle abwählen"
 $chkSelectAllScope.Location  = New-Object System.Drawing.Point(20, $chkY)
 $chkSelectAllScope.AutoSize  = $true
 $chkSelectAllScope.Checked   = $true
@@ -421,16 +422,16 @@ $chkSelectAllScope.Add_CheckedChanged({
     foreach ($cb in $allScopeCheckboxes) { $cb.Checked = $chkSelectAllScope.Checked }
     if ($chkSelectAllScope.Checked) {
         $chkSelectAllScope.ForeColor = $colorBlue
-        $chkSelectAllScope.Text      = "Alle abwaehlen"
+        $chkSelectAllScope.Text      = "Alle abwählen"
     } else {
         $chkSelectAllScope.ForeColor = [System.Drawing.Color]::Gray
-        $chkSelectAllScope.Text      = "Alle auswaehlen"
+        $chkSelectAllScope.Text      = "Alle auswählen"
     }
 })
 
 # Master-Checkbox Empfehlungen
 $chkSelectAllRec           = New-Object System.Windows.Forms.CheckBox
-$chkSelectAllRec.Text      = "Alle auswaehlen"
+$chkSelectAllRec.Text      = "Alle auswählen"
 $chkSelectAllRec.Location  = New-Object System.Drawing.Point(305, $chkY)
 $chkSelectAllRec.AutoSize  = $true
 $chkSelectAllRec.Checked   = $false
@@ -442,10 +443,10 @@ $chkSelectAllRec.Add_CheckedChanged({
     foreach ($cb in $allRecCheckboxes) { $cb.Checked = $chkSelectAllRec.Checked }
     if ($chkSelectAllRec.Checked) {
         $chkSelectAllRec.ForeColor = $colorBlue
-        $chkSelectAllRec.Text      = "Alle abwaehlen"
+        $chkSelectAllRec.Text      = "Alle abwählen"
     } else {
         $chkSelectAllRec.ForeColor = [System.Drawing.Color]::Gray
-        $chkSelectAllRec.Text      = "Alle auswaehlen"
+        $chkSelectAllRec.Text      = "Alle auswählen"
     }
 })
 

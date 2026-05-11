@@ -39,11 +39,12 @@ function Write-ADHCLog {
     $logEntry = "[{0}][{1}][{2}] {3}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Level.ToUpper(), $Component, $Message
     Write-Host $logEntry -ForegroundColor $color
     
-    # Log Rotation / Pfad
-    $parentPath = Split-Path $PSScriptRoot -Parent
-    $logDir = Join-Path $parentPath "output\logs"
+    # Log-Pfad: vom Modul-Verzeichnis (modules\) eine Ebene hoch = Repo-Root, dann output\logs
+    # Robuster als Split-Path -Parent: funktioniert unabhängig vom Aufrufkontext
+    $repoRoot = Split-Path $PSScriptRoot -Parent
+    $logDir   = Join-Path $repoRoot "output\logs"
     if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-    
+
     $logFile = Join-Path $logDir "ADHealthCheck.log"
     $logEntry | Out-File -FilePath $logFile -Append -Encoding utf8
 }

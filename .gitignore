@@ -1,11 +1,12 @@
-# Output-Verzeichnis — enthält generierte Reports und CSV mit AD-Benutzerdaten (Datenschutz)
+# Output-Verzeichnis — enthält generierte Reports, CSVs und JSON-Exports
+# (können personenbezogene AD-Daten enthalten — Datenschutz!)
 output/
 
 # Lokale Konfigurationsbackups
 *.json.bak
 config/settings.json.bak
 
-# Logdateien
+# Log-Dateien
 *.log
 logs/
 
@@ -15,7 +16,9 @@ logs/
 # Windows
 Thumbs.db
 desktop.ini
+$RECYCLE.BIN/
 
-# Editor
+# VS Code / Editor
 .vscode/
 .idea/
+*.code-workspace

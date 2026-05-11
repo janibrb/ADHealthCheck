@@ -1,4 +1,4 @@
-﻿{
+{
     "Title": "Active Directory Health Check Report",
     "GenDate": "Generated on",
     "Sections": {
@@ -37,7 +37,7 @@
         "Property": "Property",
         "Value": "Value",
         "Server": "Server",
-		"OS": "Betriebssystem",
+		"OS": "Operating System",
 		"IPv4": "IPv4 Address",
 		"Uptime": "Uptime (h)",
 		"FreeDiskGB": "Free (GB)",
@@ -116,7 +116,7 @@
 		"ReverseZones": "Reverse Lookup Zone",
 		"NoZonesFound": "No zones found",
 		"Status": "Status",
-		"Replication": "Replikation",
+		"Replication": "Replication",
 		"NameserverStatus": "Status of Nameserver (NS)",
 		"DNSForwarder": "DNS Forwarder",
 		"DNSZoneHealth": "DNS Zone",
