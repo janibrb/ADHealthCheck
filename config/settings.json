@@ -34,7 +34,7 @@
                       "LogLevel":  "Info"
                   },
     "DNS":  {
-                "TargetServer":  "SRVDC01.ad.tibits.ch"
+                "TargetServer":  "SRVDC01.ad.domain.local"
             },
     "ShowRecommendations":  {
                                 "Sites":  true,
