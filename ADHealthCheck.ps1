@@ -3,9 +3,8 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.3.1
-    Changelog:  - Behebung auslesen der korrekten EntraID Version (Microsoft Learn)
-				- Self-Update: automatischer Versionscheck gegen GitHub
+    Version:    2.3.0
+    Changelog:  - Self-Update: automatischer Versionscheck gegen GitHub
                 - Download aller Dateien mit Backup der alten Version
                 - Prereq-Check aus v2.2.0
                 - Alle bisherigen Fixes aus v2.1.0
@@ -349,7 +348,7 @@ $prereqResult = Test-ADHCPrerequisites
 # ===========================================================================
 
 # Aktuelle lokale Version (muss mit dem Header-Kommentar übereinstimmen)
-$script:LocalVersion = "2.3.1"
+$script:LocalVersion = "2.3.0"
 
 # GitHub Repository-Konfiguration
 $GitHubUser   = "janibrb"
@@ -446,6 +445,27 @@ function Invoke-ADHCUpdateCheck {
         $downloadErrors = @()
         $downloadCount  = 0
 
+        # WebClient ist in PS5.1 zuverlässiger als Invoke-WebRequest für Datei-Downloads:
+        # - Folgt Redirects automatisch (GitHub Raw gibt 301 zurück)
+        # - Schreibt Binärdaten direkt ohne Encoding-Probleme
+        # - Kein Content-Type Konflikt mit WriteAllBytes
+        # Subklasse mit Timeout-Unterstützung (WebClient hat keinen nativen Timeout)
+        $webClientType = @"
+using System.Net;
+public class TimedWebClient : WebClient {
+    public int TimeoutMs { get; set; }
+    public TimedWebClient(int timeoutMs) { TimeoutMs = timeoutMs; }
+    protected override WebRequest GetWebRequest(System.Uri uri) {
+        var req = base.GetWebRequest(uri);
+        req.Timeout = TimeoutMs;
+        return req;
+    }
+}
+"@
+        Add-Type -TypeDefinition $webClientType -ErrorAction SilentlyContinue
+        $webClient = New-Object TimedWebClient(($TimeoutSec * 1000))
+        $webClient.Headers.Add("User-Agent", "ADHealthCheck-Updater/1.0")
+
         foreach ($entry in $updateFiles.GetEnumerator()) {
             $remotePath = $entry.Key
             $localPath  = $entry.Value
@@ -460,28 +480,35 @@ function Invoke-ADHCUpdateCheck {
                     Copy-Item $localPath $backupTarget -Force | Out-Null
                 }
 
-                # Neue Version herunterladen
-                $url      = "$GitHubRaw/$remotePath"
-                $response = Invoke-WebRequest -Uri $url -UseBasicParsing `
-                                -TimeoutSec $TimeoutSec -ErrorAction Stop
-
                 # Zielverzeichnis sicherstellen
                 $targetDir = Split-Path $localPath -Parent
                 if (-not (Test-Path $targetDir)) {
                     New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
                 }
 
-                # Binär speichern (Encoding bleibt exakt wie auf GitHub)
-                [System.IO.File]::WriteAllBytes($localPath, $response.Content)
+                # Datei direkt herunterladen (WebClient.DownloadFile schreibt binär, folgt Redirects)
+                $url = "$GitHubRaw/$remotePath"
+                $webClient.DownloadFile($url, $localPath)
 
                 Write-Host " OK" -ForegroundColor Green
                 $downloadCount++
 
             } catch {
-                Write-Host " FEHLER: $($_.Exception.Message)" -ForegroundColor Red
+                $errMsg = $_.Exception.InnerException.Message
+                if (-not $errMsg) { $errMsg = $_.Exception.Message }
+                Write-Host " FEHLER" -ForegroundColor Red
+                Write-Host "    $errMsg" -ForegroundColor DarkRed
                 $downloadErrors += $remotePath
+
+                # Backup wiederherstellen falls Download fehlschlug
+                $backupTarget = Join-Path $backupDir ($remotePath.Replace("/", "_"))
+                if (Test-Path $backupTarget) {
+                    Copy-Item $backupTarget $localPath -Force | Out-Null
+                }
             }
         }
+
+        $webClient.Dispose()
 
         # Zusammenfassung
         Write-Host ""
