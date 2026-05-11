@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html lang="{{LANG_CODE}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}}</title>
+    <style>
+        {{CSS_CONTENT}}
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            <img src="{{LOGO_URL}}" alt="Logo" class="logo" onerror="this.style.display='none'">
+            <div class="company-info">
+                <h1>{{COMPANY_NAME}}</h1>
+                <p>{{COMPANY_ADDRESS}}</p>
+            </div>
+        </div>
+        <div class="report-meta">
+            <h2>{{TITLE}}</h2>
+            <div class="report-badge">{{DATE}}</div>
+        </div>
+    </div>
+
+    <div class="container">
+        {{SECTION_DOMAIN_STATS}}
+
+        {{SECTION_FSMO}}
+
+        {{SECTION_DCDIAG}}
+
+        {{SECTION_DCS}}
+		
+		{{SECTION_BACKUP}}
+
+        {{SECTION_SERVICES}}
+
+        {{SECTION_SITES}}
+
+        {{SECTION_SECURITY}}
+		
+		{{SECTION_OU_ACCOUNT_SECURITY}}
+
+        {{SECTION_ENTRA}}
+		
+		{{SECTION_DNS}}
+		
+		{{SECTION_RECOMMENDATIONS}}
+        
+        <div class="footer">{{FOOTER_TEXT}}</div>
+    </div>
+
+</body>
+</html>

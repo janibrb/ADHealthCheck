@@ -1,5 +1,4 @@
-﻿
-<#
+﻿<#
 .SYNOPSIS
     Haupt-Launcher fuer AD Health Check mit GUI
 

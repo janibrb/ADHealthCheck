@@ -1,4 +1,4 @@
-﻿# MODULE: ADHealthCheck.Utils.psm1
+# MODULE: ADHealthCheck.Utils.psm1
 
 function Get-ADHCConfig {
     param([string]$Path)

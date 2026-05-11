@@ -1,4 +1,4 @@
-﻿# MODULE: ADHealthCheck.EntraSync.psm1
+# MODULE: ADHealthCheck.EntraSync.psm1
 
 function Get-EntraSyncStatus {
     param($Settings)

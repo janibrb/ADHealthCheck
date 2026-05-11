@@ -1,4 +1,4 @@
-﻿# MODULE: ADHealthCheck.DNS.psm1
+# MODULE: ADHealthCheck.DNS.psm1
 
 function Get-ADDNSHealthStatus {
     [CmdletBinding()]

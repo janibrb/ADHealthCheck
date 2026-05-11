@@ -1,4 +1,4 @@
-﻿# MODULE: ADHealthCheck.Reporting.psm1
+# MODULE: ADHealthCheck.Reporting.psm1
 
 function New-ADHCReport {
     param($Data, $Settings, $I18n, $Mapping, $TemplatePath, $LangCode="de")
