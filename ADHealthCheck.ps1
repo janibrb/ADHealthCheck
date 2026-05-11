@@ -76,9 +76,9 @@ function Test-ADHCPrerequisites {
     # 2. POWERSHELL-VERSION (Kritisch — min. 5.1 Desktop)
     # -------------------------------------------------------------------
     $psVer   = $PSVersionTable.PSVersion
-    $psEdition = $PSVersionTable.PSEdition
+    $psEditionVal = $PSVersionTable.PSEdition
     $psOk    = ($psVer.Major -gt 5) -or ($psVer.Major -eq 5 -and $psVer.Minor -ge 1)
-    $psCore  = ($psEdition -eq "Core")   # PS Core (6+) wird nicht unterstützt (WinForms!)
+    $psCore  = ($psEditionVal -eq "Core")   # PS Core (6+) wird nicht unterstützt (WinForms!)
 
     if ($psCore) {
         Write-CheckResult "PowerShell-Version" "FEHLER" "PowerShell Core $psVer nicht unterstuetzt — benoetigt Desktop 5.1"
