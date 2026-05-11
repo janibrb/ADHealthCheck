@@ -3,8 +3,9 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.3.0
-    Changelog:  - Self-Update: automatischer Versionscheck gegen GitHub
+    Version:    2.3.1
+    Changelog:  - Behebung auslesen der korrekten EntraID Version (Microsoft Learn)
+				- Self-Update: automatischer Versionscheck gegen GitHub
                 - Download aller Dateien mit Backup der alten Version
                 - Prereq-Check aus v2.2.0
                 - Alle bisherigen Fixes aus v2.1.0
@@ -348,7 +349,7 @@ $prereqResult = Test-ADHCPrerequisites
 # ===========================================================================
 
 # Aktuelle lokale Version (muss mit dem Header-Kommentar übereinstimmen)
-$script:LocalVersion = "2.3.0"
+$script:LocalVersion = "2.3.1"
 
 # GitHub Repository-Konfiguration
 $GitHubUser   = "janibrb"
