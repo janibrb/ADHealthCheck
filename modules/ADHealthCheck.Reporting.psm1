@@ -508,6 +508,7 @@ function New-ADHCReport {
     }
 	
 	# --- SEKTION: OU & KONTO SICHERHEIT ---
+	$htmlOUSec = ""  # Fix: Initialisierung vor dem if-Block verhindert NullPointerException
 	if ($Data.OUAccountSecurity) {
 		$ouSec = $Data.OUAccountSecurity
 		$htmlOUSec = "<div class='card'><h2>$($I18n.Sections.OUAccountSecurity)</h2>"

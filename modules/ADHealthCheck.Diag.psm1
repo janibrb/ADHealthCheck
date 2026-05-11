@@ -489,7 +489,13 @@ function Get-ADBackupStatus {
 }
 
 function Get-ADSecurityInfo {
-    param($Settings)
+    param(
+        $Settings,
+        $I18n,
+        [string]$LangCode = "de"
+    )
+    # AUFRUF (ADHealthCheck.ps1) muss lauten:
+    #   Get-ADSecurityInfo -Settings $Settings -I18n $I18n -LangCode $LangCode
 
     Write-ADHCLog -Message "Analysiere Sicherheit & bereite Export-Listen vor..." -Component "Discovery"
 
@@ -638,95 +644,159 @@ function Get-ADSecurityInfo {
 }
 
 function Get-ADOUAndAccountSecurity {
-    param($Settings)
-    Write-ADHCLog "Analysiere ACLs auf echte verwaiste SIDs und Vererbung..." -Component "Discovery"
+    param(
+        $Settings,
+        # Optionaler Callback: scriptblock { param($current, $total, $message) }
+        # Wird aus der GUI aufgerufen um den Fortschritt anzuzeigen, ohne den UI-Thread zu blockieren.
+        [scriptblock]$ProgressCallback = $null
+    )
+    Write-ADHCLog "Analysiere ACLs auf echte verwaiste SIDs und Vererbung (async)..." -Component "Discovery"
 
-    $orphanedSIDs = @()
-    $disabledInheritanceOU = @()
-    $disabledInheritanceUser = @()
+    # ---------------------------------------------------------------------------
+    # Synchronized Hashtable: Thread-sicherer Kanal zwischen Runspace und UI-Thread
+    # ---------------------------------------------------------------------------
+    $syncHash = [hashtable]::Synchronized(@{
+        Progress  = 0       # Aktueller Fortschritt (Anzahl verarbeiteter Objekte)
+        Total     = 0       # Gesamtanzahl Objekte (wird vom Runspace gesetzt)
+        Message   = ""      # Aktuelles Status-Label
+        Done      = $false  # Runspace signalisiert Fertigstellung
+        Error     = $null   # Fehlertext falls Exception im Runspace
+        Result    = $null   # Rückgabeobjekt des Runspace
+    })
 
-    # --- INTERNE HILFSFUNKTION: Prüft, ob eine SID wirklich verwaist ist ---
-    function Is-OrphanedSID {
-        param($sidRef)
-        $sidValue = $sidRef.Value
+    # ---------------------------------------------------------------------------
+    # ScriptBlock der im Hintergrund-Runspace läuft
+    # ---------------------------------------------------------------------------
+    $scriptBlock = {
+        param($syncHash)
 
-        # 1. Bekannte Windows-System-SIDs (Well-Known SIDs) ignorieren
-        # Diese sind NICHT verwaist, sondern gehören zum Betriebssystem.
-        $wellKnownPrefixes = @(
-            "S-1-1-0",   # Jeder
-            "S-1-3-0",   # Ersteller-Besitzer
-            "S-1-3-1",   # Ersteller-Gruppe
-            "S-1-5-1",   # Dialup
-            "S-1-5-2",   # Netzwerk
-            "S-1-5-3",   # Batch
-            "S-1-5-4",   # Interaktiv
-            "S-1-5-6",   # Service
-            "S-1-5-7",   # Anonym
-            "S-1-5-9",   # Enterprise Domain Controllers
-            "S-1-5-10",  # Principal Self
-            "S-1-5-11",  # Authentifizierte Benutzer
-            "S-1-5-12",  # Restricted Code
-            "S-1-5-13",  # Terminal Server User
-            "S-1-5-18",  # Local System
-            "S-1-5-19",  # NT Authority (Local Service)
-            "S-1-5-20",  # NT Authority (Network Service)
-            "S-1-5-32-"  # Alle Built-in Gruppen (Admins, Users, etc.)
-        )
-        
-        foreach ($prefix in $wellKnownPrefixes) {
-            if ($sidValue -eq $prefix -or $sidValue.StartsWith($prefix)) { return $false }
-        }
-
-        # 2. Versuch der Namensauflösung
-        # Wenn der Name nicht aufgelöst werden kann, wirft .Translate() einen Fehler
         try {
-            $null = $sidRef.Translate([System.Security.Principal.NTAccount])
-            return $false # Konnte aufgelöst werden -> Objekt existiert
-        } catch {
-            return $true  # Konnte NICHT aufgelöst werden -> Echter Orphan (Leichnam)
-        }
-    }
+            # Well-Known SID Prefixes (im Runspace lokal definiert, da kein Scope-Zugriff)
+            $wellKnownPrefixes = @(
+                "S-1-1-0", "S-1-3-0", "S-1-3-1",
+                "S-1-5-1", "S-1-5-2", "S-1-5-3", "S-1-5-4",
+                "S-1-5-6", "S-1-5-7", "S-1-5-9", "S-1-5-10",
+                "S-1-5-11","S-1-5-12","S-1-5-13","S-1-5-18",
+                "S-1-5-19","S-1-5-20","S-1-5-32-"
+            )
 
-    # --- DATEN ERHEBEN ---
-    Write-ADHCLog "Lade AD-Struktur..." -Component "Discovery"
-    $allObjects = (Get-ADOrganizationalUnit -Filter * -Properties nTSecurityDescriptor, Name) + 
-                   (Get-ADUser -Filter 'Enabled -eq $true' -Properties nTSecurityDescriptor, Name)
-
-    foreach ($obj in $allObjects) {
-        # GUI am Leben erhalten
-        [System.Windows.Forms.Application]::DoEvents()
-
-        $acl = $obj.nTSecurityDescriptor
-        if ($null -eq $acl) { continue }
-
-        # Vererbung prüfen
-        if ($acl.AreAccessRulesProtected) {
-            $lite = [PSCustomObject]@{ Name = $obj.Name; DN = $obj.DistinguishedName }
-            if ($obj.ObjectClass -eq "organizationalUnit") { $disabledInheritanceOU += $lite }
-            else { $disabledInheritanceUser += $lite }
-        }
-
-        # SIDs prüfen (Nur explizite Regeln)
-        $rules = $acl.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier])
-        foreach ($rule in $rules) {
-            if (Is-OrphanedSID -sidRef $rule.IdentityReference) {
-                $orphanedSIDs += [PSCustomObject]@{
-                    ObjectName = $obj.Name
-                    SID        = $rule.IdentityReference.Value
+            function Is-OrphanedSID {
+                param($sidRef)
+                $sidValue = $sidRef.Value
+                foreach ($prefix in $wellKnownPrefixes) {
+                    if ($sidValue -eq $prefix -or $sidValue.StartsWith($prefix)) { return $false }
+                }
+                try {
+                    $null = $sidRef.Translate([System.Security.Principal.NTAccount])
+                    return $false
+                } catch {
+                    return $true
                 }
             }
+
+            # AD-Objekte laden
+            $syncHash.Message = "Lade AD-Objekte..."
+            $allObjects = @(Get-ADOrganizationalUnit -Filter * -Properties nTSecurityDescriptor, Name, ObjectClass) +
+                          @(Get-ADUser -Filter 'Enabled -eq $true'  -Properties nTSecurityDescriptor, Name, ObjectClass)
+
+            $syncHash.Total   = $allObjects.Count
+            $syncHash.Message = "Analysiere ACLs ($($allObjects.Count) Objekte)..."
+
+            # Ergebnis-Listen als threadsichere generische Listen
+            $orphanedSIDs          = New-Object System.Collections.Generic.List[PSObject]
+            $disabledInheritanceOU = New-Object System.Collections.Generic.List[PSObject]
+            $disabledInheritanceUser = New-Object System.Collections.Generic.List[PSObject]
+
+            $i = 0
+            foreach ($obj in $allObjects) {
+                $i++
+                $syncHash.Progress = $i
+
+                $acl = $obj.nTSecurityDescriptor
+                if ($null -eq $acl) { continue }
+
+                # Vererbung prüfen
+                if ($acl.AreAccessRulesProtected) {
+                    $lite = [PSCustomObject]@{ Name = $obj.Name; DN = $obj.DistinguishedName }
+                    if ($obj.ObjectClass -eq "organizationalUnit") { $disabledInheritanceOU.Add($lite) }
+                    else { $disabledInheritanceUser.Add($lite) }
+                }
+
+                # SIDs prüfen (nur explizite Regeln)
+                $rules = $acl.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier])
+                foreach ($rule in $rules) {
+                    if (Is-OrphanedSID -sidRef $rule.IdentityReference) {
+                        $orphanedSIDs.Add([PSCustomObject]@{
+                            ObjectName = $obj.Name
+                            SID        = $rule.IdentityReference.Value
+                        })
+                    }
+                }
+            }
+
+            $uniqueSIDs = $orphanedSIDs | Select-Object -ExpandProperty SID -Unique
+
+            $syncHash.Result = [PSCustomObject]@{
+                TotalOrphanCount        = $orphanedSIDs.Count
+                UniqueOrphanCount       = @($uniqueSIDs).Count
+                TopOrphanedSIDs         = ($orphanedSIDs | Group-Object SID | Sort-Object Count -Descending | Select-Object -First 10)
+                DisabledInheritanceOU   = $disabledInheritanceOU
+                DisabledInheritanceUser = $disabledInheritanceUser
+            }
+        } catch {
+            $syncHash.Error = $_.Exception.Message
+        } finally {
+            $syncHash.Done = $true
         }
     }
 
-    $uniqueSIDs = $orphanedSIDs.SID | Select-Object -Unique
+    # ---------------------------------------------------------------------------
+    # Runspace starten
+    # ---------------------------------------------------------------------------
+    $runspace = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace()
+    $runspace.ApartmentState = "STA"
+    $runspace.ThreadOptions  = "ReuseThread"
+    $runspace.Open()
 
-    return [PSCustomObject]@{
-        TotalOrphanCount        = $orphanedSIDs.Count
-        UniqueOrphanCount       = $uniqueSIDs.Count
-        TopOrphanedSIDs         = ($orphanedSIDs | Group-Object SID | Sort-Object Count -Descending | Select-Object -First 10)
-        DisabledInheritanceOU   = $disabledInheritanceOU
-        DisabledInheritanceUser = $disabledInheritanceUser
+    $ps = [System.Management.Automation.PowerShell]::Create()
+    $ps.Runspace = $runspace
+    $ps.AddScript($scriptBlock).AddArgument($syncHash) | Out-Null
+
+    $asyncHandle = $ps.BeginInvoke()
+    Write-ADHCLog "ACL-Analyse läuft im Hintergrund-Runspace..." -Component "Discovery"
+
+    # ---------------------------------------------------------------------------
+    # UI-Thread: Polling-Schleife — GUI bleibt responsive
+    # Ruft den optionalen ProgressCallback auf, damit die aufrufende GUI
+    # einen Fortschrittsbalken oder Label aktualisieren kann.
+    # ---------------------------------------------------------------------------
+    while (-not $syncHash.Done) {
+        if ($ProgressCallback) {
+            try {
+                & $ProgressCallback $syncHash.Progress $syncHash.Total $syncHash.Message
+            } catch { <# Callback-Fehler dürfen die Analyse nicht stoppen #> }
+        }
+        # GUI-Pump: Windows.Forms-Events verarbeiten (verhindert "Nicht reagiert")
+        [System.Windows.Forms.Application]::DoEvents()
+        Start-Sleep -Milliseconds 200
     }
+
+    # ---------------------------------------------------------------------------
+    # Aufräumen
+    # ---------------------------------------------------------------------------
+    $ps.EndInvoke($asyncHandle) | Out-Null
+    $ps.Dispose()
+    $runspace.Close()
+    $runspace.Dispose()
+
+    # Fehlerbehandlung aus dem Runspace
+    if ($syncHash.Error) {
+        Write-ADHCLog "Fehler in ACL-Analyse (Runspace): $($syncHash.Error)" -Level Error
+        return $null
+    }
+
+    Write-ADHCLog "ACL-Analyse abgeschlossen. $($syncHash.Result.TotalOrphanCount) Orphan-Einträge gefunden." -Component "Discovery"
+    return $syncHash.Result
 }
 
 Export-ModuleMember -Function Get-ADHealthDiscovery, Get-ADServiceStatus, Invoke-DetailedDcdiag, Get-ADSecurityInfo, Get-ADFSMORoles, Get-ADDomainStats, Get-ADSitesInfo, Get-ADBackupStatus, Get-ADOUAndAccountSecurity, Get-ADHCMockData
