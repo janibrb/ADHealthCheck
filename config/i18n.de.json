@@ -177,6 +177,7 @@
 		"PrivilegedGroups": "Privilegierte Gruppen",
 		"PasswordPolicy": "Kennwortrichtlinien",
 		"CurrentValue": "Aktueller Wert",
+		"Recommended": "empfohlen",
 		"Characters": "Zeichen",
 		"AffectedServers": "Betroffene Server",
 		"Partitions": "Partitionen",

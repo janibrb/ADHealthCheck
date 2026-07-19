@@ -909,6 +909,7 @@
         "en": "Sites & Services"
       },
       "Property": "ReplicationInterval",
+      "Threshold": { "value": 15, "operator": "lte", "unit": "Minutes" },
       "Condition": [
         "HighValue"
       ],
@@ -1079,6 +1080,7 @@
         "en": "Privileged Groups"
       },
       "Property": "DomAdminCount",
+      "Threshold": { "value": 5,  "operator": "lte", "unit": null },
       "Condition": [
         ">5"
       ],
@@ -1100,6 +1102,7 @@
         "en": "Privileged Groups"
       },
       "Property": "EntAdminCount",
+      "Threshold": { "value": 2,  "operator": "lte", "unit": null },
       "Condition": [
         ">5"
       ],
@@ -1121,6 +1124,7 @@
         "en": "Privileged Groups"
       },
       "Property": "SchAdminCount",
+      "Threshold": { "value": 1,  "operator": "lte", "unit": null },
       "Condition": [
         ">1"
       ],
@@ -1209,6 +1213,7 @@
         "en": "Password Policies"
       },
       "Property": "MinPwdLength",
+      "Threshold": { "value": 12, "operator": "gte", "unit": "Characters" },
       "Condition": [
         "<12"
       ],
@@ -1251,6 +1256,7 @@
         "en": "Password Policies"
       },
       "Property": "PwdHistory",
+      "Threshold": { "value": 24, "operator": "gte", "unit": "Passwords" },
       "Condition": [
         "<24"
       ],
@@ -1272,6 +1278,7 @@
         "en": "Password Policies"
       },
       "Property": "LockoutThresh",
+      "Threshold": { "value": 10, "operator": "lte", "unit": "Attempts" },
       "Condition": [
         "=0",
         ">15"
@@ -1294,6 +1301,7 @@
         "en": "Password Policies"
       },
       "Property": "LockoutDuration",
+      "Threshold": { "value": 15, "operator": "gte", "unit": "Minutes" },
       "Condition": [
         "<15"
       ],
@@ -1315,6 +1323,7 @@
         "en": "Password Policies"
       },
       "Property": "ResetLockoutCount",
+      "Threshold": { "value": 15, "operator": "gte", "unit": "Minutes" },
       "Condition": [
         "<15"
       ],

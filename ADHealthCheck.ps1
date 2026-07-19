@@ -3,8 +3,25 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.4.12
-    Changelog:  - FIX: Die letzten drei nicht feuernden Regeln repariert:
+    Version:    2.5.0
+    Changelog:  - FEAT: Upload-JSON schemaVersion 2 — Verdikte tragen jetzt MESSWERTE
+                  statt nur einen fertig gerenderten Satz: ActualValue, Unit (als
+                  i18n-Schluessel, nicht als uebersetztes Wort), AffectedItems,
+                  ExpectedValue und Operator. Ein Dashboard kann damit "6 Zeichen
+                  (empfohlen: >=12)" in eigener Sprache rendern und Werte ueber die
+                  Zeit vergleichen. Rein additiv — Konsumenten von schemaVersion 1
+                  laufen unveraendert weiter.
+                - FEAT: Schwellenwerte liegen in recommendations.json ("Threshold":
+                  value/operator/unit) statt als Literale im PowerShell-Code. Neun
+                  Regeln sind damit ohne Codeaenderung tunebar.
+                - FEAT: Der HTML-Report zeigt den Sollwert an ("empfohlen: >=12
+                  Zeichen" / "recommended: >=12 characters"), gerendert an EINER
+                  Stelle aus denselben strukturierten Feldern.
+                - FIX: Die KRBTGT-Regel respektiert jetzt Thresholds.KrbtgtPasswordAgeDays
+                  aus settings.json. Vorher stand dort fest 180, waehrend die
+                  Kachel-Anzeige die Einstellung bereits auswertete — beide liefen
+                  auseinander, sobald ein Kunde den Wert anpasste.
+                - FIX: Die letzten drei nicht feuernden Regeln repariert:
                   * SITE-03 (Aenderungsbenachrichtigung): hatte ueberhaupt keinen
                     Auswertungscode. Das Feld liefert Get-ADSitesInfo seit jeher.
                   * AD-FSMO-08 (Infrastruktur-Master ist GC): las IsGC aus

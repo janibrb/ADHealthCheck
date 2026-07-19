@@ -803,10 +803,17 @@ function New-ADHCReport {
 			
 			# --- KRBTGT Alter berechnen ---
 			$krbtgtStatus = "OK"
+			$krbtgtDays   = $null
+			# Schwelle aus settings.json — wie es die Kachel-Anzeige oben bereits tut.
+			# Vorher stand hier fest 180, wodurch Anzeige und Regel auseinanderliefen,
+			# sobald ein Kunde KrbtgtPasswordAgeDays anpasste.
+			$krbtgtLimit = if ($Settings.Thresholds.KrbtgtPasswordAgeDays) {
+				[int]$Settings.Thresholds.KrbtgtPasswordAgeDays
+			} else { 180 }
 			if ($stats.KrbtgtLastSet) {
 				# Wir berechnen das Alter in Tagen
-				$daysOld = ((Get-Date) - $stats.KrbtgtLastSet).Days
-				if ($daysOld -gt 180) { $krbtgtStatus = "Expired" }
+				$krbtgtDays = ((Get-Date) - $stats.KrbtgtLastSet).Days
+				if ($krbtgtDays -gt $krbtgtLimit) { $krbtgtStatus = "Expired" }
 			}
 	
 			foreach ($rule in $recJson.DomainOverview) {
@@ -943,6 +950,7 @@ function New-ADHCReport {
 						Category    = $rule.Category
 						Area        = $areaLabel
 						# Wir hängen die Serverliste an die Beschreibung an
+						AffectedItems = @($failedServers)
 						Description = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.AffectedServers): $serverList)"
 						Priority    = $rule.Priority
 					}
@@ -1006,6 +1014,7 @@ function New-ADHCReport {
 						Id          = $rule.Id
 						Category    = $rule.Category
 						Area        = $localizedArea
+						AffectedItems = @($failedServers)
 						Description = "$($rule.Recommendation.$LangCode)$($infoSuffix) (Server: $($failedServers -join ', '))"
 						Priority    = $rule.Priority
 					}
@@ -1048,6 +1057,7 @@ function New-ADHCReport {
 						Category    = $rule.Category
 						Area        = $I18n.Labels.BackupStatus
 						# Die detaillierte Zeit-Information wird an den Beschreibungstext angehängt
+						AffectedItems = @($failedPartitions)
 						Description = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.Partitions): $($failedPartitions -join '; '))"
 						Priority    = $rule.Priority
 					}
@@ -1095,6 +1105,7 @@ function New-ADHCReport {
 						Id          = $rule.Id
 						Category    = $rule.Category
 						Area        = "$($serviceName.ToUpper())"
+						AffectedItems = @($failedServers)
 						Description = "$($rule.Recommendation.$LangCode) (Server: $($failedServers -join ', '))"
 						Priority    = $rule.Priority
 					}
@@ -1170,6 +1181,7 @@ function New-ADHCReport {
 						Id          = $rule.Id
 						Category    = $rule.Category
 						Area        = $I18n.Labels.SitesServices
+						AffectedItems = @($affectedItems)
 						Description = "$($rule.Recommendation.$LangCode) (Details: $($affectedItems -join ', '))"
 						Priority    = $rule.Priority
 					}
@@ -1186,12 +1198,18 @@ function New-ADHCReport {
 			foreach ($rule in $recJson.Security) {
 				$val = [int]$sec.$($rule.Property)
 				$isTriggered = $false
-		
+
+				# Obergrenze fuer die privilegierten Gruppen aus recommendations.json
+				# ("Threshold"). Zaehler-Regeln ohne Threshold feuern ab dem ersten
+				# Treffer — dort gibt es keinen einstellbaren Wert.
+				$secTh    = $rule.Threshold
+				$secLimit = if ($null -ne $secTh.value) { [int]$secTh.value } else { $null }
+
 				# Logische Prüfung (Schema Admins > 1 für Trigger)
 				switch ($rule.Property) {
-					"DomAdminCount" { $isTriggered = ($val -gt 5) }
-					"EntAdminCount" { $isTriggered = ($val -gt 2) }
-					"SchAdminCount" { $isTriggered = ($val -gt 1) }
+					"DomAdminCount" { $isTriggered = ($val -gt $(if($null -ne $secLimit){$secLimit}else{5})) }
+					"EntAdminCount" { $isTriggered = ($val -gt $(if($null -ne $secLimit){$secLimit}else{2})) }
+					"SchAdminCount" { $isTriggered = ($val -gt $(if($null -ne $secLimit){$secLimit}else{1})) }
 					Default         { $isTriggered = ($val -gt 0) }
 				}
 		
@@ -1200,9 +1218,13 @@ function New-ADHCReport {
 					$translatedArea = Get-ADHCDisplayTitle -Rule $rule -Lang $LangCode
 		
 					$activeRecs += [PSCustomObject]@{
-						Id          = $rule.Id
-						Category    = $I18n.Labels.Security
-						Area        = $translatedArea
+						Id            = $rule.Id
+						Category      = $I18n.Labels.Security
+						Area          = $translatedArea
+						ActualValue   = $val
+						Unit          = "Users"
+						ExpectedValue = $secLimit
+						Operator      = $secTh.operator
 						Description = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.Value): $val $($I18n.Labels.Users))"
 						Priority    = $rule.Priority
 					}
@@ -1220,48 +1242,72 @@ function New-ADHCReport {
 				$isTriggered = $false
 				$val = $sec.$($rule.Property)
 				$suffix = ""
-		
+
+				# Schwellenwert kommt aus recommendations.json ("Threshold"), nicht
+				# mehr als Literal aus dem Code. Der Fallback haelt die Regel
+				# funktionsfaehig, falls der Block in einer aelteren Config fehlt.
+				$th    = $rule.Threshold
+				$limit = if ($null -ne $th.value) { [int]$th.value } else { $null }
+				# Messwert strukturiert mitfuehren (Upload-JSON + Report-Rendering)
+				$measured = $null
+				$unitKey  = $th.unit
+
 				switch ($rule.Property) {
-					"MinPwdLength" { 
-						$isTriggered = ([int]$val -lt 12)
-						$suffix = "$val $($I18n.Labels.Characters)"
+					"MinPwdLength" {
+						if ($null -eq $limit) { $limit = 12 }
+						$measured    = [int]$val
+						$isTriggered = ($measured -lt $limit)
+						$suffix = "$measured $($I18n.Labels.Characters)"
 					}
-					"Complexity" { 
-						$isTriggered = ($val -eq $false -or $val -eq "False")
+					"Complexity" {
+						# Boolesche Regel ohne Schwellenwert
+						$measured    = [bool]($val -ne $false -and $val -ne "False")
+						$isTriggered = (-not $measured)
 						$suffix = if ($isTriggered) { $I18n.Labels.Disabled } else { $I18n.Labels.Enabled }
 					}
-					"PwdHistory" { 
-						$isTriggered = ([int]$val -lt 24)
-						$suffix = "$val $($I18n.Labels.Passwords)"
+					"PwdHistory" {
+						if ($null -eq $limit) { $limit = 24 }
+						$measured    = [int]$val
+						$isTriggered = ($measured -lt $limit)
+						$suffix = "$measured $($I18n.Labels.Passwords)"
 					}
 					# Feldname laut Collector und recommendations.json: "LockoutThresh".
 					# Hier stand "LockoutThreshold" — das Label matchte nie, wodurch
 					# PWD-04 auch bei komplett deaktivierter Kontosperre PASS meldete.
 					"LockoutThresh" {
-						# Trigger bei 0 (kein Schutz) oder über 10 (zu unsicher)
-						$numVal = [int]$val
-						$isTriggered = ($numVal -eq 0 -or $numVal -gt 10)
-						$suffix = "$([string]$numVal) $($I18n.Labels.Attempts)"
+						if ($null -eq $limit) { $limit = 10 }
+						$measured = [int]$val
+						# 0 bedeutet "keine Sperre" und ist immer ein Befund — das laesst
+						# sich nicht als reiner Schwellenwert ausdruecken, deshalb bleibt
+						# diese Domaenenlogik im Code.
+						$isTriggered = ($measured -eq 0 -or $measured -gt $limit)
+						$suffix = "$measured $($I18n.Labels.Attempts)"
 					}
-					
+
 					"LockoutDuration" {
-						$numVal = [int]$val
-						# Trigger wenn < 15 Minuten (ausser 0, was permanent bedeutet)
-						$isTriggered = ($numVal -gt 0 -and $numVal -lt 15)
-						$suffix = "$([string]$numVal) $($I18n.Labels.Minutes)"
+						if ($null -eq $limit) { $limit = 15 }
+						$measured = [int]$val
+						# 0 bedeutet "dauerhaft gesperrt" und ist gewollt, daher ausgenommen
+						$isTriggered = ($measured -gt 0 -and $measured -lt $limit)
+						$suffix = "$measured $($I18n.Labels.Minutes)"
 					}
 					"ResetLockoutCount" {
-						$numVal = [int]$val
-						$isTriggered = ($numVal -lt 15)
-						$suffix = "$([string]$numVal) $($I18n.Labels.Minutes)"
+						if ($null -eq $limit) { $limit = 15 }
+						$measured    = [int]$val
+						$isTriggered = ($measured -lt $limit)
+						$suffix = "$measured $($I18n.Labels.Minutes)"
 					}
 				}
 		
 				if ($isTriggered) {
 					$activeRecs += [PSCustomObject]@{
-						Id          = $rule.Id
-						Category    = $I18n.Labels.Security
-						Area        = $I18n.Labels.PasswordPolicy
+						Id            = $rule.Id
+						Category      = $I18n.Labels.Security
+						Area          = $I18n.Labels.PasswordPolicy
+						ActualValue   = $measured
+						Unit          = $unitKey
+						ExpectedValue = $limit
+						Operator      = $th.operator
 						Description = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.CurrentValue): $suffix)"
 						Priority    = $rule.Priority
 					}
@@ -1430,6 +1476,7 @@ function New-ADHCReport {
 						Id          = $rule.Id
 						Category    = $I18n.Labels.Infrastructure
 						Area        = $I18n.Labels.DNSZoneHealth
+						AffectedItems = @($affectedItems)
 						Description = if ($affectedItems) { "$($rule.Recommendation.$LangCode) (Details: $($affectedItems -join ', '))" } else { $rule.Recommendation.$LangCode }
 						Priority    = $rule.Priority
 					}
@@ -1454,11 +1501,29 @@ function New-ADHCReport {
 				
 				foreach ($rec in $activeRecs) {
 					$prioClass = "prio-badge prio-$($rec.Priority.ToLower())"
+
+					# Sollwert aus den strukturierten Feldern anhaengen — EINE Stelle
+					# fuer alle Regeln mit Threshold, statt in jedem Auswertungsblock.
+					# Operator wird als Zeichen dargestellt, damit der Satz in beiden
+					# Sprachen aus denselben Daten entsteht: "(empfohlen: >= 12 Zeichen)".
+					$recText = $rec.Description
+					if ($null -ne $rec.ExpectedValue) {
+						$opSign = switch ($rec.Operator) {
+							"gte"   { [char]0x2265 }   # >=
+							"lte"   { [char]0x2264 }   # <=
+							"gt"    { ">" }
+							"lt"    { "<" }
+							default { "" }
+						}
+						$unitTxt = if ($rec.Unit -and $I18n.Labels.$($rec.Unit)) { " $($I18n.Labels.$($rec.Unit))" } else { "" }
+						$recText += " ($($I18n.Labels.Recommended): $opSign$($rec.ExpectedValue)$unitTxt)"
+					}
+
 					$html += "<tr class='rec-row'>
 								<td class='rec-id text-center'>$($rec.Id)</td>
 								<td class='rec-cat text-left'>$($rec.Category)</td>
 								<td class='rec-sub text-left'>$($rec.Area)</td>
-								<td class='rec-text text-left'>$($rec.Description)</td>
+								<td class='rec-text text-left'>$recText</td>
 								<td class='text-center'><span class='$prioClass'>$($rec.Priority.ToUpper())</span></td>
 							</tr>"
 				}
@@ -1496,14 +1561,30 @@ function New-ADHCReport {
 			foreach ($rule in $recAll.$sec) {
 				$status = if ($firedIds -contains $rule.Id) { 'FAIL' } elseif ($hasData) { 'PASS' } else { 'NOT_CHECKED' }
 				$hit = $firedRecs | Where-Object { $_.Id -eq $rule.Id } | Select-Object -First 1
+				# ActualValue/Unit/AffectedItems/ExpectedValue/Operator sind seit
+				# schemaVersion 2 dabei. Sie ergaenzen Detail (den fertig gerenderten
+				# Satz) um die MESSWERTE, damit ein Konsument sie in eigener Sprache
+				# und eigenem Format darstellen und ueber die Zeit vergleichen kann.
+				# Nicht jede Regel hat einen Skalar: listenartige Befunde (betroffene
+				# Server, Partitionen, Subnetze) landen in AffectedItems.
+				$expected = if ($hit -and $null -ne $hit.ExpectedValue) { $hit.ExpectedValue }
+				            elseif ($null -ne $rule.Threshold.value) { $rule.Threshold.value }
+				            else { $null }
+				$operator = if ($hit -and $hit.Operator) { $hit.Operator } else { $rule.Threshold.operator }
+
 				$verdicts += [PSCustomObject]@{
-					Id          = $rule.Id
-					Section     = $sec
-					Category    = $rule.Category
-					SubCategory = $rule.SubCategory
-					Priority    = $rule.Priority
-					Status      = $status
-					Detail      = if ($hit) { $hit.Description } else { $null }
+					Id            = $rule.Id
+					Section       = $sec
+					Category      = $rule.Category
+					SubCategory   = $rule.SubCategory
+					Priority      = $rule.Priority
+					Status        = $status
+					Detail        = if ($hit) { $hit.Description } else { $null }
+					ActualValue   = if ($hit) { $hit.ActualValue } else { $null }
+					Unit          = if ($hit -and $hit.Unit) { $hit.Unit } else { $rule.Threshold.unit }
+					AffectedItems = if ($hit -and $hit.AffectedItems) { @($hit.AffectedItems) } else { $null }
+					ExpectedValue = $expected
+					Operator      = $operator
 				}
 			}
 		}
@@ -1532,7 +1613,10 @@ function New-ADHCReport {
 	}
 
 	$exportData = [ordered]@{
-		schemaVersion    = 1
+		# 2 = Verdikte fuehren zusaetzlich ActualValue, Unit, AffectedItems,
+		#     ExpectedValue und Operator. Rein additiv — Konsumenten von
+		#     schemaVersion 1 funktionieren unveraendert weiter.
+		schemaVersion    = 2
 		collectorVersion = $CollectorVersion
 		collectedAt      = (Get-Date).ToString('o')
 		language         = $LangCode

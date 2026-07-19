@@ -430,7 +430,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
         </div>
         <div class="report-meta">
             <h2>Active Directory Health Check Report</h2>
-            <div class="report-badge">19.07.2026 18:27</div>
+            <div class="report-badge">19.07.2026 18:47</div>
         </div>
     </div>
 
@@ -506,12 +506,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			</thead>
 			<tbody><tr>
 				<td>DC=contoso,DC=local</td>
-				<td>14.06.2026 18:27</td>
+				<td>14.06.2026 18:47</td>
 				<td>35 days 0 hrs</td>
 				<td><span class='status-pill status-error'>Urgent action required</span></td>
 			</tr><tr>
 				<td>CN=Configuration,DC=contoso,DC=local</td>
-				<td>16.07.2026 18:27</td>
+				<td>16.07.2026 18:47</td>
 				<td>3 days 0 hrs</td>
 				<td><span class='status-pill status-warning'>Warning</span></td>
 			</tr><tr>
@@ -929,25 +929,25 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-id text-center'>SEC-04</td>
 								<td class='rec-cat text-left'>Security</td>
 								<td class='rec-sub text-left'>Domain Admins membership</td>
-								<td class='rec-text text-left'>Critical number of members in the 'Domain Admins' group. To maintain Tier-0 security and the 'Least Privilege' principle, administrative accounts must be reduced to an absolute minimum. (Value: 18 User)</td>
+								<td class='rec-text text-left'>Critical number of members in the 'Domain Admins' group. To maintain Tier-0 security and the 'Least Privilege' principle, administrative accounts must be reduced to an absolute minimum. (Value: 18 User) (recommended: ≤5 User)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-05</td>
 								<td class='rec-cat text-left'>Security</td>
 								<td class='rec-sub text-left'>Enterprise Admins membership</td>
-								<td class='rec-text text-left'>Excessive number of Enterprise Admins detected. As this group possesses forest-wide privileges, membership should only be granted temporarily for specific tasks (Just-in-Time administration). (Value: 8 User)</td>
+								<td class='rec-text text-left'>Excessive number of Enterprise Admins detected. As this group possesses forest-wide privileges, membership should only be granted temporarily for specific tasks (Just-in-Time administration). (Value: 8 User) (recommended: ≤2 User)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-06</td>
 								<td class='rec-cat text-left'>Security</td>
 								<td class='rec-sub text-left'>Schema Admins membership</td>
-								<td class='rec-text text-left'>Membership in the 'Schema Admins' group detected. This group should be empty during daily operations, as schema changes represent highly critical and rare interventions in the directory structure. (Value: 3 User)</td>
+								<td class='rec-text text-left'>Membership in the 'Schema Admins' group detected. This group should be empty during daily operations, as schema changes represent highly critical and rare interventions in the directory structure. (Value: 3 User) (recommended: ≤1 User)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-01</td>
 								<td class='rec-cat text-left'>Security</td>
 								<td class='rec-sub text-left'>Password Policies</td>
-								<td class='rec-text text-left'>The minimum password length is less than 12 characters. Microsoft recommends at least 14 characters to effectively hinder brute-force attacks. (Current Value: 6 characters)</td>
+								<td class='rec-text text-left'>The minimum password length is less than 12 characters. Microsoft recommends at least 14 characters to effectively hinder brute-force attacks. (Current Value: 6 characters) (recommended: ≥12 characters)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-02</td>
@@ -959,25 +959,25 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-id text-center'>PWD-03</td>
 								<td class='rec-cat text-left'>Security</td>
 								<td class='rec-sub text-left'>Password Policies</td>
-								<td class='rec-text text-left'>The password history is too short. Microsoft recommends storing the last 24 passwords to prevent immediate reuse of old passwords. (Current Value: 5 Passwords)</td>
+								<td class='rec-text text-left'>The password history is too short. Microsoft recommends storing the last 24 passwords to prevent immediate reuse of old passwords. (Current Value: 5 Passwords) (recommended: ≥24 Passwords)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-04</td>
 								<td class='rec-cat text-left'>Security</td>
 								<td class='rec-sub text-left'>Password Policies</td>
-								<td class='rec-text text-left'>Lockout threshold is disabled (0) or too high. Microsoft recommends 10 attempts. (Current Value: 0 Attempts)</td>
+								<td class='rec-text text-left'>Lockout threshold is disabled (0) or too high. Microsoft recommends 10 attempts. (Current Value: 0 Attempts) (recommended: ≤10 Attempts)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-05</td>
 								<td class='rec-cat text-left'>Security</td>
 								<td class='rec-sub text-left'>Password Policies</td>
-								<td class='rec-text text-left'>Lockout duration should be at least 15 minutes (currently too short) to slow down brute-force attacks. (Current Value: 5 minutes)</td>
+								<td class='rec-text text-left'>Lockout duration should be at least 15 minutes (currently too short) to slow down brute-force attacks. (Current Value: 5 minutes) (recommended: ≥15 minutes)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-06</td>
 								<td class='rec-cat text-left'>Security</td>
 								<td class='rec-sub text-left'>Password Policies</td>
-								<td class='rec-text text-left'>Resetting the lockout counter should happen no earlier than 15 minutes to hinder systematic attacker waiting. (Current Value: 5 minutes)</td>
+								<td class='rec-text text-left'>Resetting the lockout counter should happen no earlier than 15 minutes to hinder systematic attacker waiting. (Current Value: 5 minutes) (recommended: ≥15 minutes)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-07</td>

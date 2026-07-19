@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.4.12-blue)
+![Version](https://img.shields.io/badge/Version-2.5.0-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -231,7 +231,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.4.12                    # Einzige Stelle. $script:LocalVersion
+Version:    2.5.0                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -344,6 +344,29 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.5.0 — Messwerte im Upload-JSON (schemaVersion 2) und tunebare Schwellenwerte
+- **feat:** **Verdikte tragen jetzt Messwerte, nicht nur einen fertigen Satz.** Bisher enthielt ein Verdikt ausschliesslich `Detail` — eine in *einer* Sprache gerenderte Zeichenkette wie „… (Aktueller Wert: 6 Zeichen)". Zahl, Einheit und Formulierung waren untrennbar verschmolzen. Neu kommen hinzu:
+
+  | Feld | Bedeutung |
+  |---|---|
+  | `ActualValue` | der gemessene Wert (`6`, `18`, `0`) |
+  | `Unit` | i18n-**Schlüssel** (`"Characters"`), nicht das übersetzte Wort |
+  | `AffectedItems` | Liste bei listenartigen Befunden (betroffene Server, Partitionen, Subnetze) |
+  | `ExpectedValue` | der Sollwert aus `recommendations.json` |
+  | `Operator` | `gte` / `lte` — beschreibt den Soll-Zustand |
+
+  Damit kann ein Dashboard „6 Zeichen (empfohlen: ≥12)" in beliebiger Sprache selbst rendern und Werte über die Zeit vergleichen. **Rein additiv:** `Detail` bleibt erhalten, Konsumenten von `schemaVersion 1` laufen unverändert weiter.
+- **feat:** **Schwellenwerte stehen in `recommendations.json`** statt als Literale im Code:
+  ```json
+  "Threshold": { "value": 12, "operator": "gte", "unit": "Characters" }
+  ```
+  Neun Regeln (PWD-01, PWD-03 bis PWD-06, SEC-04 bis SEC-06, SITE-01) sind ohne Codeänderung tunebar. Domänenlogik, die sich nicht als Schwellenwert ausdrücken lässt, bleibt bewusst im Code — etwa dass `LockoutThreshold = 0` „keine Sperre" bedeutet und immer ein Befund ist, oder dass `LockoutDuration = 0` „dauerhaft gesperrt" heisst und gewollt ist.
+- **feat:** Der HTML-Report zeigt den Sollwert: „(empfohlen: ≥12 Zeichen)" bzw. „(recommended: ≥12 characters)". Gerendert an **einer** Stelle aus denselben strukturierten Feldern, nicht in jedem Auswertungsblock einzeln.
+- **fix:** Die KRBTGT-Regel respektiert jetzt `Thresholds.KrbtgtPasswordAgeDays` aus `settings.json`. Vorher stand in der Regel fest `180`, während die Kachel-Anzeige die Einstellung bereits auswertete — bei einem abweichenden Kundenwert färbte sich die Kachel rot, ohne dass die Empfehlung feuerte.
+- Verifiziert gegen die Referenzmessung: **0 Statusänderungen** über alle 69 Verdikte. Der Umbau ist rein strukturell.
+
+**Abdeckung:** 49 der 69 Regeln liefern jetzt einen Messwert (12× `ActualValue`, 37× `AffectedItems`, davon 9 zusätzlich mit `ExpectedValue`). Die verbleibenden 20 — DomainOverview, FSMO-Erreichbarkeit, OU-Sicherheit, Entra und die beiden DNS-Scavenging-Regeln — liefern weiterhin nur `Detail` und sind ein Kandidat für eine Folgeversion.
 
 ### v2.4.12 — Die letzten drei nicht feuernden Regeln repariert
 - **fix:** **SITE-03 (Änderungsbenachrichtigung der Site-Links).** Für diese Regel existierte **überhaupt kein Auswertungscode** — sie stand in `recommendations.json`, wurde aber nirgends geprüft und meldete immer PASS. Das benötigte Feld liefert `Get-ADSitesInfo` seit jeher (`ChangeNotification = options -band 1`).
@@ -497,4 +520,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.4.12 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.5.0 — LAKE Solutions AG*

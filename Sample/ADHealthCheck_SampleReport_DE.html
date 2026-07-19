@@ -430,7 +430,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
         </div>
         <div class="report-meta">
             <h2>Active Directory Health Report</h2>
-            <div class="report-badge">19.07.2026 18:27</div>
+            <div class="report-badge">19.07.2026 18:47</div>
         </div>
     </div>
 
@@ -506,12 +506,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			</thead>
 			<tbody><tr>
 				<td>DC=contoso,DC=local</td>
-				<td>14.06.2026 18:27</td>
+				<td>14.06.2026 18:47</td>
 				<td>35 Tg. 0 Std.</td>
 				<td><span class='status-pill status-error'>Dringender Handlungsbedarf</span></td>
 			</tr><tr>
 				<td>CN=Configuration,DC=contoso,DC=local</td>
-				<td>16.07.2026 18:27</td>
+				<td>16.07.2026 18:47</td>
 				<td>3 Tg. 0 Std.</td>
 				<td><span class='status-pill status-warning'>Warnung</span></td>
 			</tr><tr>
@@ -929,25 +929,25 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-id text-center'>SEC-04</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Mitglieder der Domänen-Admins</td>
-								<td class='rec-text text-left'>Kritische Anzahl an Mitgliedern in der Gruppe 'Domänen-Admins'. Zur Wahrung der Tier-0-Sicherheit und des 'Least Privilege' Prinzips sollte die Anzahl der administrativen Konten auf ein absolutes Minimum reduziert werden. (Wert: 18 Benutzer)</td>
+								<td class='rec-text text-left'>Kritische Anzahl an Mitgliedern in der Gruppe 'Domänen-Admins'. Zur Wahrung der Tier-0-Sicherheit und des 'Least Privilege' Prinzips sollte die Anzahl der administrativen Konten auf ein absolutes Minimum reduziert werden. (Wert: 18 Benutzer) (empfohlen: ≤5 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-05</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Mitglieder der Organisations-Admins</td>
-								<td class='rec-text text-left'>Überhöhte Anzahl an Organisations-Admins detektiert. Da diese Gruppe forestweite Privilegien besitzt, sollte die Mitgliedschaft nur temporär für spezifische Aufgaben gewährt werden (Just-in-Time Administration). (Wert: 8 Benutzer)</td>
+								<td class='rec-text text-left'>Überhöhte Anzahl an Organisations-Admins detektiert. Da diese Gruppe forestweite Privilegien besitzt, sollte die Mitgliedschaft nur temporär für spezifische Aufgaben gewährt werden (Just-in-Time Administration). (Wert: 8 Benutzer) (empfohlen: ≤2 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-06</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Mitglieder der Schema-Admins</td>
-								<td class='rec-text text-left'>Mitgliedschaft in der Gruppe 'Schema-Admins' festgestellt. Diese Gruppe sollte im operativen Tagesgeschäft leer sein, da Schema-Änderungen hochkritische, seltene Eingriffe in die Verzeichnisstruktur darstellen. (Wert: 3 Benutzer)</td>
+								<td class='rec-text text-left'>Mitgliedschaft in der Gruppe 'Schema-Admins' festgestellt. Diese Gruppe sollte im operativen Tagesgeschäft leer sein, da Schema-Änderungen hochkritische, seltene Eingriffe in die Verzeichnisstruktur darstellen. (Wert: 3 Benutzer) (empfohlen: ≤1 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-01</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
-								<td class='rec-text text-left'>Die Mindestkennwortlänge ist mit weniger als 12 Zeichen zu gering. Microsoft empfiehlt eine Länge von mindestens 14 Zeichen, um Brute-Force-Angriffe effektiv zu erschweren. (Aktueller Wert: 6 Zeichen)</td>
+								<td class='rec-text text-left'>Die Mindestkennwortlänge ist mit weniger als 12 Zeichen zu gering. Microsoft empfiehlt eine Länge von mindestens 14 Zeichen, um Brute-Force-Angriffe effektiv zu erschweren. (Aktueller Wert: 6 Zeichen) (empfohlen: ≥12 Zeichen)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-02</td>
@@ -959,25 +959,25 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-id text-center'>PWD-03</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
-								<td class='rec-text text-left'>Die Kennwortchronik ist zu kurz. Microsoft empfiehlt die Speicherung der letzten 24 Kennwörter, um eine sofortige Wiederverwendung alter Passwörter zu verhindern. (Aktueller Wert: 5 Kennwörter)</td>
+								<td class='rec-text text-left'>Die Kennwortchronik ist zu kurz. Microsoft empfiehlt die Speicherung der letzten 24 Kennwörter, um eine sofortige Wiederverwendung alter Passwörter zu verhindern. (Aktueller Wert: 5 Kennwörter) (empfohlen: ≥24 Kennwörter)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-04</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
-								<td class='rec-text text-left'>Die Kontensperrungsschwelle ist deaktiviert (0) oder zu hoch. Microsoft empfiehlt einen Wert von 10 Versuchen. (Aktueller Wert: 0 Versuchen)</td>
+								<td class='rec-text text-left'>Die Kontensperrungsschwelle ist deaktiviert (0) oder zu hoch. Microsoft empfiehlt einen Wert von 10 Versuchen. (Aktueller Wert: 0 Versuchen) (empfohlen: ≤10 Versuchen)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-05</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
-								<td class='rec-text text-left'>Die Sperrdauer sollte mindestens 15 Minuten betragen (aktuell: zu kurz), um Brute-Force-Angriffe zeitlich zu bremsen. (Aktueller Wert: 5 Minuten)</td>
+								<td class='rec-text text-left'>Die Sperrdauer sollte mindestens 15 Minuten betragen (aktuell: zu kurz), um Brute-Force-Angriffe zeitlich zu bremsen. (Aktueller Wert: 5 Minuten) (empfohlen: ≥15 Minuten)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-06</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
-								<td class='rec-text text-left'>Das Zurücksetzen des Sperrzählers sollte frühestens nach 15 Minuten erfolgen, um ein systematisches 'Abwarten' des Angreifers zu erschweren. (Aktueller Wert: 5 Minuten)</td>
+								<td class='rec-text text-left'>Das Zurücksetzen des Sperrzählers sollte frühestens nach 15 Minuten erfolgen, um ein systematisches 'Abwarten' des Angreifers zu erschweren. (Aktueller Wert: 5 Minuten) (empfohlen: ≥15 Minuten)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-07</td>
