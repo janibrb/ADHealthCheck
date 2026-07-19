@@ -180,14 +180,14 @@ function Get-ADHCMockData {
     # -----------------------------------------------------------------------
     $replData = @(
         [PSCustomObject]@{ Server="MOCK-DC-01"; Partner="MOCK-DC-02"; Partition="DC=contoso,DC=local"
-                           LastSuccess=(Get-Date).AddMinutes(-15);  LatencyMinutes=15;  Failures=0; LastResult=0; Status="OK" }
+                           LastSuccess=(Get-Date).AddMinutes(-15);  LatencyMinutes=15;  Failures=0; LastResult=0; Status="OK"; Coverage="AllPartitions" }
         [PSCustomObject]@{ Server="MOCK-DC-01"; Partner="MOCK-DC-03"; Partition="DC=contoso,DC=local"
-                           LastSuccess=(Get-Date).AddMinutes(-320); LatencyMinutes=320; Failures=7; LastResult=1722; Status="Error" }  # -> REP-01
+                           LastSuccess=(Get-Date).AddMinutes(-320); LatencyMinutes=320; Failures=7; LastResult=1722; Status="Error"; Coverage="AllPartitions" }  # -> REP-01
         [PSCustomObject]@{ Server="MOCK-DC-02"; Partner="MOCK-DC-01"; Partition="DC=contoso,DC=local"
-                           LastSuccess=(Get-Date).AddMinutes(-90);  LatencyMinutes=90;  Failures=2; LastResult=8524; Status="Error" }  # -> REP-01
+                           LastSuccess=(Get-Date).AddMinutes(-90);  LatencyMinutes=90;  Failures=2; LastResult=8524; Status="Error"; Coverage="AllPartitions" }  # -> REP-01
         [PSCustomObject]@{ Server="MOCK-DC-03"; Partner="-"; Partition="-"
                            LastSuccess=$null; LatencyMinutes=$null; Failures=0; LastResult="-"; Status="Unreachable"                    # -> REP-02
-                           Reason="The RPC server is unavailable" }
+                           Reason="The RPC server is unavailable"; Coverage="AllPartitions" }
     )
 
     # -----------------------------------------------------------------------
@@ -1215,15 +1215,32 @@ function Get-ADReplicationLatency {
         [int]$Settings.Thresholds.ReplicationLatencyMaxMinutes
     } else { 45 }
 
+    # Ohne Partitions-Parameter liefert das Cmdlet NUR die Standard-Partition
+    # (die Domaene). Replikationsprobleme auf Configuration, Schema,
+    # ForestDnsZones oder DomainDnsZones blieben dadurch unsichtbar.
+    #
+    # Der Parametername unterscheidet sich je nach RSAT-Version, und ein falscher
+    # Name laesst den GESAMTEN Aufruf fehlschlagen (so geschehen in v2.7.1 mit
+    # "-PartitionFilter", das es nicht gibt). Deshalb wird zur Laufzeit ermittelt,
+    # was das installierte Cmdlet tatsaechlich kennt — und die erreichte Abdeckung
+    # wird im Ergebnis ausgewiesen, statt sie stillschweigend anzunehmen.
+    $cmd          = Get-Command Get-ADReplicationPartnerMetadata -ErrorAction SilentlyContinue
+    $partParam    = $null
+    if ($cmd) {
+        foreach ($cand in @('Partition','PartitionFilter')) {
+            if ($cmd.Parameters.ContainsKey($cand)) { $partParam = $cand; break }
+        }
+    }
+    $coverage = if ($partParam) { "AllPartitions" } else { "DefaultPartitionOnly" }
+    Write-ADHCLog -Message "Replikations-Abfrage: Partitions-Abdeckung = $coverage$(if ($partParam) { " (via -$partParam)" })" -Component "Replication"
+
     $res = @()
     foreach ($dc in $DCList) {
         Write-ADHCLog -Message "Ermittle Replikations-Latenz auf $dc..." -Component "Replication"
         try {
-            # -PartitionFilter * ist zwingend: ohne den Parameter liefert das Cmdlet
-            # NUR die Standard-Partition (die Domaene). Replikationsprobleme auf
-            # Configuration, Schema, ForestDnsZones oder DomainDnsZones blieben
-            # dadurch unsichtbar — und gerade die fallen im Alltag nicht auf.
-            $partners = Get-ADReplicationPartnerMetadata -Target $dc -Scope Server -PartitionFilter * -ErrorAction Stop
+            $callArgs = @{ Target = $dc; Scope = 'Server'; ErrorAction = 'Stop' }
+            if ($partParam) { $callArgs[$partParam] = '*' }
+            $partners = Get-ADReplicationPartnerMetadata @callArgs
             foreach ($p in $partners) {
                 $lastOk = $p.LastReplicationSuccess
                 # Kein Erfolgszeitpunkt = noch nie erfolgreich repliziert
@@ -1245,6 +1262,7 @@ function Get-ADReplicationLatency {
                     LastResult     = $p.LastReplicationResult
                     Status         = $status
                     Reason         = $null
+                    Coverage       = $coverage
                 }
             }
         } catch {
@@ -1253,6 +1271,7 @@ function Get-ADReplicationLatency {
                 Server = $dc; Partner = "-"; Partition = "-"; LastSuccess = $null
                 LatencyMinutes = $null; Failures = 0; LastResult = "-"; Status = "Unreachable"
                 Reason = $_.Exception.Message
+                Coverage = $coverage
             }
         }
     }

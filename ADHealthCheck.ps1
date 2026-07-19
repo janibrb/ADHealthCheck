@@ -3,8 +3,23 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.7.1
-    Changelog:  - FIX: AffectedItems war im JSON mal ein Array, mal ein String. Der
+    Version:    2.7.2
+    Changelog:  - FIX: REGRESSION AUS v2.7.1 BEHOBEN. Der dort eingefuehrte Parameter
+                  "-PartitionFilter" existiert nicht — der Name war aus dem Gedaechtnis
+                  behauptet und ohne AD nicht pruefbar. Folge: JEDER Aufruf von
+                  Get-ADReplicationPartnerMetadata schlug fehl, REP-01 lieferte
+                  ueberhaupt keine Daten mehr. Im Feldtest sichtbar als
+                  "A parameter cannot be found that matches parameter name
+                  'PartitionFilter'".
+                  Der Partitions-Parameter wird jetzt zur LAUFZEIT ermittelt
+                  (-Partition, sonst -PartitionFilter, sonst keiner). Ein unbekannter
+                  Parameter kann den Aufruf damit nicht mehr sprengen.
+                - FEAT: Das Ergebnis weist die erreichte Abdeckung aus (Coverage =
+                  AllPartitions | DefaultPartitionOnly) und protokolliert sie. Ob alle
+                  Partitionen geprueft wurden, ist damit nachlesbar statt angenommen.
+                  Hinweis: REP-02 hat die Regression im Feldtest korrekt gemeldet —
+                  ohne diese Regel waere daraus ein stilles PASS geworden.
+                - FIX: AffectedItems war im JSON mal ein Array, mal ein String. Der
                   Rueckgabewert eines if-Blocks wird von PowerShell ENUMERIERT —
                   einelementige Arrays wurden dabei zum Skalar. Ein Befund mit zwei
                   Servern kam als ["a","b"], einer mit einem Server als "a".

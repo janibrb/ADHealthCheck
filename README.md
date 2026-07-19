@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.7.1-blue)
+![Version](https://img.shields.io/badge/Version-2.7.2-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -233,7 +233,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.7.1                    # Einzige Stelle. $script:LocalVersion
+Version:    2.7.2                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -346,6 +346,26 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.7.2 — Regression aus v2.7.1 behoben
+- **fix:** Der in v2.7.1 eingeführte Parameter **`-PartitionFilter` existiert nicht.** Der Name war aus dem Gedächtnis behauptet und ohne Domänencontroller nicht überprüfbar. Folge: **jeder** Aufruf von `Get-ADReplicationPartnerMetadata` schlug fehl, REP-01 lieferte überhaupt keine Daten mehr. Im Feldtest sichtbar als:
+
+  ```
+  A parameter cannot be found that matches parameter name 'PartitionFilter'.
+  ```
+
+  Der Partitions-Parameter wird jetzt **zur Laufzeit ermittelt** (`-Partition`, sonst `-PartitionFilter`, sonst keiner). Ein unbekannter Parameter kann den Aufruf damit nicht mehr sprengen — unabhängig von der installierten RSAT-Version.
+
+- **feat:** Das Ergebnis weist die **erreichte Abdeckung** aus und protokolliert sie:
+
+  | `Coverage` | Bedeutung |
+  |---|---|
+  | `AllPartitions` | Alle Partitionen geprüft (Domain, Configuration, Schema, DNS-Zonen) |
+  | `DefaultPartitionOnly` | Nur die Standard-Partition — das Cmdlet kennt keinen Partitions-Parameter |
+
+  Ob die volle Abdeckung erreicht wurde, ist damit **nachlesbar statt angenommen**.
+
+> **Bemerkenswert:** Die Regression wurde im Feldtest von **REP-02** gemeldet — der Regel aus v2.6.1, die „nicht prüfbar" sichtbar macht. Ohne sie wäre aus dem Totalausfall ein stilles `PASS` geworden, und der Fehler wäre unentdeckt geblieben. Das Sicherheitsnetz hat den Sturz des eigenen Entwicklers aufgefangen.
 
 ### v2.7.1 — Blinder Fleck bei der Replikation, Schema-Inkonsistenz, fehlende Messwerte
 Gefunden durch Auswertung eines vollständigen Upload-JSON aus einem produktiven AD.
@@ -599,4 +619,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.7.1 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.7.2 — LAKE Solutions AG*
