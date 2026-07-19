@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.4.4-blue)
+![Version](https://img.shields.io/badge/Version-2.4.7-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -228,14 +228,22 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 
 **Kein Internet verfügbar:** Der Check schlägt bei Netzwerk-Timeout (10 Sekunden) stillschweigend fehl — das Script startet normal.
 
-**Neue Version veröffentlichen:** Nur zwei Stellen in `ADHealthCheck.ps1` anpassen:
+**Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.4.4                    # Im .NOTES Header-Kommentar
-$script:LocalVersion = "2.4.4"      # Als Konstante im Script
+Version:    2.4.7                    # Einzige Stelle. $script:LocalVersion
+                                     # wird daraus zur Laufzeit abgeleitet.
 ```
 
 Sobald gepusht, erkennen alle Installationen das Update automatisch beim nächsten Start.
+
+> **Hinweis:** Bis v2.4.6 stand die Version an zwei Stellen (Header **und** `$script:LocalVersion`).
+> Wird nur eine davon angepasst, laufen die Werte auseinander und der Self-Update löst nie aus —
+> genau das ist bei v2.4.6 passiert. Seit v2.4.7 ist das konstruktiv ausgeschlossen.
+
+> **Cache-Hinweis:** `raw.githubusercontent.com` cached mit `max-age=300`. Nach einem Push sehen
+> Clients bis zu 5 Minuten lang noch die alte Version. Ein „Aktuell" direkt nach dem Release ist
+> also nicht zwingend ein Fehler.
 
 ---
 
@@ -337,6 +345,23 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 
 ## Changelog
 
+### v2.4.7 — Fix: Self-Update löste nie aus (Version aus Header abgeleitet)
+- **fix:** Die Version stand an **zwei** Stellen: im `.NOTES`-Header (Zeile 6, gegen den der Remote-Vergleich läuft) und als Literal in `$script:LocalVersion`. Beim Bump auf v2.4.6 wurde der Header vergessen — jeder Client verglich Remote `2.4.5` gegen lokal `2.4.6`, wertete das als „nicht neuer" und meldete dauerhaft **„Aktuell"**. Der Self-Update konnte seit v2.4.5 nicht mehr auslösen.
+- **fix:** `$script:LocalVersion` wird jetzt zur Laufzeit aus dem eigenen Header geparst (erste 20 Zeilen), das Literal entfällt. Ein Auseinanderlaufen ist damit konstruktiv ausgeschlossen.
+- **refactor:** `$script:VersionPattern` als einzige Regex-Definition für die lokale **und** die entfernte Seite — beide Werte werden garantiert identisch geparst.
+- **fix:** Ist der Header nicht lesbar, bricht der Update-Check mit Meldung ab, statt blind zu vergleichen.
+- **chore:** Erstveröffentlichung als öffentliches Repository (MIT-Lizenz), damit der Self-Update ohne Authentifizierung funktioniert.
+
+### v2.4.6 — Vererbungs-Benutzerliste im Upload-JSON
+- **feat:** Die Liste der Konten mit deaktivierter AD-Vererbung wird wieder ins Upload-JSON aufgenommen: `DisabledInheritanceUser` mit den ersten **50** Einträgen (`Name`, `DN`) — Parität zum HTML-Report, der ebenfalls `Select-Object -First 50` nutzt.
+- **feat:** `DisabledInheritanceUserCount` enthält unverändert die **volle** Anzahl als Basis für die „… und N weitere"-Fussnote im Dashboard.
+- ⚠️ **Datenschutz:** Dies ist eine bewusste Wiederaufnahme von **Klarnamen und DNs** ins Upload-JSON. Das JSON unter `output/data/` enthält damit personenbezogene Daten und ist entsprechend zu behandeln (`output/` ist per `.gitignore` ausgeschlossen). Die Benutzer-Detailliste `Security.RawExportData` bleibt weiterhin entfernt und existiert nur in der CSV.
+
+### v2.4.5 — DNS-Reverse-Zonen, Übersetzungen, Encoding
+- **fix:** System-Reverse-Zonen (`0/127/255.in-addr.arpa`) werden von der „nicht AD-integriert"-Prüfung ausgeschlossen. Diese Standard-Primary-Zonen können nie AD-integriert sein und erzeugten sonst falsche Findings.
+- **fix:** `recommendations.json` — englische `SubCategory`-Werte korrigiert (Server Gesundheit → Server Health, Konnektivität → Connectivity, Objekt-Sicherheit → Object Security).
+- **chore:** Encoding vereinheitlicht — JSON BOM-frei, `.psm1` mit UTF-8-BOM.
+
 ### v2.4.4 — Fix: Ladefehler auf ANSI-Codepage-Servern (UTF-8-BOM)
 - **fix:** `modules/ADHealthCheck.Reporting.psm1` wird jetzt mit **UTF-8-BOM** gespeichert. Windows PowerShell 5.1 liest BOM-lose Dateien anhand der System-Codepage; auf Servern mit ANSI-Codepage **1252** wurden die UTF-8-Sonderzeichen (Umlaute, Box-Zeichen) falsch dekodiert, wodurch die Datei nicht mehr parste (`Missing closing '}'` an `function New-ADHCReport`). Das BOM erzwingt UTF-8 auf jeder Codepage. (Die BOM-Entfernung aus v2.4.0 war die eigentliche Ursache — sie blieb auf UTF-8-Systemen unsichtbar.)
 
@@ -428,4 +453,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.4.4 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.4.7 — LAKE Solutions AG*
