@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.4.8-blue)
+![Version](https://img.shields.io/badge/Version-2.4.9-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -59,7 +59,7 @@ Professionelles PowerShell-Tool zur Analyse und Bewertung von Microsoft Active D
 - **Automatisierter CSV-Export** für Security-Details (Compliance-Audits)
 - **Sample-Report** mit realistischen Mock-Daten (Demo / Onboarding ohne AD-Verbindung)
 - **NoGui-Modus** für Scheduled Tasks und Automatisierung
-- **Modul-Manifeste** (`.psd1`) mit Versionierung v2.3.0 und Abhängigkeitsdefinition
+- **Modul-Manifeste** (`.psd1`) mit Versionierung v2.1.0 und Abhängigkeitsdefinition
 
 ---
 
@@ -102,15 +102,15 @@ ADHealthCheck/
 │
 ├── modules/
 │   ├── ADHealthCheck.Utils.psm1   Logging, Config-Laden, i18n, HTML-Helpers
-│   ├── ADHealthCheck.Utils.psd1   Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.Utils.psd1   Modul-Manifest v2.1.0
 │   ├── ADHealthCheck.Diag.psm1    AD-Diagnose (DC, FSMO, Security, ACL, Backup)
-│   ├── ADHealthCheck.Diag.psd1    Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.Diag.psd1    Modul-Manifest v2.1.0
 │   ├── ADHealthCheck.Reporting.psm1  HTML-Report-Generierung + Empfehlungs-Engine
-│   ├── ADHealthCheck.Reporting.psd1  Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.Reporting.psd1  Modul-Manifest v2.1.0
 │   ├── ADHealthCheck.DNS.psm1     DNS-Zonen, SRV-Records, Scavenging, NS-Status
-│   ├── ADHealthCheck.DNS.psd1     Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.DNS.psd1     Modul-Manifest v2.1.0
 │   ├── ADHealthCheck.EntraSync.psm1  Entra ID / Azure AD Connect Status
-│   ├── ADHealthCheck.EntraSync.psd1  Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.EntraSync.psd1  Modul-Manifest v2.1.0
 │   └── Update-EntraVersion.ps1   Automatische Entra-Connect Versions-Aktualisierung
 │
 ├── templates/
@@ -231,7 +231,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.4.8                    # Einzige Stelle. $script:LocalVersion
+Version:    2.4.9                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -345,6 +345,12 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 
 ## Changelog
 
+### v2.4.9 — UTF-8-BOM auf alle PowerShell-Dateien ausgeweitet
+- **fix:** Der BOM-Fix aus v2.4.4 betraf **nur** `Reporting.psm1`. `Diag.psm1`, `Utils.psm1`, `Update-EntraVersion.ps1` und drei `.psd1`-Manifeste blieben BOM-los. Auf Servern mit ANSI-Codepage **1252** wurden die Umlaute dort verfälscht dekodiert — betroffen waren unter anderem die i18n-Fallbacks „Passwort läuft nie ab" und „Passwort älter als Richtlinie", die im **Report und CSV** erscheinen, sowie mehrere Log-Ausgaben.
+- **fix:** Alle `.ps1`/`.psm1`/`.psd1` tragen jetzt ein UTF-8-BOM — auch die aktuell ASCII-reinen. Damit führt ein später hinzugefügter Umlaut das Problem nicht stillschweigend wieder ein. JSON-Dateien bleiben konventionsgemäss BOM-frei.
+- **docs:** README nannte die Modul-Manifeste als v2.3.0; tatsächlich stehen sie auf **v2.1.0**. Korrigiert.
+- Verifiziert durch Simulation des CP1252-Lesevorgangs: vor dem Fix parste `tests/pester/ADHealthCheck.Tests.ps1` mit 25 Fehlern, die übrigen Dateien parsten zwar, lieferten aber verfälschte Zeichen. Nach dem Fix sind alle 13 Dateien geschützt.
+
 ### v2.4.8 — Korrektur irreführender PII-Kommentare
 - **docs:** Die Kommentare in `modules/ADHealthCheck.Reporting.psm1` beschrieben das Upload-JSON als „Rohdaten **ohne** PII". Das trifft seit v2.4.6 nicht mehr zu — `DisabledInheritanceUser` enthält bewusst wieder **Klarnamen und DNs** der ersten 50 Konten. Die Kommentare sprechen jetzt von *minimierter* PII und benennen ausdrücklich, was enthalten bleibt.
 - Keine Verhaltensänderung — der Export selbst ist unverändert. Der Bump dient allein dazu, die Korrektur über den Self-Update auf bestehende Installationen auszurollen.
@@ -457,4 +463,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.4.8 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.4.9 — LAKE Solutions AG*

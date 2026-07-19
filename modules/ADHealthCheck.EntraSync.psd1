@@ -1,4 +1,4 @@
-#
+﻿#
 # Modul-Manifest: ADHealthCheck.EntraSync.psd1
 #
 @{

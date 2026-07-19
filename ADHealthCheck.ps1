@@ -3,8 +3,13 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.4.8
-    Changelog:  - DOC: Kommentare im Reporting-Modul korrigiert — das Upload-JSON wurde
+    Version:    2.4.9
+    Changelog:  - FIX: UTF-8-BOM auf ALLE PowerShell-Dateien ausgeweitet. Der v2.4.4-Fix
+                  betraf nur Reporting.psm1; Diag.psm1, Utils.psm1, Update-EntraVersion.ps1
+                  und drei .psd1 blieben BOM-los. Auf ANSI-CP1252-Servern wurden dort
+                  Umlaute verfaelscht — u.a. in den i18n-Fallbacks "Passwort laeuft nie
+                  ab" / "Passwort aelter als Richtlinie", die im Report/CSV landen.
+                - DOC: Kommentare im Reporting-Modul korrigiert — das Upload-JSON wurde
                   als "ohne PII" beschrieben, enthaelt seit v2.4.6 aber wieder
                   Klarnamen und DNs (DisabledInheritanceUser, erste 50 Eintraege).
                 - FIX: Self-Update loeste nie aus — die Header-Version (Single Source of

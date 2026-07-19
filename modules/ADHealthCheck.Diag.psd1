@@ -1,4 +1,4 @@
-#
+﻿#
 # Modul-Manifest: ADHealthCheck.Diag.psd1
 #
 @{

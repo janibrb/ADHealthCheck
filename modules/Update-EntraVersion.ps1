@@ -1,4 +1,4 @@
-# MODULE: Update-EntraVersion.ps1
+﻿# MODULE: Update-EntraVersion.ps1
 # Fix: Präzises Regex verhindert falsche Versionen (z.B. .NET 8.0.0.0 Assembly-Bindings)
 
 function Update-EntraConnectVersion {

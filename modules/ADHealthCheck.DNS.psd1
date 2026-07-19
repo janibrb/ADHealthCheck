@@ -1,4 +1,4 @@
-#
+﻿#
 # Modul-Manifest: ADHealthCheck.DNS.psd1
 #
 @{
