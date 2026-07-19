@@ -3,8 +3,11 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.4.7
-    Changelog:  - FIX: Self-Update loeste nie aus — die Header-Version (Single Source of
+    Version:    2.4.8
+    Changelog:  - DOC: Kommentare im Reporting-Modul korrigiert — das Upload-JSON wurde
+                  als "ohne PII" beschrieben, enthaelt seit v2.4.6 aber wieder
+                  Klarnamen und DNs (DisabledInheritanceUser, erste 50 Eintraege).
+                - FIX: Self-Update loeste nie aus — die Header-Version (Single Source of
                   Truth fuer den Vergleich) stand auf 2.4.5, waehrend $script:LocalVersion
                   bereits 2.4.6 war. LocalVersion wird jetzt aus dem Header abgeleitet,
                   ein Auseinanderlaufen ist konstruktiv ausgeschlossen.

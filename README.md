@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.4.7-blue)
+![Version](https://img.shields.io/badge/Version-2.4.8-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -231,7 +231,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.4.7                    # Einzige Stelle. $script:LocalVersion
+Version:    2.4.8                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -345,6 +345,10 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 
 ## Changelog
 
+### v2.4.8 — Korrektur irreführender PII-Kommentare
+- **docs:** Die Kommentare in `modules/ADHealthCheck.Reporting.psm1` beschrieben das Upload-JSON als „Rohdaten **ohne** PII". Das trifft seit v2.4.6 nicht mehr zu — `DisabledInheritanceUser` enthält bewusst wieder **Klarnamen und DNs** der ersten 50 Konten. Die Kommentare sprechen jetzt von *minimierter* PII und benennen ausdrücklich, was enthalten bleibt.
+- Keine Verhaltensänderung — der Export selbst ist unverändert. Der Bump dient allein dazu, die Korrektur über den Self-Update auf bestehende Installationen auszurollen.
+
 ### v2.4.7 — Fix: Self-Update löste nie aus (Version aus Header abgeleitet)
 - **fix:** Die Version stand an **zwei** Stellen: im `.NOTES`-Header (Zeile 6, gegen den der Remote-Vergleich läuft) und als Literal in `$script:LocalVersion`. Beim Bump auf v2.4.6 wurde der Header vergessen — jeder Client verglich Remote `2.4.5` gegen lokal `2.4.6`, wertete das als „nicht neuer" und meldete dauerhaft **„Aktuell"**. Der Self-Update konnte seit v2.4.5 nicht mehr auslösen.
 - **fix:** `$script:LocalVersion` wird jetzt zur Laufzeit aus dem eigenen Header geparst (erste 20 Zeilen), das Literal entfällt. Ein Auseinanderlaufen ist damit konstruktiv ausgeschlossen.
@@ -453,4 +457,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.4.7 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.4.8 — LAKE Solutions AG*

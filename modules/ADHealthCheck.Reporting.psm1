@@ -14,7 +14,9 @@ function New-ADHCReport {
     $jsonFile = Join-Path $dataDir ("ADHealthCheck_{0}.json" -f $timestamp)
     # HINWEIS: Das JSON wird NICHT mehr hier (roh) geschrieben, sondern am Ende von
     # New-ADHCReport als Dashboard-Upload-Vertrag (Metadaten + Verdikte + Rohdaten
-    # ohne PII, Datumsangaben als ISO-8601). Siehe Block "Upload-JSON (Dashboard)".
+    # mit MINIMIERTER PII, Datumsangaben als ISO-8601). Siehe Block "Upload-JSON
+    # (Dashboard)". ACHTUNG: "minimiert" heisst NICHT "frei von PII" — seit v2.4.6
+    # enthaelt das JSON wieder Klarnamen und DNs (DisabledInheritanceUser, erste 50).
 
     # 2. HTML Template & CSS laden
     if (-not (Test-Path $TemplatePath)) { Throw "Template nicht gefunden unter: $TemplatePath" }
@@ -1440,7 +1442,10 @@ function New-ADHCReport {
 	# Empfehlungen generieren
 	$htmlRec = Get-ADHCRecommendations -Data $Data -Settings $Settings -I18n $I18n -LangCode $LangCode
 
-	# === Upload-JSON (Dashboard) — Metadaten + Verdikte + Rohdaten OHNE PII ===
+	# === Upload-JSON (Dashboard) — Metadaten + Verdikte + Rohdaten mit minimierter PII ===
+	# Das Ergebnis ist NICHT PII-frei: Security.RawExportData wird entfernt, aber
+	# DisabledInheritanceUser liefert bewusst Name + DN der ersten 50 Konten (seit
+	# v2.4.6). Die Datei unter output/data/ ist entsprechend zu behandeln.
 	# Verdikte über ALLE Sektionen (ShowRecommendations-Toggles bewusst ignoriert, damit
 	# das Dashboard vollständig bewertet): Evaluator mit allen Sektionen=$true erneut
 	# aufrufen; die gefeuerten Regeln kommen via $script:ADHCLastActiveRecs (Stash).
