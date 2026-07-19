@@ -3,8 +3,20 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.4.10
-    Changelog:  - FIX: Get-Content ohne -Encoding UTF8 in den Config-Loadern (Utils.psm1:
+    Version:    2.4.11
+    Changelog:  - FIX: Fuenf Empfehlungsregeln haben NIE gefeuert und meldeten auch im
+                  Fehlerfall PASS:
+                  * PWD-04 (Sperrschwelle): Switch-Label hiess "LockoutThreshold",
+                    Collector und recommendations.json liefern aber "LockoutThresh".
+                    Bei komplett deaktivierter Kontosperre (Threshold=0) meldete der
+                    Report "bestanden".
+                  * SVC-NTDS / SVC-NET / SVC-DNS / SVC-KDC: die Auswertung erwartete
+                    $entry.Details mit .ServiceName; Get-ADServiceStatus liefert aber
+                    eine flache Liste mit .Service. Ein gestoppter NTDS-Dienst blieb
+                    unsichtbar.
+                - FIX: Sample-Reports neu erzeugt (enthielten ENT-01 nicht und keine
+                  der fuenf reparierten Regeln).
+                - FIX: Get-Content ohne -Encoding UTF8 in den Config-Loadern (Utils.psm1:
                   Config, i18n, Mapping) und beim Laden von Template/CSS. PS 5.1 nutzt
                   ohne den Parameter die System-ANSI-Codepage; da die config/*.json
                   BOM-frei sind, wurde daraus auf CP1252-Servern "KennwÃ¶rter" statt

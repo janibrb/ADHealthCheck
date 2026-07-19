@@ -430,7 +430,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
         </div>
         <div class="report-meta">
             <h2>Active Directory Health Report</h2>
-            <div class="report-badge">19.07.2026 17:59</div>
+            <div class="report-badge">19.07.2026 18:21</div>
         </div>
     </div>
 
@@ -506,12 +506,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			</thead>
 			<tbody><tr>
 				<td>DC=contoso,DC=local</td>
-				<td>14.06.2026 17:59</td>
+				<td>14.06.2026 18:21</td>
 				<td>35 Tg. 0 Std.</td>
 				<td><span class='status-pill status-error'>Dringender Handlungsbedarf</span></td>
 			</tr><tr>
 				<td>CN=Configuration,DC=contoso,DC=local</td>
-				<td>16.07.2026 17:59</td>
+				<td>16.07.2026 18:21</td>
 				<td>3 Tg. 0 Std.</td>
 				<td><span class='status-pill status-warning'>Warnung</span></td>
 			</tr><tr>
@@ -530,7 +530,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 				<tr><th>Eigenschaft</th><th>Wert</th></tr>
 			</thead>
 			<tbody>
-				<tr><td>Grenzwert Inaktivität</td><td> Tag(e)</td></tr>
+				<tr><td>Grenzwert Inaktivität</td><td>90 Tag(e)</td></tr>
 				<tr>
 					<td>Inaktive Konten gefunden (Aktiviert)</td>
 					<td><span class='status-pill status-error'>72 Benutzer</span></td>
@@ -590,7 +590,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
             <tbody>
                 <tr>
                     <td><b>SRVSYNC01 (MOCK)</b></td>
-                    <td><span class='status-pill status-warning'>1.1.0.0 (Erwartet: )</span></td>
+                    <td><span class='status-pill status-warning'>1.1.0.0 (Erwartet: 2.6.3.0)</span></td>
                     <td><div><b>Microsoft Entra Connect Sync</b>: <span class='status-error'>Stopped</span></div><div><b>Microsoft Azure AD Connect Agent Updater</b>: <span class='status-error'>Stopped</span></div></td>
                     <td><span class='status-pill status-warning'>Warnung</span></td>
                 </tr>
@@ -848,6 +848,30 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-text text-left'>WARNUNG: Das AD-Backup ist älter als 7 Tage oder konnte nicht ermittelt werden! Dies stellt ein erhebliches Risiko für die Wiederherstellbarkeit dar. (Partitionen: DC=contoso,DC=local (35 Tag(e), 0 Stunden her); CN=Schema,CN=Configuration,DC=contoso,DC=local (Kein Backup gefunden))</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SVC-DNS</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>DNS</td>
+								<td class='rec-text text-left'>Der DNS-Serverdienst läuft nicht oder ist nicht auf 'Automatisch' konfiguriert. Dies verhindert die Namensauflösung im AD. (Server: MOCK-DC-01 (Error / Automatic), MOCK-DC-02 (Error / Automatic))</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SVC-KDC</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>KDC</td>
+								<td class='rec-text text-left'>Der Kerberos Key Distribution Center (KDC) Dienst ist gestört oder falsch konfiguriert. Authentifizierungen können fehlschlagen. (Server: MOCK-DC-01 (Error / Automatic))</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SVC-NET</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>NETLOGON</td>
+								<td class='rec-text text-left'>Der Netlogon-Dienst ist nicht betriebsbereit. DCs können keine Anmeldeanfragen verarbeiten oder sich synchronisieren. (Server: MOCK-DC-01 (Error / Automatic))</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SVC-NTDS</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>NTDS</td>
+								<td class='rec-text text-left'>Der Verzeichnisdienst (NTDS) weist Fehler auf oder ist nicht auf 'Automatisch' gestellt. Die AD-Datenbank ist gefährdet. (Server: MOCK-DC-01 (Error / Automatic), MOCK-DC-02 (Error / Automatic))</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SITE-01</td>
 								<td class='rec-cat text-left'>Infrastruktur</td>
 								<td class='rec-sub text-left'>Sites + Services</td>
@@ -920,6 +944,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-text text-left'>Die Kennwortchronik ist zu kurz. Microsoft empfiehlt die Speicherung der letzten 24 Kennwörter, um eine sofortige Wiederverwendung alter Passwörter zu verhindern. (Aktueller Wert: 5 Kennwörter)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>PWD-04</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
+								<td class='rec-text text-left'>Die Kontensperrungsschwelle ist deaktiviert (0) oder zu hoch. Microsoft empfiehlt einen Wert von 10 Versuchen. (Aktueller Wert: 0 Versuchen)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>PWD-05</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
@@ -948,6 +978,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Objekt-Sicherheit</td>
 								<td class='rec-text text-left'>Benutzerkonten mit deaktivierter Vererbung identifiziert. Sofern es sich nicht um geschützte Gruppen (AdminSDHolder) handelt, sollten Berechtigungen für eine konsistente Verwaltung vererbt werden. (Aktueller Wert: 20)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>ENT-01</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Hybrid Identity</td>
+								<td class='rec-text text-left'>Die installierte Version von Microsoft Entra Connect ist veraltet. Microsoft empfiehlt dringend, den Sync-Agenten aktuell zu halten, um von Sicherheits-Fixes, Performance-Optimierungen und neuen Funktionen zu profitieren. (1.1.0.0 < 2.6.3.0)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>ENT-02</td>

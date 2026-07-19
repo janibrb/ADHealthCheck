@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.4.10-blue)
+![Version](https://img.shields.io/badge/Version-2.4.11-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -231,7 +231,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.4.10                    # Einzige Stelle. $script:LocalVersion
+Version:    2.4.11                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -344,6 +344,18 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.4.11 — Fünf Empfehlungsregeln haben nie gefeuert
+- **fix:** **PWD-04 (Sperrschwelle bei Fehlversuchen).** Das Switch-Label in `Reporting.psm1` hiess `"LockoutThreshold"`, Collector und `recommendations.json` liefern aber `LockoutThresh`. Der `case` matchte nie. Bei einer Domäne mit `LockoutThreshold = 0` — also **komplett deaktiviertem Kontosperr-Schutz** — meldete der Report für diese HIGH-Prüfung „bestanden".
+- **fix:** **SVC-NTDS, SVC-NET, SVC-DNS, SVC-KDC.** Die Auswertung erwartete `$entry.Details` mit `.ServiceName`/`.ShortName`. Weder `Get-ADServiceStatus` noch die Mock-Daten liefern diese Felder — beide erzeugen eine flache Liste mit `.Service`. Damit war `$svc` immer `$null` und keine der vier Dienste-Regeln konnte feuern: ein gestoppter NTDS-, Netlogon-, DNS- oder KDC-Dienst blieb im Report unsichtbar.
+- **fix:** Sample-Reports neu erzeugt. Sie enthielten ENT-01 nicht und natürlich keine der fünf reparierten Regeln.
+- Verifiziert gegen eine Referenzmessung aller 69 Verdikte: exakt 5 Statusänderungen (PWD-04, SVC-DNS, SVC-KDC, SVC-NET, SVC-NTDS jeweils PASS → FAIL), keine Kollateraleffekte. Worst-Case-Mockdaten: vorher 59 FAIL / 10 PASS, jetzt 64 FAIL / 5 PASS.
+
+> **Noch offen (bekannt, nicht in dieser Version behoben):**
+> `SITE-03` (Änderungsbenachrichtigung der Site-Links) hat **überhaupt keinen Auswertungscode** — die Regel steht in `recommendations.json`, wird aber nirgends geprüft.
+> `AD-FSMO-08` (Infrastruktur-Master ist GC) liest `IsGC` aus `$Data.Discovery`; dieses Objekt führt das Feld nicht — der echte Collector liefert `IsGC` nur in `Sites.Servers`.
+> `SRV-02` (DC-Erreichbarkeit) funktioniert produktiv korrekt — nur die Mock-Daten setzen `Status="Error"` ohne `OS="Unreachable"`, weshalb die Regel im Sample-Report fehlt.
+> `SITE-05` und `DNS-01` feuern bewusst nicht: sie schliessen sich mit `SITE-02` bzw. `DNS-06` gegenseitig aus.
 
 ### v2.4.10 — Encoding beim Config-Laden + Mehrsprachigkeit des Reports
 - **fix:** Die Loader in `Utils.psm1` (`Get-ADHCConfig`, `Get-ADHCI18n`, `Get-ADHCMapping`) sowie das Laden von Template und CSS in `Reporting.psm1` riefen `Get-Content -Raw` **ohne** `-Encoding UTF8` auf. PowerShell 5.1 dekodiert dann mit der System-ANSI-Codepage. Da die `config/*.json` konventionsgemäss BOM-frei sind, wurde auf Servern mit Codepage **1252** aus `Kennwörter` ein `KennwÃ¶rter` und aus `Die Mindestkennwortlänge…` ein `Die MindestkennwortlÃ¤nge…` — der Mojibake landete über i18n-Labels und Empfehlungstexte direkt im Kundenreport. Alle fünf Aufrufe lesen jetzt explizit UTF-8.
@@ -472,4 +484,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.4.10 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.4.11 — LAKE Solutions AG*

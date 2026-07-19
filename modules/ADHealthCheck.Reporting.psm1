@@ -1062,20 +1062,24 @@ function New-ADHCReport {
 				$failedServers = @()
 				$serviceName = $rule.Property # z.B. 'dns', 'kdc'...
 		
-				foreach ($srvEntry in $Data.Services) {
-					# Wir suchen den spezifischen Dienst in den Daten des Servers
-					# Annahme: $Data.Services ist ein Array von Objekten mit Server-Name und Dienst-Details
-					$svc = $srvEntry.Details | Where-Object { $_.ServiceName -eq $serviceName -or $_.ShortName -eq $serviceName }
-					
-					if ($svc) {
-						# FEHLER-BEDINGUNG: Status nicht OK -ODER- StartType nicht Automatic
-						$isNotAuto = ($svc.StartMode -ne "Auto" -and $svc.StartMode -ne "Automatic")
-						$isNotRunning = ($svc.Status -ne "OK" -and $svc.Status -ne "Running")
-		
-						if ($isNotRunning -or $isNotAuto) {
-							$detail = "($($svc.Status) / $($svc.StartMode))"
-							$failedServers += "$($srvEntry.Server) $detail"
-						}
+				# $Data.Services ist eine FLACHE Liste — siehe Get-ADServiceStatus:
+				#   @{ Server; Service; Status; StartType }
+				# Frueher wurde hier $srvEntry.Details mit .ServiceName/.ShortName
+				# erwartet. Diese Felder liefert weder der Collector noch die
+				# Mock-Daten, wodurch $svc immer $null war und KEINE der vier
+				# SVC-Regeln jemals feuerte — auch nicht bei gestopptem NTDS.
+				foreach ($svc in $Data.Services) {
+					if ($svc.Service -ne $serviceName) { continue }
+
+					$startMode = [string]$svc.StartType
+					# Status-Fehler laut Condition der Regel (Error/Warning/Manual/Disabled)
+					$isNotRunning = ($rule.Condition -contains $svc.Status) -or
+					                ($svc.Status -ne "OK" -and $svc.Status -ne "Running")
+					# Starttyp muss Automatic sein; leerer Wert wird nicht bemaengelt
+					$isNotAuto = ($startMode -and $startMode -ne "Auto" -and $startMode -ne "Automatic")
+
+					if ($isNotRunning -or $isNotAuto) {
+						$failedServers += "$($svc.Server) ($($svc.Status) / $startMode)"
 					}
 				}
 		
@@ -1212,7 +1216,10 @@ function New-ADHCReport {
 						$isTriggered = ([int]$val -lt 24)
 						$suffix = "$val $($I18n.Labels.Passwords)"
 					}
-					"LockoutThreshold" { 
+					# Feldname laut Collector und recommendations.json: "LockoutThresh".
+					# Hier stand "LockoutThreshold" — das Label matchte nie, wodurch
+					# PWD-04 auch bei komplett deaktivierter Kontosperre PASS meldete.
+					"LockoutThresh" {
 						# Trigger bei 0 (kein Schutz) oder über 10 (zu unsicher)
 						$numVal = [int]$val
 						$isTriggered = ($numVal -eq 0 -or $numVal -gt 10)
