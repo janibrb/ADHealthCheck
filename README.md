@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.4.9-blue)
+![Version](https://img.shields.io/badge/Version-2.4.10-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -231,7 +231,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.4.9                    # Einzige Stelle. $script:LocalVersion
+Version:    2.4.10                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -344,6 +344,15 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.4.10 — Encoding beim Config-Laden + Mehrsprachigkeit des Reports
+- **fix:** Die Loader in `Utils.psm1` (`Get-ADHCConfig`, `Get-ADHCI18n`, `Get-ADHCMapping`) sowie das Laden von Template und CSS in `Reporting.psm1` riefen `Get-Content -Raw` **ohne** `-Encoding UTF8` auf. PowerShell 5.1 dekodiert dann mit der System-ANSI-Codepage. Da die `config/*.json` konventionsgemäss BOM-frei sind, wurde auf Servern mit Codepage **1252** aus `Kennwörter` ein `KennwÃ¶rter` und aus `Die Mindestkennwortlänge…` ein `Die MindestkennwortlÃ¤nge…` — der Mojibake landete über i18n-Labels und Empfehlungstexte direkt im Kundenreport. Alle fünf Aufrufe lesen jetzt explizit UTF-8.
+- **fix:** 9 hartcodierte deutsche Strings im Report lokalisiert. Der **englische** Report enthielt bisher `Betroffene Server` (18×), `Partitionen`, `Vorkommen`, `Empfehlung`, `Benutzer`, `Distinguished Name (Pfad)` (2 Tabellen), `Keine Server vorhanden`, `Kein GC konfiguriert`, `Keine gefunden`, `Detaillierte Liste: Verwaiste SIDs (ACLs)` und `Prüfen & Bereinigen`. Dafür kamen 7 neue i18n-Keys hinzu.
+- **fix:** Tippfehler in `i18n.en.json` — `"Recommandation"` → `"Recommendation"`.
+- **docs:** Sample-Reports neu erzeugt. Die alte englische Fassung enthielt den deutschen Text, die alte deutsche Fassung enthielt Mojibake im eingebetteten CSS.
+- Verifiziert durch Erzeugung beider Reports aus Mock-Daten: der englische Report enthält 0 deutsche Strings, der deutsche ist unverändert korrekt.
+
+> **Hinweis für Entwickler:** `Get-Content` in diesem Projekt **immer** mit `-Encoding UTF8` aufrufen. Ohne den Parameter ist das Verhalten davon abhängig, ob auf dem Zielserver die Systemoption „Beta: Unicode UTF-8" aktiv ist — auf Entwicklungsmaschinen mit UTF-8-Codepage bleibt der Fehler unsichtbar und schlägt erst beim Kunden zu.
 
 ### v2.4.9 — UTF-8-BOM auf alle PowerShell-Dateien ausgeweitet
 - **fix:** Der BOM-Fix aus v2.4.4 betraf **nur** `Reporting.psm1`. `Diag.psm1`, `Utils.psm1`, `Update-EntraVersion.ps1` und drei `.psd1`-Manifeste blieben BOM-los. Auf Servern mit ANSI-Codepage **1252** wurden die Umlaute dort verfälscht dekodiert — betroffen waren unter anderem die i18n-Fallbacks „Passwort läuft nie ab" und „Passwort älter als Richtlinie", die im **Report und CSV** erscheinen, sowie mehrere Log-Ausgaben.
@@ -463,4 +472,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.4.9 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.4.10 — LAKE Solutions AG*

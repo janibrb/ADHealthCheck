@@ -3,8 +3,17 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.4.9
-    Changelog:  - FIX: UTF-8-BOM auf ALLE PowerShell-Dateien ausgeweitet. Der v2.4.4-Fix
+    Version:    2.4.10
+    Changelog:  - FIX: Get-Content ohne -Encoding UTF8 in den Config-Loadern (Utils.psm1:
+                  Config, i18n, Mapping) und beim Laden von Template/CSS. PS 5.1 nutzt
+                  ohne den Parameter die System-ANSI-Codepage; da die config/*.json
+                  BOM-frei sind, wurde daraus auf CP1252-Servern "KennwÃ¶rter" statt
+                  "Kennwörter" — der Mojibake landete direkt im Kundenreport.
+                - FIX: 9 hartcodierte deutsche Strings im Report lokalisiert. Der
+                  englische Report enthielt u.a. "Betroffene Server" (18x), "Partitionen",
+                  "Vorkommen", "Benutzer" und "Distinguished Name (Pfad)".
+                - FIX: Tippfehler "Recommandation" -> "Recommendation" (i18n.en.json).
+                - FIX: UTF-8-BOM auf ALLE PowerShell-Dateien ausgeweitet. Der v2.4.4-Fix
                   betraf nur Reporting.psm1; Diag.psm1, Utils.psm1, Update-EntraVersion.ps1
                   und drei .psd1 blieben BOM-los. Auf ANSI-CP1252-Servern wurden dort
                   Umlaute verfaelscht — u.a. in den i18n-Fallbacks "Passwort laeuft nie

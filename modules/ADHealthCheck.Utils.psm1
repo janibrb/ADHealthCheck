@@ -1,16 +1,21 @@
 ﻿# MODULE: ADHealthCheck.Utils.psm1
 
+# WICHTIG fuer alle Loader hier: -Encoding UTF8 ist zwingend.
+# Die config/*.json sind konventionsgemaess BOM-frei. Ohne den Parameter
+# dekodiert PS 5.1 sie mit der System-ANSI-Codepage — auf CP1252-Servern
+# wird daraus "KennwÃ¶rter" statt "Kennwörter", und der Mojibake landet
+# ueber i18n und recommendations.json direkt im Kundenreport.
 function Get-ADHCConfig {
     param([string]$Path)
     if (-not (Test-Path $Path)) { throw "Config file not found at $Path" }
-    return Get-Content -Path $Path -Raw | ConvertFrom-Json
+    return Get-Content -Path $Path -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
 function Get-ADHCI18n {
     param([string]$Path, [string]$Lang)
     $file = Join-Path $Path "i18n.$Lang.json"
     if (-not (Test-Path $file)) { $file = Join-Path $Path "i18n.de.json" }
-    return Get-Content -Path $file -Raw | ConvertFrom-Json
+    return Get-Content -Path $file -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
 function Get-ADHCMapping {
@@ -20,7 +25,7 @@ function Get-ADHCMapping {
         # Fallback, leeres Objekt zurückgeben
         return @{} 
     }
-    return Get-Content -Path $file -Raw | ConvertFrom-Json
+    return Get-Content -Path $file -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
 function Write-ADHCLog {

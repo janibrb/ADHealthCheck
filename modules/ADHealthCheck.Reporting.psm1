@@ -25,8 +25,9 @@ function New-ADHCReport {
     $resolvedTemplatePath = Resolve-Path $TemplatePath
     $templateDir = Split-Path $resolvedTemplatePath -Parent
     
-    # HTML einlesen
-    $html = Get-Content $resolvedTemplatePath -Raw
+    # HTML einlesen — -Encoding UTF8 ist Pflicht: ohne den Parameter nutzt
+    # PS 5.1 die System-ANSI-Codepage und verfaelscht Umlaute auf CP1252-Servern.
+    $html = Get-Content $resolvedTemplatePath -Raw -Encoding UTF8
     
 	# Text aus i18n holen
     $footerLabel = $I18n.Labels.FooterText
@@ -38,7 +39,10 @@ function New-ADHCReport {
     $cssContent = "/* CSS Datei nicht gefunden oder leer */"
     
     if (Test-Path $cssPath) {
-        $cssContent = Get-Content $cssPath -Raw
+        # -Encoding UTF8 zwingend: report.style.css hat kein BOM. Ohne den
+        # Parameter landen auf CP1252-Servern verfaelschte Umlaute im Report
+        # (sichtbar in den alten Sample-Reports: "gemÃ¤ÃŸ" statt "gemäß").
+        $cssContent = Get-Content $cssPath -Raw -Encoding UTF8
         Write-ADHCLog "CSS Stylesheet erfolgreich geladen ($cssPath)."
     } else {
         Write-ADHCLog "FEHLER: CSS Datei nicht gefunden! Erwartet unter: $cssPath" -Level Error
@@ -432,7 +436,7 @@ function New-ADHCReport {
         # Pille für Aktive Inaktive (Rot/Grün)
         $inactiveCount = [int]$secInfo.InactiveUsers
         $inactiveStatusClass = if ($inactiveCount -eq 0) { "status-ok" } else { "status-error" }
-        $inactiveLabel = if ($inactiveCount -eq 0) { "Keine gefunden" } else { "$inactiveCount $($I18n.Labels.Users)" }
+        $inactiveLabel = if ($inactiveCount -eq 0) { $I18n.Labels.NoneFound } else { "$inactiveCount $($I18n.Labels.Users)" }
 
         # Pille für Deaktivierte Konten (Gelb wenn > 0)
         $disabledCount = [int]$secInfo.DisabledUsers
@@ -442,7 +446,7 @@ function New-ADHCReport {
         # Pille für Passwortablauf (Rot/Grün)
         $noExpiryCount = [int]$secInfo.NoPwdExpiryUsers
         $noExpiryStatusClass = if ($noExpiryCount -eq 0) { "status-ok" } else { "status-error" }
-        $noExpiryLabel = if ($noExpiryCount -eq 0) { "Keine gefunden" } else { "$noExpiryCount $($I18n.Labels.Users)" }
+        $noExpiryLabel = if ($noExpiryCount -eq 0) { $I18n.Labels.NoneFound } else { "$noExpiryCount $($I18n.Labels.Users)" }
 
         # Pille für Abgelaufene Kennwörter (Neu)
         $expiredCount = [int]$secInfo.ExpiredPwdUsers
@@ -540,19 +544,19 @@ function New-ADHCReport {
 	
 		# --- TABELLE 1: VERWAISTE SIDs (JETZT EXPLIZIT) ---
 		if ($ouSec.UniqueOrphanCount -gt 0) {
-			$htmlOUSec += "<div style='margin-top:20px;'><h3 style='border-left: 3px solid #004a87; padding-left: 10px;'>Detaillierte Liste: Verwaiste SIDs (ACLs)</h3>"
+			$htmlOUSec += "<div style='margin-top:20px;'><h3 style='border-left: 3px solid #004a87; padding-left: 10px;'>$($I18n.Labels.OrphanedSIDsDetailTitle)</h3>"
 			
 			# Wir bereiten die Daten für die SID-Tabelle auf
 			$sidTableData = foreach ($group in $ouSec.TopOrphanedSIDs) {
 				[PSCustomObject]@{ 
 					SID       = $group.Name; 
 					Anzahl    = $group.Count; 
-					Empfehlung = "Prüfen & Bereinigen" 
+					Empfehlung = $I18n.Labels.ReviewAndCleanup 
 				}
 			}
 			
 			# Rendern der SID Tabelle
-			$htmlOUSec += New-HTMLTableWithPills -Data $sidTableData -Headers ([ordered]@{"SID"="SID"; "Anzahl"="Vorkommen"; "Empfehlung"="Empfehlung"})
+			$htmlOUSec += New-HTMLTableWithPills -Data $sidTableData -Headers ([ordered]@{"SID"="SID"; "Anzahl"=$I18n.Labels.Occurrences; "Empfehlung"=$I18n.Labels.Recommendation})
 			$htmlOUSec += "</div>"
 		}
 	
@@ -562,7 +566,7 @@ function New-ADHCReport {
 			$ouData = foreach($ou in ($ouSec.DisabledInheritanceOU | Select-Object -First 50)) {
 				[PSCustomObject]@{ "OU Name" = $ou.Name; "Distinguished Name (Pfad)" = $ou.DN; "Status" = $I18n.Labels.InheritanceDisabled }
 			}
-			$htmlOUSec += New-HTMLTableWithPills -Data $ouData -Headers ([ordered]@{"OU Name"="OU Name"; "Distinguished Name (Pfad)"="Distinguished Name (Pfad)"; "Status"="Status"})
+			$htmlOUSec += New-HTMLTableWithPills -Data $ouData -Headers ([ordered]@{"OU Name"="OU Name"; "Distinguished Name (Pfad)"=$I18n.Labels.DistinguishedNamePath; "Status"=$I18n.Labels.Status})
 			$htmlOUSec += "</div>"
 		}
 	
@@ -572,7 +576,7 @@ function New-ADHCReport {
 			$userData = foreach($u in ($ouSec.DisabledInheritanceUser | Select-Object -First 50)) {
 				[PSCustomObject]@{ "Benutzer" = $u.Name; "Distinguished Name (Pfad)" = $u.DN; "Status" = $I18n.Labels.InheritanceDisabled }
 			}
-			$htmlOUSec += New-HTMLTableWithPills -Data $userData -Headers ([ordered]@{"Benutzer"="Benutzer"; "Distinguished Name (Pfad)"="Distinguished Name (Pfad)"; "Status"="Status"})
+			$htmlOUSec += New-HTMLTableWithPills -Data $userData -Headers ([ordered]@{"Benutzer"=$I18n.Labels.User; "Distinguished Name (Pfad)"=$I18n.Labels.DistinguishedNamePath; "Status"=$I18n.Labels.Status})
 			$htmlOUSec += "</div>"
 		}
 	
@@ -932,7 +936,7 @@ function New-ADHCReport {
 						Category    = $rule.Category
 						Area        = $areaLabel
 						# Wir hängen die Serverliste an die Beschreibung an
-						Description = "$($rule.Recommendation.$LangCode) (Betroffene Server: $serverList)"
+						Description = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.AffectedServers): $serverList)"
 						Priority    = $rule.Priority
 					}
 				}
@@ -1037,7 +1041,7 @@ function New-ADHCReport {
 						Category    = $rule.Category
 						Area        = $I18n.Labels.BackupStatus
 						# Die detaillierte Zeit-Information wird an den Beschreibungstext angehängt
-						Description = "$($rule.Recommendation.$LangCode) (Partitionen: $($failedPartitions -join '; '))"
+						Description = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.Partitions): $($failedPartitions -join '; '))"
 						Priority    = $rule.Priority
 					}
 				}
@@ -1125,7 +1129,7 @@ function New-ADHCReport {
 						$hasGC = $site.Servers | Where-Object { $_.IsGC -eq $true -or $_.IsGC -eq "True" }
 
 						if (-not $hasGC) {
-							$statusInfo = if ($site.Servers.Count -eq 0) { " (Keine Server vorhanden)" } else { " (Kein GC konfiguriert)" }
+							$statusInfo = if ($site.Servers.Count -eq 0) { " ($($I18n.Labels.NoServersPresent))" } else { " ($($I18n.Labels.NoGCConfigured))" }
 							$affectedItems += "$($site.Name)$($statusInfo)"
 						}
 					}

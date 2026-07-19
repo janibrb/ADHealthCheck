@@ -34,7 +34,7 @@ body {
     align-items: center;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     
-    /* Layout Anpassungen gemÃ¤ÃŸ Anforderung */
+    /* Layout Anpassungen gemäß Anforderung */
     max-width: var(--content-width); /* Gleiche Breite wie Content */
     margin: 20px auto 30px auto; /* Abstand oben, zentriert, Abstand unten */
     border-radius: var(--border-radius);
@@ -114,7 +114,7 @@ body {
     color: #555; 
     margin-top: 30px; 
     margin-bottom: 15px; 
-    border-left: 4px solid #00a9ce; /* TÃ¼rkis Akzent */
+    border-left: 4px solid #00a9ce; /* Türkis Akzent */
     padding-left: 12px; 
 }
 
@@ -145,9 +145,9 @@ body {
 /* Reset table cells */
 td.status-ok, td.status-warning, td.status-error { background: transparent; }
 
-/* Erzwingt festes Layout fÃ¼r Tabellen in Karten */
+/* Erzwingt festes Layout für Tabellen in Karten */
 .card .styled-table {
-    table-layout: fixed; /* Verhindert InhaltsabhÃ¤ngige Breite */
+    table-layout: fixed; /* Verhindert Inhaltsabhängige Breite */
     width: 100%;
 }
 
@@ -164,7 +164,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
     gap: 20px;
     margin-bottom: 30px;
     flex-wrap: wrap;
-    align-items: stretch; /* Sorgt fÃ¼r gleiche HÃ¶he aller Kacheln in einer Zeile */
+    align-items: stretch; /* Sorgt für gleiche Höhe aller Kacheln in einer Zeile */
 }
 
 .quick-info-box {
@@ -228,7 +228,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 
 /* --- DNS --- */
 
-/* Abstandshalter fÃ¼r TabellenÃ¼berschriften */
+/* Abstandshalter für Tabellenüberschriften */
 .dns-table-header {
     margin-top: 25px;
 }
@@ -239,23 +239,23 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
     width: 100% !important;
 }
 
-/* Die erste Spalte (Partition) erhÃ¤lt so viel Platz wie nÃ¶tig, 
-   aber drÃ¼ckt die anderen nicht weg */
+/* Die erste Spalte (Partition) erhält so viel Platz wie nötig, 
+   aber drückt die anderen nicht weg */
 .backup-table td:first-child, 
 .backup-table th:first-child {
     width: auto !important;
     text-align: left;
     white-space: nowrap;
-    padding-right: 40px; /* Erzeugt die gewÃ¼nschte Marge zum nÃ¤chsten Wert */
+    padding-right: 40px; /* Erzeugt die gewünschte Marge zum nächsten Wert */
 }
 
 /* Wir geben den restlichen Spalten feste Breiten, 
-   damit sie nicht zusammengedrÃ¼ckt werden */
+   damit sie nicht zusammengedrückt werden */
 .backup-table th:nth-child(2), .backup-table td:nth-child(2) { width: 160px; text-align: center; }
 .backup-table th:nth-child(3), .backup-table td:nth-child(3) { width: 140px; text-align: center; }
 .backup-table th:nth-child(4), .backup-table td:nth-child(4) { width: 120px; text-align: center; }
 
-/* Verhindert Zeilenumbruch in der gesamten Tabelle fÃ¼r saubere Optik */
+/* Verhindert Zeilenumbruch in der gesamten Tabelle für saubere Optik */
 .backup-table td {
     white-space: nowrap;
 }
@@ -267,7 +267,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 }
 
 .dc-system-table th, .dc-system-table td {
-    white-space: nowrap; /* Verhindert UmbrÃ¼che in den Werten */
+    white-space: nowrap; /* Verhindert Umbrüche in den Werten */
     padding: 12px 10px;
 }
 
@@ -321,7 +321,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
     color: #2c3e50;
 }
 
-/* Hilfsklassen fÃ¼r die Ausrichtung */
+/* Hilfsklassen für die Ausrichtung */
 .text-left {
     text-align: left !important;
     padding-left: 20px !important;
@@ -358,7 +358,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
     max-width: 500px; 
 }
 
-/* PrioritÃ¤ts-Badges */
+/* Prioritäts-Badges */
 .prio-badge {
     padding: 6px 14px;
     border-radius: 20px;
@@ -371,7 +371,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-/* PrioritÃ¤ts-Farben */
+/* Prioritäts-Farben */
 .prio-high { 
     background: #ffebee; 
     color: #c62828; 
@@ -390,7 +390,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
     border: 1px solid #90caf9; 
 }
 
-/* Erster und letzter TD abrunden fÃ¼r den schwebenden Look */
+/* Erster und letzter TD abrunden für den schwebenden Look */
 .rec-row td:first-child {
     border-top-left-radius: 8px;
     border-bottom-left-radius: 8px;
@@ -430,7 +430,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
         </div>
         <div class="report-meta">
             <h2>Active Directory Health Report</h2>
-            <div class="report-badge">11.05.2026 14:21</div>
+            <div class="report-badge">19.07.2026 17:59</div>
         </div>
     </div>
 
@@ -439,7 +439,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			<tbody>
 				<tr><td>NetBIOS Name</td><td><b>CONTOSO</b></td>
 					<td>Benutzer Objekte</td><td>1250</td></tr>
-				<tr><td>DNS Root (FQDN)</td><td><b>contoso.local (MOCK DATA)</b></td>
+				<tr><td>DNS Root (FQDN)</td><td><b>contoso.local</b></td>
 					<td>Sicherheitsgruppen</td><td>300</td></tr>
 				<tr><td>Forest Level</td><td>5</td>
 					<td>Verteilergruppen</td><td>50</td></tr>
@@ -448,7 +448,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 				
 				<tr>
 					<td>AD Papierkorb</td><td><span class='status-pill status-error'>Deaktiviert</span></td>
-					<td>KRBTGT Passwort (Datum)</td><td><span class='status-pill status-error' title='Alter: 400 Tage'>06.04.2025</span></td>
+					<td>KRBTGT Passwort (Datum)</td><td><span class='status-pill status-error' title='Alter: 400 Tage'>14.06.2025</span></td>
 				</tr>
 			</tbody>
 		</table></div>
@@ -506,12 +506,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			</thead>
 			<tbody><tr>
 				<td>DC=contoso,DC=local</td>
-				<td>06.04.2026 14:21</td>
+				<td>14.06.2026 17:59</td>
 				<td>35 Tg. 0 Std.</td>
 				<td><span class='status-pill status-error'>Dringender Handlungsbedarf</span></td>
 			</tr><tr>
 				<td>CN=Configuration,DC=contoso,DC=local</td>
-				<td>08.05.2026 14:21</td>
+				<td>16.07.2026 17:59</td>
 				<td>3 Tg. 0 Std.</td>
 				<td><span class='status-pill status-warning'>Warnung</span></td>
 			</tr><tr>
@@ -530,7 +530,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 				<tr><th>Eigenschaft</th><th>Wert</th></tr>
 			</thead>
 			<tbody>
-				<tr><td>Grenzwert Inaktivität</td><td>90 Tag(e)</td></tr>
+				<tr><td>Grenzwert Inaktivität</td><td> Tag(e)</td></tr>
 				<tr>
 					<td>Inaktive Konten gefunden (Aktiviert)</td>
 					<td><span class='status-pill status-error'>72 Benutzer</span></td>
@@ -590,7 +590,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
             <tbody>
                 <tr>
                     <td><b>SRVSYNC01 (MOCK)</b></td>
-                    <td><span class='status-pill status-warning'>1.1.0.0 (Erwartet: 2.6.3.0)</span></td>
+                    <td><span class='status-pill status-warning'>1.1.0.0 (Erwartet: )</span></td>
                     <td><div><b>Microsoft Entra Connect Sync</b>: <span class='status-error'>Stopped</span></div><div><b>Microsoft Azure AD Connect Agent Updater</b>: <span class='status-error'>Stopped</span></div></td>
                     <td><span class='status-pill status-warning'>Warnung</span></td>
                 </tr>
@@ -646,25 +646,25 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 		<div class='card'><h2>Empfehlung(en)</h2><table class='rec-matrix'><thead><tr><th class='text-center'>ID</th><th class='text-left'>Kategorie</th><th class='text-left'>Bereich</th><th class='text-left'>Empfehlung</th><th class='text-center'>Priorität</th></tr></thead><tbody><tr class='rec-row'>
 								<td class='rec-id text-center'>AD-01</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>Forest Level</td>
+								<td class='rec-sub text-left'>Forest Functional Level</td>
 								<td class='rec-text text-left'>Das Forest Functional Level sollte auf Windows Server 2016 (Level 7) aktualisiert werden.</td>
 								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>AD-02</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>Domain Level</td>
+								<td class='rec-sub text-left'>Domain Functional Level</td>
 								<td class='rec-text text-left'>Das Domain Functional Level sollte auf Windows Server 2016 (Level 7) aktualisiert werden.</td>
 								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>AD-03</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>Resilience</td>
+								<td class='rec-sub text-left'>AD-Papierkorb aktiviert</td>
 								<td class='rec-text text-left'>Der Active Directory Papierkorb ist deaktiviert. Aktivieren Sie diesen, um versehentlich gelöschte Objekte ohne Backup-Restore wiederherstellen zu können.</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>AD-04</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>Identity</td>
+								<td class='rec-sub text-left'>krbtgt-Kontozustand</td>
 								<td class='rec-text text-left'>Das KRBTGT-Kennwort wurde seit über 180 Tagen nicht geändert. Microsoft empfiehlt einen Wechsel alle 180 Tage (zweistufiger Prozess).</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
@@ -700,139 +700,139 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>AD-FSMO-06</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>Architektur</td>
+								<td class='rec-sub text-left'>FSMO: Schema- & Namensmaster gemeinsam</td>
 								<td class='rec-text text-left'>Schema Master und Domain Naming Master sollten auf demselben DC betrieben werden (Microsoft Best Practice).</td>
 								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>AD-FSMO-07</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>Architektur</td>
+								<td class='rec-sub text-left'>FSMO: Rollen in Single-Domain konsolidiert</td>
 								<td class='rec-text text-left'>In Single-Domain Umgebungen sollten alle 5 Rollen auf einem leistungsfähigen DC (Globaler Katalog) konzentriert werden.</td>
 								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-DFSR</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: DFSR-Replikation (SYSVOL)</td>
 								<td class='rec-text text-left'>Fehler in den DFSR-Ereignisprotokollen festgestellt. Die Dateireplikation (Sysvol) ist möglicherweise gestört. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-SYSV</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: SYSVOL-Bereitstellung</td>
 								<td class='rec-text text-left'>SysVol-Check fehlgeschlagen. Prüfen Sie, ob der SysVol-Share vorhanden und die Berechtigungen korrekt sind. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-KCC</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: KCC-Ereignisse</td>
 								<td class='rec-text text-left'>Der KCC (Knowledge Consistency Checker) meldet Fehler. Prüfen Sie die Replikationstopologie. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-ROLE</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: FSMO-Rolleninhaber bekannt</td>
 								<td class='rec-text text-left'>Der DC kann die FSMO-Rolleninhaber nicht finden oder erreichen. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-MACH</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: Computerkonto des DC</td>
 								<td class='rec-text text-left'>Probleme mit dem Computer-Konto des DCs festgestellt (Trust/Passwort). (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-NCSD</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: NC-Sicherheitsbeschreibungen</td>
 								<td class='rec-text text-left'>Fehler in den Security Descriptoren der Naming Contexts (NC) gefunden. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-LOGN</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: NetLogon-Rechte</td>
 								<td class='rec-text text-left'>Netlogon-Berechtigungen oder Dienste-Status fehlerhaft. Prüfen Sie die Logon-Fähigkeit. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-OBJR</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: Objektreplikation</td>
 								<td class='rec-text text-left'>Fehler bei der Überprüfung der replizierten Objekte festgestellt. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-REPL</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: Replikationsstatus</td>
 								<td class='rec-text text-left'>Allgemeine Replikationsfehler festgestellt. Führen Sie 'repadmin /showrepl' für Details aus. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-RIDM</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: RID-Manager</td>
 								<td class='rec-text text-left'>Probleme mit dem RID-Master oder dem RID-Pool des DCs festgestellt. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-SVCS</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: kritische Dienste</td>
 								<td class='rec-text text-left'>Erforderliche AD-Dienste laufen nicht ordnungsgemäss. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-SYSL</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: Systemprotokoll-Fehler</td>
 								<td class='rec-text text-left'>Kritische Fehler im System-Ereignisprotokoll innerhalb der letzten 60 Minuten. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-VREF</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: Objektreferenzen</td>
 								<td class='rec-text text-left'>Fehler in den Datenbank-Referenzen gefunden. Prüfen Sie die AD-Datenbankintegrität. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-SDREF</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: SD-Referenzdomäne</td>
 								<td class='rec-text text-left'>Sicherheitsdeskriptor-Referenzdomänen-Check fehlgeschlagen. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-CRVAL</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: Cross-Ref-Validierung</td>
 								<td class='rec-text text-left'>Cross-Reference Validierung fehlgeschlagen. Prüfen Sie die Partitionskonfiguration. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-LOCAT</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: DC-Locator (DNS)</td>
 								<td class='rec-text text-left'>DC-Locator-Check fehlgeschlagen. Der DC kann über DNS oder RPC nicht korrekt lokalisiert werden. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-INTER</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: standortübergreifende Replikation</td>
 								<td class='rec-text text-left'>Intersite-Replikationsfehler festgestellt. Prüfen Sie Standorte und Verknüpfungen. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>DC-FSMOC</td>
 								<td class='rec-cat text-left'>Active Directory</td>
-								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-sub text-left'>DCDIAG: FSMO-Konsistenz</td>
 								<td class='rec-text text-left'>Allgemeiner FSMO-Integritätscheck fehlgeschlagen. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>OS-01</td>
 								<td class='rec-cat text-left'>Lifecycle</td>
-								<td class='rec-sub text-left'>Betriebssystem</td>
+								<td class='rec-sub text-left'>Betriebssystem-Supportstatus</td>
 								<td class='rec-text text-left'>Das Betriebssystem ist veraltet und hat das Ende des Mainstream-Supports erreicht oder überschritten. Ein Upgrade auf Windows Server 2022 oder neuer wird dringend empfohlen. [Mainstream Ende: 09.01.2024 | Extended bis: 09.01.2029] (Server: MOCK-DC-01, MOCK-DC-02, MOCK-DC-03)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SRV-01-E</td>
 								<td class='rec-cat text-left'>Infrastruktur</td>
-								<td class='rec-sub text-left'>Server Gesundheit</td>
+								<td class='rec-sub text-left'>Festplattenspeicher kritisch</td>
 								<td class='rec-text text-left'>KRITISCH: Der Festplattenplatz auf C: liegt unter 5%. Es besteht unmittelbare Gefahr für die Datenbankintegrität! (Server: MOCK-DC-01 (2 % Frei), MOCK-DC-03 (- Frei))</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SRV-01-W</td>
 								<td class='rec-cat text-left'>Infrastruktur</td>
-								<td class='rec-sub text-left'>Server Gesundheit</td>
+								<td class='rec-sub text-left'>Festplattenspeicher knapp</td>
 								<td class='rec-text text-left'>HINWEIS: Der Festplattenplatz auf C: liegt unter 15%. Eine Bereinigung wird empfohlen. (Server: MOCK-DC-02 (12 % Frei))</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
@@ -868,37 +868,37 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-01</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
-								<td class='rec-sub text-left'>Konten-Hygiene</td>
+								<td class='rec-sub text-left'>Inaktive Benutzerkonten</td>
 								<td class='rec-text text-left'>Identifikation von Benutzerkonten mit verlängerter Inaktivität. Zur Minimierung der Angriffsfläche durch 'Stale Accounts' sollten diese Konten gemäss Microsoft Best Practices deaktiviert oder nach einem definierten Lifecycle-Prozess entfernt werden. (Wert: 72 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-02</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
-								<td class='rec-sub text-left'>Kennwort-Hygiene</td>
+								<td class='rec-sub text-left'>Konten ohne Kennwortablauf</td>
 								<td class='rec-text text-left'>Detektion von Konten mit dauerhafter Kennwortgültigkeit (DONT_EXPIRE_PASSWORD). Dies widerspricht modernen Compliance-Standards. Ausnahme-Regelungen sollten strikt auf Dienstkonten mit kompensierenden Kontrollen beschränkt werden. (Wert: 102 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-03</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
-								<td class='rec-sub text-left'>Kennwort-Hygiene</td>
+								<td class='rec-sub text-left'>Konten mit abgelaufenem Kennwort</td>
 								<td class='rec-text text-left'>Compliance-Abweichung: Kennwörter identifiziert, die die maximale Alterungsfrist der Richtlinie überschritten haben. Dies deutet auf Inkonsistenzen bei der Durchsetzung der Gruppenrichtlinien oder manuelle Ausnahmen hin. (Wert: 38 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-04</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
-								<td class='rec-sub text-left'>Privilegierte Gruppen</td>
+								<td class='rec-sub text-left'>Mitglieder der Domänen-Admins</td>
 								<td class='rec-text text-left'>Kritische Anzahl an Mitgliedern in der Gruppe 'Domänen-Admins'. Zur Wahrung der Tier-0-Sicherheit und des 'Least Privilege' Prinzips sollte die Anzahl der administrativen Konten auf ein absolutes Minimum reduziert werden. (Wert: 18 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-05</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
-								<td class='rec-sub text-left'>Privilegierte Gruppen</td>
+								<td class='rec-sub text-left'>Mitglieder der Organisations-Admins</td>
 								<td class='rec-text text-left'>Überhöhte Anzahl an Organisations-Admins detektiert. Da diese Gruppe forestweite Privilegien besitzt, sollte die Mitgliedschaft nur temporär für spezifische Aufgaben gewährt werden (Just-in-Time Administration). (Wert: 8 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-06</td>
 								<td class='rec-cat text-left'>Sicherheit</td>
-								<td class='rec-sub text-left'>Privilegierte Gruppen</td>
+								<td class='rec-sub text-left'>Mitglieder der Schema-Admins</td>
 								<td class='rec-text text-left'>Mitgliedschaft in der Gruppe 'Schema-Admins' festgestellt. Diese Gruppe sollte im operativen Tagesgeschäft leer sein, da Schema-Änderungen hochkritische, seltene Eingriffe in die Verzeichnisstruktur darstellen. (Wert: 3 Benutzer)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
@@ -948,12 +948,6 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-cat text-left'>Sicherheit</td>
 								<td class='rec-sub text-left'>Objekt-Sicherheit</td>
 								<td class='rec-text text-left'>Benutzerkonten mit deaktivierter Vererbung identifiziert. Sofern es sich nicht um geschützte Gruppen (AdminSDHolder) handelt, sollten Berechtigungen für eine konsistente Verwaltung vererbt werden. (Aktueller Wert: 20)</td>
-								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
-							</tr><tr class='rec-row'>
-								<td class='rec-id text-center'>ENT-01</td>
-								<td class='rec-cat text-left'>Sicherheit</td>
-								<td class='rec-sub text-left'>Hybrid Identity</td>
-								<td class='rec-text text-left'>Die installierte Version von Microsoft Entra Connect ist veraltet. Microsoft empfiehlt dringend, den Sync-Agenten aktuell zu halten, um von Sicherheits-Fixes, Performance-Optimierungen und neuen Funktionen zu profitieren. (1.1.0.0 < 2.6.3.0)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>ENT-02</td>
