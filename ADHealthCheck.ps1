@@ -3,8 +3,12 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.4.6
-    Changelog:  - FIX: Reporting.psm1 mit UTF-8-BOM (PS5.1 las BOM-lose UTF-8 auf ANSI-CP1252-
+    Version:    2.4.7
+    Changelog:  - FIX: Self-Update loeste nie aus — die Header-Version (Single Source of
+                  Truth fuer den Vergleich) stand auf 2.4.5, waehrend $script:LocalVersion
+                  bereits 2.4.6 war. LocalVersion wird jetzt aus dem Header abgeleitet,
+                  ein Auseinanderlaufen ist konstruktiv ausgeschlossen.
+                - FIX: Reporting.psm1 mit UTF-8-BOM (PS5.1 las BOM-lose UTF-8 auf ANSI-CP1252-
                   Servern falsch -> "Missing closing '}'"-Ladefehler)
                 - Self-Update haertet ab: Temp-Download + Syntax/JSON-Validierung + atomarer Move
                   (verhindert korrupte/abgeschnittene Dateien bei flaky Netzwerk)
@@ -354,8 +358,29 @@ $prereqResult = Test-ADHCPrerequisites
 # Bei neuer Version: Download aller geänderten Dateien mit Bestätigung.
 # ===========================================================================
 
-# Aktuelle lokale Version (muss mit dem Header-Kommentar übereinstimmen)
-$script:LocalVersion = "2.4.6"
+# Versions-Regex — EINE Definition fuer die lokale UND die entfernte Seite.
+# So kann der Vergleich nicht mehr auseinanderlaufen.
+$script:VersionPattern = 'Version:\s+([\d]+\.[\d]+\.[\d]+)'
+
+# Aktuelle lokale Version — wird aus dem .NOTES-Header dieses Scripts (Zeile 6)
+# abgeleitet. Der Header ist damit die EINZIGE Stelle, an der die Version beim
+# Release gepflegt werden muss. Frueher stand die Nummer zusaetzlich hier als
+# Literal, was beim Bump auf 2.4.6 vergessen wurde -> Remote meldete 2.4.5
+# gegen lokal 2.4.6 und der Self-Update loeste nie aus.
+# Nur die ersten 20 Zeilen lesen: das ist der Header-Block und verhindert,
+# dass eine spaetere Fundstelle im Code faelschlich greift.
+$script:LocalVersion = $null
+if ($PSCommandPath -and (Test-Path -LiteralPath $PSCommandPath)) {
+    try {
+        $ownHeader = Get-Content -LiteralPath $PSCommandPath -TotalCount 20 `
+                        -Encoding UTF8 -ErrorAction Stop
+        if (($ownHeader -join "`n") -match $script:VersionPattern) {
+            $script:LocalVersion = $Matches[1]
+        }
+    } catch {
+        # Bleibt $null -> Update-Check meldet das sauber und ueberspringt.
+    }
+}
 
 # GitHub Repository-Konfiguration
 $script:GitHubUser   = "janibrb"
@@ -381,12 +406,20 @@ function Invoke-ADHCUpdateCheck {
             return
         }
 
+        # Ohne bekannte lokale Version ist kein Vergleich moeglich. Lieber
+        # ueberspringen als blind ein Update anbieten (oder unterdruecken).
+        if (-not $script:LocalVersion) {
+            Write-Host " Lokale Version nicht lesbar (Header)." -ForegroundColor Yellow
+            return
+        }
+
         $remoteContent = Invoke-WebRequest -Uri $remoteUrl -UseBasicParsing `
                             -TimeoutSec $TimeoutSec -ErrorAction Stop
 
         # Versionsnummer aus Header extrahieren: "Version:    x.y.z"
+        # Gleiches Pattern wie fuer die lokale Version (siehe $script:VersionPattern).
         $remoteVersion = $null
-        if ($remoteContent.Content -match 'Version:\s+([\d]+\.[\d]+\.[\d]+)') {
+        if ($remoteContent.Content -match $script:VersionPattern) {
             $remoteVersion = $Matches[1]
         }
 
