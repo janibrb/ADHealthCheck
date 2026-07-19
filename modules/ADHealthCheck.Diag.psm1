@@ -1219,7 +1219,11 @@ function Get-ADReplicationLatency {
     foreach ($dc in $DCList) {
         Write-ADHCLog -Message "Ermittle Replikations-Latenz auf $dc..." -Component "Replication"
         try {
-            $partners = Get-ADReplicationPartnerMetadata -Target $dc -Scope Server -ErrorAction Stop
+            # -PartitionFilter * ist zwingend: ohne den Parameter liefert das Cmdlet
+            # NUR die Standard-Partition (die Domaene). Replikationsprobleme auf
+            # Configuration, Schema, ForestDnsZones oder DomainDnsZones blieben
+            # dadurch unsichtbar — und gerade die fallen im Alltag nicht auf.
+            $partners = Get-ADReplicationPartnerMetadata -Target $dc -Scope Server -PartitionFilter * -ErrorAction Stop
             foreach ($p in $partners) {
                 $lastOk = $p.LastReplicationSuccess
                 # Kein Erfolgszeitpunkt = noch nie erfolgreich repliziert

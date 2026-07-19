@@ -180,6 +180,7 @@
 		"Days": "days",
 		"Age": "Age",
 		"Servers": "servers",
+		"OUs": "OUs",
 		"Logs": "logs",
 		"HintRpcFirewall": "Enable the 'Remote Event Log Management' firewall rule on the DC",
 		"HintEventLogReaders": "Add the account to the 'Event Log Readers' group on the DC",

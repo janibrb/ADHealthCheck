@@ -842,6 +842,30 @@ function New-ADHCReport {
 					Default        { $stats.$($rule.Property) }
 				}
 	
+				# Messwert festhalten — auch wenn die Regel nicht feuert.
+				# Bei KRBTGT ist der aussagekraeftige Wert das ALTER in Tagen, nicht
+				# der abgeleitete Status "OK"/"Expired": ein 9 Jahre altes Kennwort und
+				# ein 181 Tage altes liefern denselben Status, aber sehr
+				# unterschiedlichen Handlungsdruck.
+				switch ($rule.Property) {
+					"KrbtgtStatus" {
+						Set-ADHCMeasure -Id $rule.Id -ActualValue $krbtgtDays -Unit "Days" `
+							-ExpectedValue $krbtgtLimit -Operator "lte"
+					}
+					"ForestLevel" {
+						Set-ADHCMeasure -Id $rule.Id -ActualValue ([int]$val) -Unit $null -ExpectedValue 7 -Operator "gte"
+					}
+					"DomainLevel" {
+						Set-ADHCMeasure -Id $rule.Id -ActualValue ([int]$val) -Unit $null -ExpectedValue 7 -Operator "gte"
+					}
+					"RecycleBin" {
+						Set-ADHCMeasure -Id $rule.Id -ActualValue ([bool]$val) -Unit $null -ExpectedValue $true -Operator "eq"
+					}
+					Default {
+						Set-ADHCMeasure -Id $rule.Id -ActualValue $val -Unit $null -ExpectedValue $null -Operator $null
+					}
+				}
+
 				# Vergleich
 				$conditions = $rule.Condition | ForEach-Object { [string]$_ }
 				if ($conditions -contains [string]$val) {
@@ -1474,12 +1498,27 @@ function New-ADHCReport {
 						if ($currentValue -gt 0) { $isTriggered = $true }
 					}
 				}
-		
+
+				# Zaehler IMMER festhalten. "0 verwaiste SIDs" ist ein Nachweis;
+				# bisher stand der Wert nur im Satz und ActualValue blieb leer.
+				$ouUnit = switch ($rule.Property) {
+					"OrphanedSIDsCount"       { "OrphanedSIDs" }
+					"OUInheritanceDisabled"   { "OUs" }
+					"UserInheritanceDisabled" { "Users" }
+					Default                   { $null }
+				}
+				Set-ADHCMeasure -Id $rule.Id -ActualValue ([int]$currentValue) -Unit $ouUnit `
+					-ExpectedValue 0 -Operator "lte"
+
 				if ($isTriggered) {
 					$activeRecs += [PSCustomObject]@{
-						Id          = $rule.Id
-						Category    = $I18n.Labels.Security
-						Area        = $I18n.Labels.ObjectSecurity
+						Id            = $rule.Id
+						Category      = $I18n.Labels.Security
+						Area          = $I18n.Labels.ObjectSecurity
+						ActualValue   = [int]$currentValue
+						Unit          = $ouUnit
+						ExpectedValue = 0
+						Operator      = "lte"
 						Description = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.CurrentValue): $currentValue)"
 						Priority    = $rule.Priority
 					}
@@ -1723,6 +1762,14 @@ function New-ADHCReport {
 				            elseif ($meas) { $meas.ActualValue }
 				            else { $null }
 
+				# WICHTIG: Der Rueckgabewert eines if-Blocks wird von PowerShell
+				# ENUMERIERT — ein einelementiges Array wird dabei zum Skalar.
+				# Dadurch stand im JSON mal ["a","b"], mal "a". Typisierte Zuweisung
+				# VOR dem Objektbau haelt den Array-Typ in jedem Fall.
+				[string[]]$affectedOut = $null
+				if ($hit -and $hit.AffectedItems) { $affectedOut = [string[]]@($hit.AffectedItems) }
+				elseif ($meas -and $meas.AffectedItems) { $affectedOut = [string[]]@($meas.AffectedItems) }
+
 				$verdicts += [PSCustomObject]@{
 					Id            = $rule.Id
 					Section       = $sec
@@ -1733,7 +1780,7 @@ function New-ADHCReport {
 					Detail        = if ($hit) { $hit.Description } else { $null }
 					ActualValue   = $actual
 					Unit          = $unit
-					AffectedItems = if ($hit -and $hit.AffectedItems) { @($hit.AffectedItems) } else { $null }
+					AffectedItems = $affectedOut
 					ExpectedValue = $expected
 					Operator      = $operator
 				}

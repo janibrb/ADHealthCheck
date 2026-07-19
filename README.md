@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.7.0-blue)
+![Version](https://img.shields.io/badge/Version-2.7.1-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -233,7 +233,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.7.0                    # Einzige Stelle. $script:LocalVersion
+Version:    2.7.1                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -346,6 +346,25 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.7.1 — Blinder Fleck bei der Replikation, Schema-Inkonsistenz, fehlende Messwerte
+Gefunden durch Auswertung eines vollständigen Upload-JSON aus einem produktiven AD.
+
+- **fix:** **`AffectedItems` war mal ein Array, mal ein String.** Ein Befund mit zwei Servern kam als `["a","b"]`, einer mit einem Server als `"a"` — Konsumenten mussten beide Typen behandeln. Ursache ist eine PowerShell-Eigenheit: Der Rückgabewert eines `if`-Blocks wird **enumeriert**, wodurch einelementige Arrays zum Skalar werden.
+
+  ```powershell
+  # vorher — kollabiert bei genau einem Eintrag:
+  AffectedItems = if ($hit.AffectedItems) { @($hit.AffectedItems) } else { $null }
+  # jetzt — typisierte Zuweisung vor dem Objektbau:
+  [string[]]$affectedOut = $null
+  if ($hit.AffectedItems) { $affectedOut = [string[]]@($hit.AffectedItems) }
+  ```
+
+- **fix:** **REP-01 prüfte nur eine von fünf Partitionen.** `Get-ADReplicationPartnerMetadata` liefert ohne `-PartitionFilter *` ausschliesslich die Standard-Partition. Replikationsprobleme auf **Configuration, Schema, ForestDnsZones und DomainDnsZones** blieben unsichtbar — und gerade die fallen im Alltag nicht auf, bis etwas Grösseres bricht. Im Feldtest kam pro DC genau ein Eintrag statt fünf.
+- **feat:** Messwerte für **AD-01 bis AD-04** und **SEC-07 bis SEC-09** nachgezogen. Bei AD-04 ist der Messwert bewusst das **Alter in Tagen**, nicht der abgeleitete Status: Ein neun Jahre altes KRBTGT-Kennwort und ein 181 Tage altes liefern denselben Status `Expired`, aber völlig unterschiedlichen Handlungsdruck.
+- Verifiziert: **0 Statusänderungen** über alle 73 Verdikte. Ohne Messwert bleiben 13 Regeln — die acht FSMO-Erreichbarkeitsprüfungen (boolesch), SITE-05, ENT-01/02 und die beiden DNS-Scavenging-Regeln.
+
+> ⚠️ **Die Partitions-Erweiterung liefert mehr Zeilen als bisher** — statt einer pro DC nun eine je Partition und Partner. Das erhöht die Laufzeit geringfügig und kann bislang unentdeckte Befunde sichtbar machen. In der eigenen Umgebung gegenprüfen.
 
 ### v2.7.0 — Ein PASS trägt jetzt seinen Nachweis
 Direkte Folge des zweiten Feldtests. Nach der Firewall-Freischaltung lieferte EVT-01 **exakt dasselbe JSON** wie zuvor — obwohl der eine Fall „ein DC wurde übersprungen" und der andere „alles gemessen und in Ordnung" bedeutete:
@@ -580,4 +599,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.7.0 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.7.1 — LAKE Solutions AG*

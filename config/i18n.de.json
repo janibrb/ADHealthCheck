@@ -181,6 +181,7 @@
 		"Days": "Tage",
 		"Age": "Alter",
 		"Servers": "Server",
+		"OUs": "OUs",
 		"Logs": "Protokolle",
 		"HintRpcFirewall": "Firewall-Regel 'Remote-Ereignisprotokollverwaltung' auf dem DC aktivieren",
 		"HintEventLogReaders": "Konto in die Gruppe 'Ereignisprotokollleser' auf dem DC aufnehmen",

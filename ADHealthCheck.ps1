@@ -3,8 +3,24 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.7.0
-    Changelog:  - FEAT: PASS-Verdikte tragen jetzt ihren MESSWERT. Bisher kam
+    Version:    2.7.1
+    Changelog:  - FIX: AffectedItems war im JSON mal ein Array, mal ein String. Der
+                  Rueckgabewert eines if-Blocks wird von PowerShell ENUMERIERT —
+                  einelementige Arrays wurden dabei zum Skalar. Ein Befund mit zwei
+                  Servern kam als ["a","b"], einer mit einem Server als "a".
+                  Konsumenten mussten beide Typen behandeln. Jetzt typisierte
+                  Zuweisung vor dem Objektbau.
+                - FIX: REP-01 prueft jetzt ALLE Partitionen (-PartitionFilter *).
+                  Ohne den Parameter liefert Get-ADReplicationPartnerMetadata nur
+                  die Standard-Partition; Replikationsprobleme auf Configuration,
+                  Schema, ForestDnsZones und DomainDnsZones blieben unsichtbar.
+                  Im Feldtest kam pro DC genau EIN Eintrag statt fuenf.
+                - FEAT: Messwerte fuer AD-01 bis AD-04 und SEC-07 bis SEC-09
+                  nachgezogen. Bei AD-04 ist der Messwert das ALTER in Tagen, nicht
+                  der abgeleitete Status: ein 9 Jahre altes KRBTGT-Kennwort und ein
+                  181 Tage altes liefern denselben Status, aber sehr
+                  unterschiedlichen Handlungsdruck.
+                - FEAT: PASS-Verdikte tragen jetzt ihren MESSWERT. Bisher kam
                   ActualValue nur aus dem gefeuerten Befund — bei PASS war das Feld
                   leer und damit nicht von einer Pruefung zu unterscheiden, die gar
                   nichts gemessen hatte. Genau diese Verwechslung trat im Feldtest
