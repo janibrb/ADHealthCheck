@@ -1,0 +1,431 @@
+# AD Health Check Pro
+
+![Version](https://img.shields.io/badge/Version-2.4.4-blue)
+![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
+![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
+
+**Entwickelt von LAKE Solutions AG**
+
+Professionelles PowerShell-Tool zur Analyse und Bewertung von Microsoft Active Directory-Umgebungen. Das Tool führt umfassende technische Diagnosen durch und erstellt einen modernen HTML-Report mit integrierten Handlungsempfehlungen, automatisierten CSV-Exporten und einem vollständigen Governance-Dashboard.
+
+---
+
+## Inhaltsverzeichnis
+
+- [Systemvoraussetzungen](#systemvoraussetzungen)
+- [Hauptmerkmale](#hauptmerkmale)
+- [Analyse-Bereiche](#analyse-bereiche)
+- [Projektstruktur](#projektstruktur)
+- [Installation und Ersteinsatz](#installation-und-ersteinsatz)
+- [Anwendung](#anwendung)
+- [Self-Update](#self-update)
+- [Prerequisite-Check](#prerequisite-check)
+- [Empfehlungs-Engine](#empfehlungs-engine)
+- [Mehrsprachigkeit](#mehrsprachigkeit)
+- [Pester-Tests](#pester-tests)
+- [Changelog](#changelog)
+- [Rechtlicher Hinweis](#rechtlicher-hinweis)
+
+---
+
+## Systemvoraussetzungen
+
+| Anforderung | Details |
+|---|---|
+| Betriebssystem | Windows Server 2012 R2+ / Windows 10+ |
+| PowerShell | **5.1 Desktop Edition** (PowerShell Core / 7+ wird nicht unterstützt) |
+| .NET Framework | 4.5 oder neuer |
+| RSAT-Modul | `ActiveDirectory` — Pflicht |
+| RSAT-Modul | `DnsServer` — Optional (für DNS-Analyse) |
+| RSAT-Modul | `GroupPolicy` — Optional (für zukünftige GPO-Analyse) |
+| WinRM | Optional (für Remote-Abfragen zu DCs / Entra-Server) |
+| Berechtigungen | Administrator + AD-Leserechte inkl. `nTSecurityDescriptor` |
+| Netzwerk | Erreichbarkeit der DCs (RPC, LDAP, DNS, SMB) |
+
+> Beim ersten Start prüft ADHealthCheck alle Voraussetzungen automatisch und bietet bei fehlenden Features eine interaktive Installation an.
+
+---
+
+## Hauptmerkmale
+
+- **Interaktive WinForms-GUI** mit ScrollPanel und screen-aware Höhenanpassung (funktioniert auch bei niedrigen Auflösungen)
+- **Self-Update** beim Start: automatischer Versionsvergleich mit GitHub, Download aller Dateien mit Backup
+- **Prerequisite-Check** vor dem Start: 9 Prüfungen mit interaktivem Installations-Dialog
+- **Mehrsprachigkeit** (Deutsch / Englisch) für GUI, Report und CSV-Exporte via i18n-JSON
+- **Asynchrone ACL-Analyse** via PowerShell Runspace — kein GUI-Freeze auch bei grossen Umgebungen (10.000+ Objekte)
+- **Fortschrittsanzeige** während der ACL-Analyse (ProgressBar + StatusLabel)
+- **Dynamisches Ampel-System** im HTML-Dashboard (Grün / Gelb / Rot)
+- **Empfehlungs-Engine** mit 69 Regeln in 12 Kategorien (deklarativ via `recommendations.json`)
+- **Automatisierter CSV-Export** für Security-Details (Compliance-Audits)
+- **Sample-Report** mit realistischen Mock-Daten (Demo / Onboarding ohne AD-Verbindung)
+- **NoGui-Modus** für Scheduled Tasks und Automatisierung
+- **Modul-Manifeste** (`.psd1`) mit Versionierung v2.3.0 und Abhängigkeitsdefinition
+
+---
+
+## Analyse-Bereiche
+
+| # | Bereich | Beschreibung | Regeln |
+|---|---|---|---|
+| 1 | **Domain Infrastruktur** | Forest/Domain Level, AD Recycle Bin, KRBTGT-Passwort-Alter | 4 |
+| 2 | **FSMO Rollen** | Erreichbarkeit (ICMP), Architektur-Best-Practices, GC-Konflikt | 8 |
+| 3 | **DCDIAG Health Matrix** | 20 Tests pro DC (Connectivity, Replications, SysVol, KCC, ...) | 18 |
+| 4 | **DC System Health** | Disk-Auslastung, Uptime, Betriebssystem-Lifecycle | 4 |
+| 5 | **Disaster Recovery** | Backup-Alter aller AD-Partitionen via `dsaSignature` | 2 |
+| 6 | **Systemdienste** | NTDS, Netlogon, DNS, KDC Status auf allen DCs | 4 |
+| 7 | **Sites & Replikation** | Site-Topologie, Verbindungen, Site Links, GC-Verteilung | 5 |
+| 8 | **Identitäts-Sicherheit** | Inaktive Konten, Passwort-Hygiene, privilegierte Gruppen | 6 |
+| 9 | **OU & ACL-Audit** | Verwaiste SIDs, deaktivierte Vererbung (OU + User) | 3 |
+| 10 | **Entra ID Sync** | Agent-Version, Dienste-Status, Verbindung zum Sync-Server | 2 |
+| 11 | **DNS Health** | Zonen, SRV-Records (LDAP/Kerberos/GC/PDC), Scavenging, DNSSEC | 7 |
+| 12 | **Kennwortrichtlinien** | Länge, Komplexität, Historie, Lockout-Konfiguration | 6 |
+
+**Total: 69 Empfehlungsregeln** — davon 46 HIGH, 16 MEDIUM, 7 LOW
+
+---
+
+## Projektstruktur
+
+```
+ADHealthCheck/
+│
+├── ADHealthCheck.ps1              Hauptprogramm (GUI, Prereq-Check, Self-Update)
+├── .gitignore                     Schützt output/ vor versehentlichem Commit
+├── README.md
+│
+├── config/
+│   ├── settings.json              Globale Einstellungen, Schwellenwerte, Pfade
+│   ├── i18n.de.json               Sprachdatei Deutsch (150+ Keys)
+│   ├── i18n.en.json               Sprachdatei Englisch
+│   ├── mapping.json               Werte-Mapping (Forest/Domain Functional Levels)
+│   └── recommendations.json      Empfehlungs-Engine (69 Regeln, zweisprachig)
+│
+├── modules/
+│   ├── ADHealthCheck.Utils.psm1   Logging, Config-Laden, i18n, HTML-Helpers
+│   ├── ADHealthCheck.Utils.psd1   Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.Diag.psm1    AD-Diagnose (DC, FSMO, Security, ACL, Backup)
+│   ├── ADHealthCheck.Diag.psd1    Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.Reporting.psm1  HTML-Report-Generierung + Empfehlungs-Engine
+│   ├── ADHealthCheck.Reporting.psd1  Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.DNS.psm1     DNS-Zonen, SRV-Records, Scavenging, NS-Status
+│   ├── ADHealthCheck.DNS.psd1     Modul-Manifest v2.3.0
+│   ├── ADHealthCheck.EntraSync.psm1  Entra ID / Azure AD Connect Status
+│   ├── ADHealthCheck.EntraSync.psd1  Modul-Manifest v2.3.0
+│   └── Update-EntraVersion.ps1   Automatische Entra-Connect Versions-Aktualisierung
+│
+├── templates/
+│   ├── report.template.html       HTML-Gerüst (20 Platzhalter, Nav, Scroll-to-Top)
+│   └── report.style.css           Design, Ampel-Farben, Matrix-Tabellen, Badges
+│
+├── tests/
+│   └── pester/
+│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (6 Blöcke, 30+ Tests)
+│
+└── output/                        Durch .gitignore ausgeschlossen
+    ├── reports/                   Generierte HTML-Reports
+    ├── data/                      JSON-Snapshots pro Analyse
+    ├── logs/                      ADHealthCheck.log
+    └── backup/                    Backups vor Self-Updates (vX.Y.Z/)
+```
+
+---
+
+## Installation und Ersteinsatz
+
+```powershell
+# 1. Repository klonen
+git clone https://github.com/janibrb/ADHealthCheck.git
+cd ADHealthCheck
+
+# 2. Script als Administrator starten
+# Der Prerequisite-Check führt alle nötigen Installationen durch
+.\ADHealthCheck.ps1
+```
+
+Beim ersten Start prüft ADHealthCheck automatisch alle Abhängigkeiten und bietet fehlende Features zur Installation an.
+
+---
+
+## Anwendung
+
+### GUI-Modus (Standard)
+
+```powershell
+# Standardstart:
+.\ADHealthCheck.ps1
+
+# Mit Sprachvorgabe:
+.\ADHealthCheck.ps1 -Language en
+.\ADHealthCheck.ps1 -Language de
+```
+
+**Ablauf:**
+
+1. Prerequisite-Check (automatisch, ca. 2 Sekunden)
+2. Self-Update Check (automatisch, überspringbar)
+3. GUI öffnet sich mit Konfigurationsoptionen:
+   - Sprache (DE/EN)
+   - EntraID/ADSync Server
+   - Inaktivitätsschwelle (Tage)
+   - DNS-Abfrageserver
+   - Analyse-Bereiche aktivieren/deaktivieren
+   - Empfehlungen pro Bereich aktivieren
+4. **"Report erstellen"** klicken
+5. HTML-Report öffnet sich automatisch im Browser
+6. CSV-Export unter `output\reports\ADHC_Security_Details_*.csv`
+
+> Nicht installierte optionale Module (z.B. DNS-Tools) werden automatisch erkannt — die betroffene Checkbox wird deaktiviert und mit einem Tooltip versehen.
+
+### NoGui-Modus (Scheduled Task / Automatisierung)
+
+```powershell
+# Alle Bereiche, Standardsprache:
+.\ADHealthCheck.ps1 -NoGui
+
+# Englischer Report:
+.\ADHealthCheck.ps1 -NoGui -Language en
+```
+
+**Scheduled Task (täglich 06:00 Uhr):**
+
+```powershell
+$action  = New-ScheduledTaskAction `
+    -Execute "powershell.exe" `
+    -Argument "-NonInteractive -File C:\ADHealthCheck\ADHealthCheck.ps1 -NoGui"
+$trigger = New-ScheduledTaskTrigger -Daily -At "06:00"
+Register-ScheduledTask -TaskName "ADHealthCheck Daily" `
+    -Action $action -Trigger $trigger -RunLevel Highest
+```
+
+### Sample-Report (Demo / Onboarding)
+
+Der Button **"Sample Report"** im GUI generiert einen vollständigen Report mit realistischen Worst-Case Mock-Daten — ohne AD-Verbindung. Ideal für Präsentationen oder zur Ansicht des Report-Formats.
+
+---
+
+## Self-Update
+
+ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügbar ist:
+
+```
+  Prüfe auf Updates (GitHub)...
+
+  ╔══════════════════════════════════════════════════════════╗
+  ║   UPDATE VERFUEGBAR                                      ║
+  ║   Lokal:  v2.2.0                                         ║
+  ║   GitHub: v2.3.0                                         ║
+  ╚══════════════════════════════════════════════════════════╝
+
+  Update jetzt herunterladen? [J/N]:
+```
+
+**Was beim Update passiert:**
+
+1. Backup der aktuellen Version unter `output\backup\vX.Y.Z\`
+2. Download aller 17 Dateien von GitHub (Module, Config, Templates)
+3. Binärer Download — Encoding bleibt exakt wie auf GitHub
+4. Neustart-Hinweis
+
+**Kein Internet verfügbar:** Der Check schlägt bei Netzwerk-Timeout (10 Sekunden) stillschweigend fehl — das Script startet normal.
+
+**Neue Version veröffentlichen:** Nur zwei Stellen in `ADHealthCheck.ps1` anpassen:
+
+```powershell
+Version:    2.4.4                    # Im .NOTES Header-Kommentar
+$script:LocalVersion = "2.4.4"      # Als Konstante im Script
+```
+
+Sobald gepusht, erkennen alle Installationen das Update automatisch beim nächsten Start.
+
+---
+
+## Prerequisite-Check
+
+Beim Start werden 9 Voraussetzungen geprüft:
+
+```
+  ╔══════════════════════════════════════════════════════╗
+  ║     ADHealthCheck — Systemvoraussetzungen            ║
+  ╚══════════════════════════════════════════════════════╝
+
+  Administrator-Rechte...................... [OK]
+  PowerShell-Version........................ [OK]   v5.1 (Desktop)
+  .NET Framework............................ [OK]   v4.8
+  RSAT: ActiveDirectory-Modul............... [OK]   v1.0.0.0
+  RSAT: DNS-Server-Tools.................... [WARN] Nicht installiert
+  RSAT: GroupPolicy-Tools................... [OK]   v1.0.0.0
+  WinRM-Dienst.............................. [OK]   Gestartet
+  Ausfuehrungsrichtlinie.................... [OK]   RemoteSigned
+  AD-Domaene erreichbar..................... [OK]   contoso.local
+```
+
+| Status | Bedeutung |
+|---|---|
+| `[OK]` | Voraussetzung erfüllt |
+| `[WARN]` | Optional, fehlend — betroffene GUI-Sektion wird deaktiviert |
+| `[FEHLER]` | Kritisch — Script bricht mit Erklärung ab |
+
+Die Installation fehlender Features erfolgt automatisch via `Add-WindowsCapability` (Windows Client) oder `Install-WindowsFeature` (Windows Server).
+
+---
+
+## Empfehlungs-Engine
+
+Die `config/recommendations.json` enthält 69 deklarative Regeln. Jede Regel ist vollständig zweisprachig:
+
+```json
+{
+  "Id": "PWD-01",
+  "Category": "Sicherheit",
+  "SubCategory": { "de": "Kennwortrichtlinien", "en": "Password Policies" },
+  "Property": "MinPwdLength",
+  "Condition": ["<12"],
+  "Recommendation": {
+    "de": "Die Mindestkennwortlänge ist mit weniger als 12 Zeichen zu gering...",
+    "en": "The minimum password length is less than 12 characters..."
+  },
+  "Priority": "High"
+}
+```
+
+**Regeln nach Priorität:**
+
+| Priorität | Anzahl | Beispiele |
+|---|---|---|
+| **HIGH** | 46 | FSMO nicht erreichbar, SysVol-Fehler, DCDIAG-Fehler, schwache Passwortrichtlinie |
+| **MEDIUM** | 16 | Entra-Version veraltet, Site ohne GC, ACL-Vererbung deaktiviert |
+| **LOW** | 7 | Forest Level veraltet, Scavenging nicht konfiguriert, DNSSEC fehlt |
+
+---
+
+## Mehrsprachigkeit
+
+Alle UI- und Report-Texte liegen in `config/i18n.de.json` und `config/i18n.en.json` mit 150+ Keys:
+
+- `Title`, `GenDate` — Report-Metadaten
+- `Sections` — Abschnittsüberschriften (12 Sektionen)
+- `Labels` — Alle Beschriftungen (150+ Keys)
+- `CsvHeaders` — Spaltenbezeichnungen für den CSV-Export
+- `Reasons` — Begründungen für Security-Findings
+
+**Neue Sprache hinzufügen:** `i18n.XX.json` im selben Format erstellen und in der GUI-ComboBox registrieren.
+
+---
+
+## Pester-Tests
+
+```powershell
+# Voraussetzung:
+Install-Module Pester -Force -MinimumVersion 5.0
+
+# Ausführen:
+Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
+```
+
+**6 Describe-Blöcke mit 30+ Tests:**
+
+| Block | Beschreibung |
+|---|---|
+| i18n JSON Struktur | Alle Keys vorhanden, DE/EN-Parität, `{0}`-Platzhalter in Reasons |
+| Get-ADHCMockData | Rückgabestruktur vollständig, CSV-Spalten lokalisiert |
+| Get-ADSecurityInfo Signatur | Parameter `$I18n` und `$LangCode` vorhanden und korrekt typisiert |
+| Get-ADOUAndAccountSecurity | `ProgressCallback`-Parameter vom Typ `[scriptblock]` |
+| htmlOUSec Null-Safety | Kein Crash wenn `OUAccountSecurity = $null`, kein offener Platzhalter |
+| EN-Modus HTML-Output | Kein hartcodierter DE-String im Report bei EN-Sprache |
+
+---
+
+## Changelog
+
+### v2.4.4 — Fix: Ladefehler auf ANSI-Codepage-Servern (UTF-8-BOM)
+- **fix:** `modules/ADHealthCheck.Reporting.psm1` wird jetzt mit **UTF-8-BOM** gespeichert. Windows PowerShell 5.1 liest BOM-lose Dateien anhand der System-Codepage; auf Servern mit ANSI-Codepage **1252** wurden die UTF-8-Sonderzeichen (Umlaute, Box-Zeichen) falsch dekodiert, wodurch die Datei nicht mehr parste (`Missing closing '}'` an `function New-ADHCReport`). Das BOM erzwingt UTF-8 auf jeder Codepage. (Die BOM-Entfernung aus v2.4.0 war die eigentliche Ursache — sie blieb auf UTF-8-Systemen unsichtbar.)
+
+### v2.4.3 — Robuster Self-Update (Fix: korrupte Dateien bei flaky Netzwerk)
+- **fix:** Der Self-Update lädt jede Datei zuerst in eine Temp-Datei, prüft die Integrität (nicht leer; PowerShell-Dateien via Parser, JSON via `ConvertFrom-Json`) und verschiebt sie **erst nach erfolgreicher Validierung** atomar an den Zielort. Ein abgebrochener/abgeschnittener Download (Timeout, Netzwerkabbruch) überschreibt damit **nie** mehr die installierte Datei — behebt den `Missing closing '}'`-Ladefehler nach einem unterbrochenen Update.
+
+### v2.4.2 — HTML-Report nutzt den eindeutigen Titel
+- **feat:** Der HTML-Report zeigt in der Empfehlungsliste (`Area`-Spalte) den kuratierten `Title` je Regel statt der gruppierenden `SubCategory` — konsistent zum M365-Security-Dashboard. Fällt auf `SubCategory` zurück, wenn eine Regel (noch) keinen `Title` hat. Der Verdikt-Export im Upload-JSON bleibt unverändert.
+
+### v2.4.1 — Eindeutige, zweisprachige Check-Titel
+- **feat:** Jede der 69 Regeln in `config/recommendations.json` hat jetzt ein kuratiertes `Title { de, en }` — eine kurze, eindeutige Überschrift je Check (z.B. `DCDIAG: DFSR-Replikation (SYSVOL)` statt der 18-fach wiederholten SubCategory `DCDIAG`). Das M365-Security-Dashboard nutzt `Title` als Anzeigetitel; `SubCategory` bleibt als Gruppierung/Fallback erhalten (rückwärtskompatibel).
+
+### v2.4.0 — Dashboard-Upload-Export (JSON)
+- **feat:** Das `output/data/ADHealthCheck_*.json` ist jetzt ein Upload-Vertrag für das M365-Security-Dashboard: Metadaten (`schemaVersion`, `collectorVersion`, `collectedAt`, `language`, `domainFQDN`), ein `assessment`-Block mit dem Verdikt (PASS/FAIL/NOT_CHECKED) je Regel über ALLE 69 Regeln, und die Rohdaten unter `data`.
+- **feat:** Verdikt-Export nutzt die bestehende Empfehlungs-Engine (keine doppelte Logik) — die Auswertung erfolgt für alle Sektionen unabhängig von den `ShowRecommendations`-Anzeige-Toggles.
+- **feat:** Datumsangaben im Upload-JSON als ISO-8601 (statt WCF `/Date(ms)/`).
+- **feat:** Datenschutz: personenbezogene Detaillisten werden aus dem Upload-JSON entfernt (`Security.RawExportData` komplett; `OUAccountSecurity.DisabledInheritanceUser` → `DisabledInheritanceUserCount`). Die vollständige Benutzerliste bleibt weiterhin im CSV-Export erhalten.
+- **fix:** BOM aus `ADHealthCheck.Reporting.psm1` entfernt (PS 5.1).
+
+### v2.3.0 — Self-Update
+- **feat:** Self-Update beim Start — Versionsvergleich gegen GitHub Raw-URL
+- **feat:** Interaktiver Download-Dialog mit Bestätigung (J/N)
+- **feat:** Backup der aktuellen Version vor Update (`output\backup\vX.Y.Z\`)
+- **feat:** Download aller 17 Projektdateien (Module, Config, Templates)
+- **feat:** Konfigurierbare GitHub-Parameter (User, Repo, Branch) im Script-Header
+- **feat:** Fehlerbehandlung bei Netzwerk-Timeout — Script startet normal
+
+### v2.2.0 — Prerequisite-Check
+- **feat:** 9 Voraussetzungen werden beim Start geprüft
+- **feat:** Admin-Rechte Prüfung — sofortiger Abbruch wenn nicht erfüllt
+- **feat:** PowerShell-Version und Edition Check (Desktop 5.1 Pflicht, Core blockiert)
+- **feat:** .NET Framework Version Check (min. 4.5)
+- **feat:** RSAT ActiveDirectory-Modul Check — kritisch, Auto-Install möglich
+- **feat:** RSAT DNS-Server-Tools + GroupPolicy-Tools — optional, Auto-Install
+- **feat:** WinRM-Dienst Status und Ausführungsrichtlinie Check
+- **feat:** AD-Domänen-Erreichbarkeit Check
+- **feat:** Interaktiver Installations-Dialog (kritisch vs. optional)
+- **feat:** DNS-Checkbox in GUI bei fehlendem RSAT deaktiviert + Tooltip
+- **fix:** `$psEdition` → `$psEditionVal` (PowerShell read-only Variable Konflikt)
+
+### v2.1.0 — GUI, Module, Stabilität
+- **feat:** GUI auf `ScrollablePanel` umgestellt — funktioniert auf allen Auflösungen
+- **feat:** `FormBorderStyle` auf `Sizable` — Fenster manuell anpassbar
+- **feat:** `NoGui`-Modus für Scheduled Tasks implementiert
+- **feat:** 5 Modul-Manifeste (`.psd1`) v2.1.0 erstellt
+- **feat:** `report.template.html` erstellt (war fehlend, 20 Platzhalter)
+- **feat:** `.gitignore` hinzugefügt (schützt `output/` vor Commit)
+- **feat:** Input-Validierung vor Start-Analysis
+- **feat:** `settings.json` Safe-Merge verhindert Datenverlust
+- **feat:** Fortschrittsbalken und StatusLabel im GUI
+- **fix:** `Get-ADSecurityInfo` Aufruf im Launcher mit korrekter Signatur
+- **fix:** `$script:UseMockData` korrekt initialisiert und zurückgesetzt
+- **fix:** Entra-Versionsabfrage mit `TimeoutSec=15`
+- **fix:** DNS Scavenging-Loop über `$allTestedZones` statt `$allZones`
+- **fix:** Log-Pfad in `Utils.psm1` robuster via `$repoRoot`
+- **fix:** UTF-8 BOM aus allen PS-Dateien entfernt (PS5.1 Startfehler)
+- **fix:** Inline-`if` in `[PSCustomObject]` für PS5.1 Kompatibilität
+- **fix:** `SubCategory`-Objekt `{de/en}` via `$LangCode` aufgelöst
+- **fix:** Umlaute in GUI-Checkboxen durch Encoding-Fehler
+
+### v2.0.0 — i18n & Robustheit
+- **feat:** `Get-ADOUAndAccountSecurity` asynchron via PowerShell Runspace
+- **feat:** `ProgressCallback`-Parameter für ACL-Analyse
+- **feat:** Pester-Tests neu geschrieben (6 Blöcke, 30+ Tests)
+- **feat:** `SubCategory` in `recommendations.json` zweisprachig `{de/en}`
+- **feat:** 11 neue i18n-Keys (NoneFound, AllUpToDate, AllServersOnline, ...)
+- **fix:** Alle hartcodierten DE-Strings durch i18n-Keys ersetzt
+- **fix:** `$htmlOUSec` NullPointer-Bug
+- **fix:** `Get-ADSecurityInfo` Scope-Bug
+- **fix:** DNS TotalZoneCount / MissingScavenging Mismatch
+- **fix:** `PWD-04/05/06` in `recommendations.json` vervollständigt
+- **fix:** `i18n.en.json` deutsche Werte korrigiert
+
+### v1.0.0 — Erstveröffentlichung
+- WinForms GUI mit 11 Analyse-Bereichen
+- HTML-Report mit dynamischem Ampel-System
+- Zweisprachigkeit DE/EN via i18n-JSON
+- Empfehlungs-Engine mit 69 Regeln
+- CSV-Export für Security-Details (lokalisiert)
+- Sample-Report mit Mock-Daten
+
+---
+
+## Rechtlicher Hinweis
+
+Das Skript führt **ausschliesslich Lesevorgänge** im Active Directory durch. Es werden keine Konfigurationsänderungen vorgenommen. Die generierten Reports und CSV-Exporte können personenbezogene Daten (AD-Benutzernamen, UPNs) enthalten — diese sind durch `.gitignore` vom Repository ausgeschlossen.
+
+Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumgebung wird empfohlen.
+
+---
+
+*ADHealthCheck Pro v2.4.4 — LAKE Solutions AG*

@@ -1,0 +1,1521 @@
+{
+  "DomainOverview": [
+    {
+      "Id": "AD-01",
+      "Title": {
+        "de": "Forest Functional Level",
+        "en": "Forest functional level"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Forest Level",
+        "en": "Forest Level"
+      },
+      "Property": "ForestLevel",
+      "Condition": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "Recommendation": {
+        "de": "Das Forest Functional Level sollte auf Windows Server 2016 (Level 7) aktualisiert werden.",
+        "en": "Upgrade Forest Functional Level to Windows Server 2016 (Level 7)."
+      },
+      "Priority": "Low"
+    },
+    {
+      "Id": "AD-02",
+      "Title": {
+        "de": "Domain Functional Level",
+        "en": "Domain functional level"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Domain Level",
+        "en": "Domain Level"
+      },
+      "Property": "DomainLevel",
+      "Condition": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "Recommendation": {
+        "de": "Das Domain Functional Level sollte auf Windows Server 2016 (Level 7) aktualisiert werden.",
+        "en": "Upgrade Domain Functional Level to Windows Server 2016 (Level 7)."
+      },
+      "Priority": "Low"
+    },
+    {
+      "Id": "AD-03",
+      "Title": {
+        "de": "AD-Papierkorb aktiviert",
+        "en": "AD Recycle Bin enabled"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Resilience",
+        "en": "Resilience"
+      },
+      "Property": "RecycleBin",
+      "Condition": [
+        false
+      ],
+      "Recommendation": {
+        "de": "Der Active Directory Papierkorb ist deaktiviert. Aktivieren Sie diesen, um versehentlich gelöschte Objekte ohne Backup-Restore wiederherstellen zu können.",
+        "en": "AD Recycle Bin is disabled. Enable it to restore accidentally deleted objects without requiring a backup restore."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "AD-04",
+      "Title": {
+        "de": "krbtgt-Kontozustand",
+        "en": "krbtgt account health"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Identity",
+        "en": "Identity"
+      },
+      "Property": "KrbtgtStatus",
+      "Condition": [
+        "Expired"
+      ],
+      "Recommendation": {
+        "de": "Das KRBTGT-Kennwort wurde seit über 180 Tagen nicht geändert. Microsoft empfiehlt einen Wechsel alle 180 Tage (zweistufiger Prozess).",
+        "en": "The KRBTGT password has not been changed for over 180 days. Microsoft recommends a reset every 180 days (two-step process)."
+      },
+      "Priority": "High"
+    }
+  ],
+  "FSMO": [
+    {
+      "Id": "AD-FSMO-01",
+      "Title": {
+        "de": "FSMO: Schema-Master erreichbar",
+        "en": "FSMO: Schema Master reachable"
+      },
+      "RoleKey": "SchemaMaster",
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "FSMO-Rollen",
+        "en": "FSMO Roles"
+      },
+      "Property": "Erreichbar",
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Der Schema Master ist nicht erreichbar. Schema-Erweiterungen (z.B. für Exchange oder neue Windows-Versionen) sind aktuell nicht möglich.",
+        "en": "The Schema Master is unreachable. Schema extensions (e.g., for Exchange or new Windows versions) are currently not possible."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "AD-FSMO-02",
+      "Title": {
+        "de": "FSMO: Domänennamen-Master erreichbar",
+        "en": "FSMO: Domain Naming Master reachable"
+      },
+      "RoleKey": "DomainNamingMaster",
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "FSMO-Rollen",
+        "en": "FSMO Roles"
+      },
+      "Property": "Erreichbar",
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Der Domain Naming Master ist nicht erreichbar. Das Hinzufügen oder Entfernen von Domänen im Forest ist aktuell blockiert.",
+        "en": "The Domain Naming Master is unreachable. Adding or removing domains in the forest is currently blocked."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "AD-FSMO-03",
+      "Title": {
+        "de": "FSMO: PDC-Emulator erreichbar",
+        "en": "FSMO: PDC Emulator reachable"
+      },
+      "RoleKey": "PdcEmulator",
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "FSMO-Rollen",
+        "en": "FSMO Roles"
+      },
+      "Property": "Erreichbar",
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Der PDC-Emulator ist nicht erreichbar. Dies führt zu massiven Problemen bei der Zeitsynchronisation und Passwort-Replikation.",
+        "en": "The PDC Emulator is unreachable. This leads to severe issues with time synchronization and password replication."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "AD-FSMO-04",
+      "Title": {
+        "de": "FSMO: RID-Master erreichbar",
+        "en": "FSMO: RID Master reachable"
+      },
+      "RoleKey": "RidMaster",
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "FSMO-Rollen",
+        "en": "FSMO Roles"
+      },
+      "Property": "Erreichbar",
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Der RID-Master ist nicht erreichbar. Wenn der lokale RID-Pool eines DCs leer ist, können keine neuen Objekte (User/Computer) mehr erstellt werden.",
+        "en": "The RID Master is unreachable. If a DC's local RID pool is empty, no new objects (users/computers) can be created."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "AD-FSMO-05",
+      "Title": {
+        "de": "FSMO: Infrastruktur-Master erreichbar",
+        "en": "FSMO: Infrastructure Master reachable"
+      },
+      "RoleKey": "InfrastructureMaster",
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "FSMO-Rollen",
+        "en": "FSMO Roles"
+      },
+      "Property": "Erreichbar",
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Der Infrastructure Master ist nicht erreichbar. Objekt-Referenzen zwischen Domänen werden aktuell nicht aktualisiert.",
+        "en": "The Infrastructure Master is unreachable. Object references between domains are currently not being updated."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "AD-FSMO-06",
+      "Title": {
+        "de": "FSMO: Schema- & Namensmaster gemeinsam",
+        "en": "FSMO: Schema & Naming Master co-located"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Architektur",
+        "en": "Architecture"
+      },
+      "Property": "ForestRolesConsolidated",
+      "Condition": [
+        "NotConsolidated"
+      ],
+      "Recommendation": {
+        "de": "Schema Master und Domain Naming Master sollten auf demselben DC betrieben werden (Microsoft Best Practice).",
+        "en": "Schema Master and Domain Naming Master should reside on the same DC (Microsoft Best Practice)."
+      },
+      "Priority": "Low"
+    },
+    {
+      "Id": "AD-FSMO-07",
+      "Title": {
+        "de": "FSMO: Rollen in Single-Domain konsolidiert",
+        "en": "FSMO: roles consolidated (single domain)"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Architektur",
+        "en": "Architecture"
+      },
+      "Property": "RoleDistribution",
+      "Condition": [
+        "Distributed"
+      ],
+      "Recommendation": {
+        "de": "In Single-Domain Umgebungen sollten alle 5 Rollen auf einem leistungsfähigen DC (Globaler Katalog) konzentriert werden.",
+        "en": "In single-domain environments, all 5 roles should be concentrated on a single high-performance DC (Global Catalog)."
+      },
+      "Priority": "Low"
+    },
+    {
+      "Id": "AD-FSMO-08",
+      "Title": {
+        "de": "FSMO: Infrastruktur-Master kein GC",
+        "en": "FSMO: Infrastructure Master not a GC"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Architektur",
+        "en": "Architecture"
+      },
+      "Property": "InfrastructureGCConflict",
+      "Condition": [
+        "Conflict"
+      ],
+      "Recommendation": {
+        "de": "KRITISCH: Der Infrastructure Master darf kein GC sein, wenn mehrere DCs existieren und der Papierkorb DEAKTIVIERT ist.",
+        "en": "CRITICAL: The Infrastructure Master must not be a GC if multiple DCs exist and the Recycle Bin is DISABLED."
+      },
+      "Priority": "High"
+    }
+  ],
+  "DCDIag": [
+    {
+      "Id": "DC-DFSR",
+      "Title": {
+        "de": "DCDIAG: DFSR-Replikation (SYSVOL)",
+        "en": "DCDIAG: DFSR replication (SYSVOL)"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "DFSREvent",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Fehler in den DFSR-Ereignisprotokollen festgestellt. Die Dateireplikation (Sysvol) ist möglicherweise gestört.",
+        "en": "Errors detected in DFSR event logs. File replication (Sysvol) might be impaired."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-SYSV",
+      "Title": {
+        "de": "DCDIAG: SYSVOL-Bereitstellung",
+        "en": "DCDIAG: SYSVOL readiness"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "SysVolCheck",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "SysVol-Check fehlgeschlagen. Prüfen Sie, ob der SysVol-Share vorhanden und die Berechtigungen korrekt sind.",
+        "en": "SysVol check failed. Verify if the SysVol share is present and permissions are correct."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-KCC",
+      "Title": {
+        "de": "DCDIAG: KCC-Ereignisse",
+        "en": "DCDIAG: KCC events"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "KccEvent",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Der KCC (Knowledge Consistency Checker) meldet Fehler. Prüfen Sie die Replikationstopologie.",
+        "en": "KCC (Knowledge Consistency Checker) reported errors. Check the replication topology."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-ROLE",
+      "Title": {
+        "de": "DCDIAG: FSMO-Rolleninhaber bekannt",
+        "en": "DCDIAG: knows of role holders"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "KnowsOfRoleHolders",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Der DC kann die FSMO-Rolleninhaber nicht finden oder erreichen.",
+        "en": "The DC cannot find or reach the FSMO role holders."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-MACH",
+      "Title": {
+        "de": "DCDIAG: Computerkonto des DC",
+        "en": "DCDIAG: machine account"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "MachineAccount",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Probleme mit dem Computer-Konto des DCs festgestellt (Trust/Passwort).",
+        "en": "Issues detected with the DC's machine account (trust/password)."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-NCSD",
+      "Title": {
+        "de": "DCDIAG: NC-Sicherheitsbeschreibungen",
+        "en": "DCDIAG: NC security descriptors"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "NCSecDesc",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Fehler in den Security Descriptoren der Naming Contexts (NC) gefunden.",
+        "en": "Errors found in the Security Descriptors of the Naming Contexts (NC)."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-LOGN",
+      "Title": {
+        "de": "DCDIAG: NetLogon-Rechte",
+        "en": "DCDIAG: NetLogons"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "NetLogons",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Netlogon-Berechtigungen oder Dienste-Status fehlerhaft. Prüfen Sie die Logon-Fähigkeit.",
+        "en": "Netlogon permissions or service status faulty. Check logon capability."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-OBJR",
+      "Title": {
+        "de": "DCDIAG: Objektreplikation",
+        "en": "DCDIAG: objects replicated"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "ObjectsReplicated",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Fehler bei der Überprüfung der replizierten Objekte festgestellt.",
+        "en": "Errors detected during the verification of replicated objects."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-REPL",
+      "Title": {
+        "de": "DCDIAG: Replikationsstatus",
+        "en": "DCDIAG: replication status"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "Replications",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Allgemeine Replikationsfehler festgestellt. Führen Sie 'repadmin /showrepl' für Details aus.",
+        "en": "General replication errors detected. Run 'repadmin /showrepl' for details."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-RIDM",
+      "Title": {
+        "de": "DCDIAG: RID-Manager",
+        "en": "DCDIAG: RID manager"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "RidManager",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Probleme mit dem RID-Master oder dem RID-Pool des DCs festgestellt.",
+        "en": "Issues detected with the RID Master or the DC's RID pool."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-SVCS",
+      "Title": {
+        "de": "DCDIAG: kritische Dienste",
+        "en": "DCDIAG: services"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "Services",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Erforderliche AD-Dienste laufen nicht ordnungsgemäss.",
+        "en": "Required AD services are not running properly."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-SYSL",
+      "Title": {
+        "de": "DCDIAG: Systemprotokoll-Fehler",
+        "en": "DCDIAG: system log errors"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "SystemLog",
+      "Recommendation": {
+        "de": "Kritische Fehler im System-Ereignisprotokoll innerhalb der letzten 60 Minuten.",
+        "en": "Critical errors in the system event log within the last 60 minutes."
+      },
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-VREF",
+      "Title": {
+        "de": "DCDIAG: Objektreferenzen",
+        "en": "DCDIAG: verify references"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "VerifyReferences",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Fehler in den Datenbank-Referenzen gefunden. Prüfen Sie die AD-Datenbankintegrität.",
+        "en": "Errors found in database references. Check AD database integrity."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-SDREF",
+      "Title": {
+        "de": "DCDIAG: SD-Referenzdomäne",
+        "en": "DCDIAG: SD reference domain"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "CheckSDRefDom",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Sicherheitsdeskriptor-Referenzdomänen-Check fehlgeschlagen.",
+        "en": "Security Descriptor reference domain check failed."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-CRVAL",
+      "Title": {
+        "de": "DCDIAG: Cross-Ref-Validierung",
+        "en": "DCDIAG: cross-ref validation"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "CrossRefValidation",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Cross-Reference Validierung fehlgeschlagen. Prüfen Sie die Partitionskonfiguration.",
+        "en": "Cross-reference validation failed. Check partition configuration."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-LOCAT",
+      "Title": {
+        "de": "DCDIAG: DC-Locator (DNS)",
+        "en": "DCDIAG: DC locator (DNS)"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "LocatorCheck",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "DC-Locator-Check fehlgeschlagen. Der DC kann über DNS oder RPC nicht korrekt lokalisiert werden.",
+        "en": "DC locator check failed. The DC cannot be located properly via DNS or RPC."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-INTER",
+      "Title": {
+        "de": "DCDIAG: standortübergreifende Replikation",
+        "en": "DCDIAG: intersite replication"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "Intersite",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Intersite-Replikationsfehler festgestellt. Prüfen Sie Standorte und Verknüpfungen.",
+        "en": "Intersite replication errors detected. Check sites and links."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DC-FSMOC",
+      "Title": {
+        "de": "DCDIAG: FSMO-Konsistenz",
+        "en": "DCDIAG: FSMO consistency"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "DCDIAG",
+        "en": "DCDIAG"
+      },
+      "Property": "FsmoCheck",
+      "Condition": [
+        "Failed",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Allgemeiner FSMO-Integritätscheck fehlgeschlagen.",
+        "en": "General FSMO integrity check failed."
+      },
+      "Priority": "High"
+    }
+  ],
+  "DCSystem": [
+    {
+      "Id": "OS-01",
+      "Title": {
+        "de": "Betriebssystem-Supportstatus",
+        "en": "Operating system support status"
+      },
+      "Category": "Lifecycle",
+      "SubCategory": {
+        "de": "Betriebssystem",
+        "en": "Operating System"
+      },
+      "Property": "OSSupportStatus",
+      "Condition": [
+        "OutOfMainstream",
+        "OutOfSupport"
+      ],
+      "Recommendation": {
+        "de": "Das Betriebssystem ist veraltet und hat das Ende des Mainstream-Supports erreicht oder überschritten. Ein Upgrade auf Windows Server 2022 oder neuer wird dringend empfohlen.",
+        "en": "The operating system is outdated and has reached or exceeded its mainstream support end date. Upgrading to Windows Server 2022 or newer is highly recommended."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SRV-01-E",
+      "Title": {
+        "de": "Festplattenspeicher kritisch",
+        "en": "Disk space critical"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Server Gesundheit",
+        "en": "Server Health"
+      },
+      "Property": "DiskSpace",
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "KRITISCH: Der Festplattenplatz auf C: liegt unter 5%. Es besteht unmittelbare Gefahr für die Datenbankintegrität!",
+        "en": "CRITICAL: Disk space on C: is below 5%. Immediate risk to database integrity!"
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SRV-01-W",
+      "Title": {
+        "de": "Festplattenspeicher knapp",
+        "en": "Disk space low"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Server Gesundheit",
+        "en": "Server Health"
+      },
+      "Property": "DiskSpace",
+      "Condition": [
+        "Warning"
+      ],
+      "Recommendation": {
+        "de": "HINWEIS: Der Festplattenplatz auf C: liegt unter 15%. Eine Bereinigung wird empfohlen.",
+        "en": "NOTE: Disk space on C: is below 15%. Cleanup is recommended."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "SRV-02",
+      "Title": {
+        "de": "DC-Erreichbarkeit (WMI/CIM)",
+        "en": "DC reachability (WMI/CIM)"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Konnektivität",
+        "en": "Connectivity"
+      },
+      "Property": "Status",
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Der Domänencontroller ist nicht erreichbar oder antwortet nicht auf WMI/CIM-Abfragen. Prüfen Sie Netzwerk, RPC-Dienste und Firewall.",
+        "en": "The Domain Controller is unreachable or not responding to WMI/CIM queries. Check network, RPC services, and firewall."
+      },
+      "Priority": "High"
+    }
+  ],
+  "Backup": [
+    {
+      "Id": "BK-01",
+      "Title": {
+        "de": "AD-Backup älter als 24 Stunden",
+        "en": "AD backup older than 24 hours"
+      },
+      "Category": "Disaster Recovery",
+      "SubCategory": {
+        "de": "AD Backup",
+        "en": "AD Backup"
+      },
+      "Property": "Status",
+      "Condition": [
+        "Warning"
+      ],
+      "Recommendation": {
+        "de": "Hinweis: Das AD-Backup ist älter als 24 Stunden. Prüfen Sie, ob die geplanten Backup-Tasks ordnungsgemäss laufen.",
+        "en": "Note: The AD backup is older than 24 hours. Check if scheduled backup tasks are running correctly."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "BK-02",
+      "Title": {
+        "de": "AD-Backup älter als 7 Tage",
+        "en": "AD backup older than 7 days"
+      },
+      "Category": "Disaster Recovery",
+      "SubCategory": {
+        "de": "AD Backup",
+        "en": "AD Backup"
+      },
+      "Property": "Status",
+      "Condition": [
+        "Critical",
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "WARNUNG: Das AD-Backup ist älter als 7 Tage oder konnte nicht ermittelt werden! Dies stellt ein erhebliches Risiko für die Wiederherstellbarkeit dar.",
+        "en": "WARNING: The AD backup is older than 7 days or could not be determined! This poses a significant risk to recoverability."
+      },
+      "Priority": "High"
+    }
+  ],
+  "Services": [
+    {
+      "Id": "SVC-DNS",
+      "Title": {
+        "de": "Dienst: DNS-Server",
+        "en": "Service: DNS Server"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Dienste Status",
+        "en": "Service Status"
+      },
+      "Property": "dns",
+      "Condition": [
+        "Error",
+        "Warning",
+        "Manual",
+        "Disabled"
+      ],
+      "Recommendation": {
+        "de": "Der DNS-Serverdienst läuft nicht oder ist nicht auf 'Automatisch' konfiguriert. Dies verhindert die Namensauflösung im AD.",
+        "en": "The DNS Server service is not running or not set to 'Automatic'. This prevents name resolution in the AD."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SVC-KDC",
+      "Title": {
+        "de": "Dienst: Kerberos KDC",
+        "en": "Service: Kerberos KDC"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Dienste Status",
+        "en": "Service Status"
+      },
+      "Property": "kdc",
+      "Condition": [
+        "Error",
+        "Warning",
+        "Manual",
+        "Disabled"
+      ],
+      "Recommendation": {
+        "de": "Der Kerberos Key Distribution Center (KDC) Dienst ist gestört oder falsch konfiguriert. Authentifizierungen können fehlschlagen.",
+        "en": "The Kerberos Key Distribution Center (KDC) service is failing or misconfigured. Authentication may fail."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SVC-NET",
+      "Title": {
+        "de": "Dienst: NetLogon",
+        "en": "Service: NetLogon"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Dienste Status",
+        "en": "Service Status"
+      },
+      "Property": "netlogon",
+      "Condition": [
+        "Error",
+        "Warning",
+        "Manual",
+        "Disabled"
+      ],
+      "Recommendation": {
+        "de": "Der Netlogon-Dienst ist nicht betriebsbereit. DCs können keine Anmeldeanfragen verarbeiten oder sich synchronisieren.",
+        "en": "The Netlogon service is not operational. DCs cannot process logon requests or synchronize."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SVC-NTDS",
+      "Title": {
+        "de": "Dienst: AD DS (NTDS)",
+        "en": "Service: AD DS (NTDS)"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Dienste Status",
+        "en": "Service Status"
+      },
+      "Property": "ntds",
+      "Condition": [
+        "Error",
+        "Warning",
+        "Manual",
+        "Disabled"
+      ],
+      "Recommendation": {
+        "de": "Der Verzeichnisdienst (NTDS) weist Fehler auf oder ist nicht auf 'Automatisch' gestellt. Die AD-Datenbank ist gefährdet.",
+        "en": "The Directory Service (NTDS) is reporting errors or is not set to 'Automatic'. The AD database is at risk."
+      },
+      "Priority": "High"
+    }
+  ],
+  "Sites": [
+    {
+      "Id": "SITE-01",
+      "Title": {
+        "de": "Replikationsintervall der Site-Links",
+        "en": "Site link replication interval"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Sites & Services",
+        "en": "Sites & Services"
+      },
+      "Property": "ReplicationInterval",
+      "Condition": [
+        "HighValue"
+      ],
+      "Recommendation": {
+        "de": "Das Replikationsintervall für Site-Links sollte auf 15 Minuten gesetzt werden (Microsoft Best Practice für moderne Netzwerke).",
+        "en": "The replication interval for site links should be set to 15 minutes (Microsoft Best Practice for modern networks)."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "SITE-02",
+      "Title": {
+        "de": "Subnetze ohne Site-Zuordnung",
+        "en": "Subnets without a site"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Sites & Services",
+        "en": "Sites & Services"
+      },
+      "Property": "SubnetsWithoutSite",
+      "Condition": [
+        "Orphaned"
+      ],
+      "Recommendation": {
+        "de": "Es wurden Subnetze gefunden, die keiner Site zugewiesen sind. Dies führt zu unvorhersehbarem Client-Verhalten beim Login.",
+        "en": "Subnets without site association found. This leads to unpredictable client behavior during logon."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SITE-03",
+      "Title": {
+        "de": "Änderungsbenachrichtigung der Site-Links",
+        "en": "Site link change notification"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Sites & Services",
+        "en": "Sites & Services"
+      },
+      "Property": "ChangeNotification",
+      "Condition": [
+        "Disabled"
+      ],
+      "Recommendation": {
+        "de": "Die 'Change Notification' für Inter-Site Replikation ist deaktiviert. Aktivieren Sie diese, um Änderungen nahezu in Echtzeit zu replizieren.",
+        "en": "Inter-site Change Notification is disabled. Enable it to replicate changes almost in real-time."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "SITE-04",
+      "Title": {
+        "de": "Sites ohne globalen Katalog",
+        "en": "Sites without a global catalog"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Sites & Services",
+        "en": "Sites & Services"
+      },
+      "Property": "SitesWithoutGC",
+      "Condition": [
+        "NoGC"
+      ],
+      "Recommendation": {
+        "de": "In einer Site wurde kein Globaler Katalog (GC) gefunden. Dies kann die Anmeldung und Suche im Forest verzögern.",
+        "en": "No Global Catalog (GC) found in a site. This can delay logons and searches within the forest."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "SITE-05",
+      "Title": {
+        "de": "Keine Subnetze definiert",
+        "en": "No subnets defined"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Sites & Services",
+        "en": "Sites & Services"
+      },
+      "Property": "NoSubnetsDefined",
+      "Condition": [
+        "Empty"
+      ],
+      "Recommendation": {
+        "de": "Es wurden keine Subnetze in AD Sites & Services definiert. Microsoft empfiehlt dringend, alle IP-Netzwerke zu erfassen und den Standorten zuzuweisen, damit Clients über den 'DC Locator Prozess' immer den nächstgelegenen Domänencontroller finden. Fehlende Subnetze führen zu unvorhersehbaren Anmeldezeiten und hoher Netzwerklast.",
+        "en": "No subnets have been defined in AD Sites & Services. Microsoft strongly recommends defining all IP networks and assigning them to sites so that clients always find the nearest domain controller via the 'DC Locator process'. Missing subnets lead to unpredictable logon times and high network load."
+      },
+      "Priority": "High"
+    }
+  ],
+  "Security": [
+    {
+      "Id": "SEC-01",
+      "Title": {
+        "de": "Inaktive Benutzerkonten",
+        "en": "Inactive user accounts"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Konten-Hygiene",
+        "en": "Account Hygiene"
+      },
+      "Property": "InactiveUsers",
+      "Condition": [
+        ">0"
+      ],
+      "Recommendation": {
+        "de": "Identifikation von Benutzerkonten mit verlängerter Inaktivität. Zur Minimierung der Angriffsfläche durch 'Stale Accounts' sollten diese Konten gemäss Microsoft Best Practices deaktiviert oder nach einem definierten Lifecycle-Prozess entfernt werden.",
+        "en": "Identification of accounts with prolonged inactivity. To minimize the attack surface provided by 'stale accounts', these should be disabled or removed following a defined lifecycle process."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SEC-02",
+      "Title": {
+        "de": "Konten ohne Kennwortablauf",
+        "en": "Accounts with non-expiring passwords"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Kennwort-Hygiene",
+        "en": "Password Hygiene"
+      },
+      "Property": "NoPwdExpiryUsers",
+      "Condition": [
+        ">0"
+      ],
+      "Recommendation": {
+        "de": "Detektion von Konten mit dauerhafter Kennwortgültigkeit (DONT_EXPIRE_PASSWORD). Dies widerspricht modernen Compliance-Standards. Ausnahme-Regelungen sollten strikt auf Dienstkonten mit kompensierenden Kontrollen beschränkt werden.",
+        "en": "Detection of accounts with permanent password validity. This contradicts modern compliance standards. Exceptions should be strictly limited to service accounts with compensating controls."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SEC-03",
+      "Title": {
+        "de": "Konten mit abgelaufenem Kennwort",
+        "en": "Accounts with expired passwords"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Kennwort-Hygiene",
+        "en": "Password Hygiene"
+      },
+      "Property": "ExpiredPwdUsers",
+      "Condition": [
+        ">0"
+      ],
+      "Recommendation": {
+        "de": "Compliance-Abweichung: Kennwörter identifiziert, die die maximale Alterungsfrist der Richtlinie überschritten haben. Dies deutet auf Inkonsistenzen bei der Durchsetzung der Gruppenrichtlinien oder manuelle Ausnahmen hin.",
+        "en": "Compliance Gap: Passwords identified that exceed the maximum age limit of the policy. This suggests inconsistencies in GPO enforcement or manual exceptions."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "SEC-04",
+      "Title": {
+        "de": "Mitglieder der Domänen-Admins",
+        "en": "Domain Admins membership"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Privilegierte Gruppen",
+        "en": "Privileged Groups"
+      },
+      "Property": "DomAdminCount",
+      "Condition": [
+        ">5"
+      ],
+      "Recommendation": {
+        "de": "Kritische Anzahl an Mitgliedern in der Gruppe 'Domänen-Admins'. Zur Wahrung der Tier-0-Sicherheit und des 'Least Privilege' Prinzips sollte die Anzahl der administrativen Konten auf ein absolutes Minimum reduziert werden.",
+        "en": "Critical number of members in the 'Domain Admins' group. To maintain Tier-0 security and the 'Least Privilege' principle, administrative accounts must be reduced to an absolute minimum."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SEC-05",
+      "Title": {
+        "de": "Mitglieder der Organisations-Admins",
+        "en": "Enterprise Admins membership"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Privilegierte Gruppen",
+        "en": "Privileged Groups"
+      },
+      "Property": "EntAdminCount",
+      "Condition": [
+        ">5"
+      ],
+      "Recommendation": {
+        "de": "Überhöhte Anzahl an Organisations-Admins detektiert. Da diese Gruppe forestweite Privilegien besitzt, sollte die Mitgliedschaft nur temporär für spezifische Aufgaben gewährt werden (Just-in-Time Administration).",
+        "en": "Excessive number of Enterprise Admins detected. As this group possesses forest-wide privileges, membership should only be granted temporarily for specific tasks (Just-in-Time administration)."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SEC-06",
+      "Title": {
+        "de": "Mitglieder der Schema-Admins",
+        "en": "Schema Admins membership"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Privilegierte Gruppen",
+        "en": "Privileged Groups"
+      },
+      "Property": "SchAdminCount",
+      "Condition": [
+        ">1"
+      ],
+      "Recommendation": {
+        "de": "Mitgliedschaft in der Gruppe 'Schema-Admins' festgestellt. Diese Gruppe sollte im operativen Tagesgeschäft leer sein, da Schema-Änderungen hochkritische, seltene Eingriffe in die Verzeichnisstruktur darstellen.",
+        "en": "Membership in the 'Schema Admins' group detected. This group should be empty during daily operations, as schema changes represent highly critical and rare interventions in the directory structure."
+      },
+      "Priority": "Medium"
+    }
+  ],
+  "OUAccountSecurity": [
+    {
+      "Id": "SEC-07",
+      "Title": {
+        "de": "Verwaiste SIDs in ACLs",
+        "en": "Orphaned SIDs in ACLs"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "ACL Hygiene",
+        "en": "ACL Hygiene"
+      },
+      "Property": "OrphanedSIDsCount",
+      "Condition": [
+        ">0"
+      ],
+      "Recommendation": {
+        "de": "Verwaiste SIDs in den Zugriffsberechtigungen gefunden. Dies deutet auf gelöschte Konten hin, deren Reste nicht aus den ACLs entfernt wurden. Bereinigen Sie diese, um die Übersichtlichkeit und Sicherheit zu wahren.",
+        "en": "Orphaned SIDs found in ACLs. This indicates deleted accounts whose remains were not removed from ACLs. Clean these up to maintain clarity and security."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "SEC-08",
+      "Title": {
+        "de": "OUs mit deaktivierter Vererbung",
+        "en": "OUs with inheritance disabled"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Objekt-Sicherheit",
+        "en": "Object Security"
+      },
+      "Property": "OUInheritanceDisabled",
+      "Condition": [
+        ">0"
+      ],
+      "Recommendation": {
+        "de": "OUs mit deaktivierter Vererbung gefunden. Dies kann dazu führen, dass übergeordnete Sicherheitsvorgaben (z.B. für Admins) nicht auf diese OUs angewendet werden.",
+        "en": "OUs with disabled inheritance found. This can prevent parent security settings from being applied to these OUs."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "SEC-09",
+      "Title": {
+        "de": "Benutzer mit deaktivierter Vererbung",
+        "en": "Users with inheritance disabled"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Objekt-Sicherheit",
+        "en": "Object Security"
+      },
+      "Property": "UserInheritanceDisabled",
+      "Condition": [
+        ">0"
+      ],
+      "Recommendation": {
+        "de": "Benutzerkonten mit deaktivierter Vererbung identifiziert. Sofern es sich nicht um geschützte Gruppen (AdminSDHolder) handelt, sollten Berechtigungen für eine konsistente Verwaltung vererbt werden.",
+        "en": "User accounts with disabled inheritance identified. Unless these are protected groups (AdminSDHolder), permissions should be inherited for consistent management."
+      },
+      "Priority": "Medium"
+    }
+  ],
+  "PasswordPolicy": [
+    {
+      "Id": "PWD-01",
+      "Title": {
+        "de": "Mindestlänge des Kennworts",
+        "en": "Minimum password length"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Kennwortrichtlinien",
+        "en": "Password Policies"
+      },
+      "Property": "MinPwdLength",
+      "Condition": [
+        "<12"
+      ],
+      "Recommendation": {
+        "de": "Die Mindestkennwortlänge ist mit weniger als 12 Zeichen zu gering. Microsoft empfiehlt eine Länge von mindestens 14 Zeichen, um Brute-Force-Angriffe effektiv zu erschweren.",
+        "en": "The minimum password length is less than 12 characters. Microsoft recommends at least 14 characters to effectively hinder brute-force attacks."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "PWD-02",
+      "Title": {
+        "de": "Kennwortkomplexität",
+        "en": "Password complexity"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Kennwortrichtlinien",
+        "en": "Password Policies"
+      },
+      "Property": "Complexity",
+      "Condition": [
+        "Disabled"
+      ],
+      "Recommendation": {
+        "de": "Die Kennwortkomplexität ist deaktiviert. Die Erzwingung komplexer Kennwörter (Gross-/Kleinschreibung, Zahlen, Sonderzeichen) ist eine grundlegende Schutzmassnahme gegen Wörterbuch-Angriffe.",
+        "en": "Password complexity is disabled. Enforcing complex passwords (case sensitivity, numbers, special characters) is a fundamental protection against dictionary attacks."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "PWD-03",
+      "Title": {
+        "de": "Kennwortchronik",
+        "en": "Password history"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Kennwortrichtlinien",
+        "en": "Password Policies"
+      },
+      "Property": "PwdHistory",
+      "Condition": [
+        "<24"
+      ],
+      "Recommendation": {
+        "de": "Die Kennwortchronik ist zu kurz. Microsoft empfiehlt die Speicherung der letzten 24 Kennwörter, um eine sofortige Wiederverwendung alter Passwörter zu verhindern.",
+        "en": "The password history is too short. Microsoft recommends storing the last 24 passwords to prevent immediate reuse of old passwords."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "PWD-04",
+      "Title": {
+        "de": "Sperrschwelle bei Fehlversuchen",
+        "en": "Account lockout threshold"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Kennwortrichtlinien",
+        "en": "Password Policies"
+      },
+      "Property": "LockoutThresh",
+      "Condition": [
+        "=0",
+        ">15"
+      ],
+      "Recommendation": {
+        "de": "Die Kontensperrungsschwelle ist deaktiviert (0) oder zu hoch. Microsoft empfiehlt einen Wert von 10 Versuchen.",
+        "en": "Lockout threshold is disabled (0) or too high. Microsoft recommends 10 attempts."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "PWD-05",
+      "Title": {
+        "de": "Kontosperrdauer",
+        "en": "Account lockout duration"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Kennwortrichtlinien",
+        "en": "Password Policies"
+      },
+      "Property": "LockoutDuration",
+      "Condition": [
+        "<15"
+      ],
+      "Recommendation": {
+        "de": "Die Sperrdauer sollte mindestens 15 Minuten betragen (aktuell: zu kurz), um Brute-Force-Angriffe zeitlich zu bremsen.",
+        "en": "Lockout duration should be at least 15 minutes (currently too short) to slow down brute-force attacks."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "PWD-06",
+      "Title": {
+        "de": "Zurücksetzen des Sperrzählers",
+        "en": "Reset lockout counter"
+      },
+      "Category": "Sicherheit",
+      "SubCategory": {
+        "de": "Kennwortrichtlinien",
+        "en": "Password Policies"
+      },
+      "Property": "ResetLockoutCount",
+      "Condition": [
+        "<15"
+      ],
+      "Recommendation": {
+        "de": "Das Zurücksetzen des Sperrzählers sollte frühestens nach 15 Minuten erfolgen, um ein systematisches 'Abwarten' des Angreifers zu erschweren.",
+        "en": "Resetting the lockout counter should happen no earlier than 15 minutes to hinder systematic attacker waiting."
+      },
+      "Priority": "Medium"
+    }
+  ],
+  "Entra": [
+    {
+      "Id": "ENT-01",
+      "Title": {
+        "de": "Entra Connect: Versionsstand",
+        "en": "Entra Connect: version"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Hybrid Identity",
+        "en": "Hybrid Identity"
+      },
+      "Property": "VersionMismatch",
+      "Condition": [
+        "Installed < Expected"
+      ],
+      "Recommendation": {
+        "de": "Die installierte Version von Microsoft Entra Connect ist veraltet. Microsoft empfiehlt dringend, den Sync-Agenten aktuell zu halten, um von Sicherheits-Fixes, Performance-Optimierungen und neuen Funktionen zu profitieren.",
+        "en": "The installed version of Microsoft Entra Connect is outdated. Microsoft strongly recommends keeping the sync agent up to date to benefit from security fixes, performance optimizations, and new features."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "ENT-02",
+      "Title": {
+        "de": "Entra Connect: Sync-Dienststatus",
+        "en": "Entra Connect: sync service status"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "Hybrid Identity",
+        "en": "Hybrid Identity"
+      },
+      "Property": "ServiceStatus",
+      "Condition": [
+        "Stopped"
+      ],
+      "Recommendation": {
+        "de": "Mindestens ein kritischer Entra Connect Dienst auf dem Sync-Server ist nicht gestartet. Dies unterbricht die Synchronisation von Identitäten und Passwort-Hashes in die Cloud.",
+        "en": "At least one critical Entra Connect service on the sync server is not started. This interrupts the synchronization of identities and password hashes to the cloud."
+      },
+      "Priority": "High"
+    }
+  ],
+  "DNS": [
+    {
+      "Id": "DNS-01",
+      "Title": {
+        "de": "DNS: Scavenging-Zonenkonflikt",
+        "en": "DNS: scavenging zone mismatch"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "DNS Zone Health",
+        "en": "DNS Zone Health"
+      },
+      "Property": "ScavengingZoneMismatch",
+      "Condition": [
+        "Mismatch"
+      ],
+      "Recommendation": {
+        "de": "Scavenging ist serverweit aktiv, aber für diese spezifischen Zonen deaktiviert. Dies verhindert das Aufräumen veralteter Einträge in diesen Bereichen.",
+        "en": "Scavenging is enabled server-wide but disabled for these specific zones. This prevents cleaning up stale records in these areas."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "DNS-02",
+      "Title": {
+        "de": "DNS: fehlende SRV-Einträge",
+        "en": "DNS: missing SRV records"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "DNS Zone Health",
+        "en": "DNS Zone Health"
+      },
+      "Property": "MissingSRV",
+      "Condition": [
+        "Critical"
+      ],
+      "Recommendation": {
+        "de": "Kritische AD-Diensteeinträge (SRV-Records für LDAP, Kerberos oder PDC) fehlen oder sind nicht auflösbar. Dies verhindert die korrekte Domänen-Discovery und Anmeldung von Clients.",
+        "en": "Critical AD service records (SRV records for LDAP, Kerberos, or PDC) are missing or not resolvable. This prevents correct domain discovery and client logons."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DNS-03",
+      "Title": {
+        "de": "DNS: Nameserver nicht erreichbar",
+        "en": "DNS: name server unreachable"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "DNS Zone Health",
+        "en": "DNS Zone Health"
+      },
+      "Property": "NSUnreachable",
+      "Condition": [
+        "Down"
+      ],
+      "Recommendation": {
+        "de": "Ein oder mehrere Nameserver (NS) sind per ICMP nicht erreichbar oder der DNS-Dienst ist gestoppt. Die Redundanz der Namensauflösung ist gefährdet.",
+        "en": "One or more nameservers (NS) are unreachable via ICMP or the DNS service is stopped. Redundancy for name resolution is at risk."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DNS-04",
+      "Title": {
+        "de": "DNS: nicht AD-integrierte Zone",
+        "en": "DNS: non-AD-integrated zone"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "DNS Zone Health",
+        "en": "DNS Zone Health"
+      },
+      "Property": "NonADIntegrated",
+      "Condition": [
+        "Found"
+      ],
+      "Recommendation": {
+        "de": "Es wurden DNS-Zonen gefunden, die nicht Active Directory-integriert sind. Microsoft empfiehlt AD-integrierte Zonen für eine sicherere und einfachere Replikation innerhalb der Domäne.",
+        "en": "DNS zones were found that are not Active Directory-integrated. Microsoft recommends AD-integrated zones for more secure and easier replication within the domain."
+      },
+      "Priority": "Low"
+    },
+    {
+      "Id": "DNS-05",
+      "Title": {
+        "de": "DNS: gestoppte Zone",
+        "en": "DNS: stopped zone"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "DNS Zone Health",
+        "en": "DNS Zone Health"
+      },
+      "Property": "ZoneStopped",
+      "Condition": [
+        "Stopped"
+      ],
+      "Recommendation": {
+        "de": "Eine oder mehrere DNS-Zonen befinden sich im Status 'Paused' oder 'Stopped'. Anfragen für diese Zonen können nicht beantwortet werden.",
+        "en": "One or more DNS zones are in 'Paused' or 'Stopped' status. Queries for these zones cannot be answered."
+      },
+      "Priority": "High"
+    },
+    {
+      "Id": "DNS-06",
+      "Title": {
+        "de": "DNS: Scavenging global deaktiviert",
+        "en": "DNS: scavenging globally disabled"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "DNS Zone Health",
+        "en": "DNS Zone Health"
+      },
+      "Property": "ScavengingGloballyDisabled",
+      "Condition": [
+        "Disabled"
+      ],
+      "Recommendation": {
+        "de": "Hinweis: Das DNS-Scavenging ist derzeit global deaktiviert. Microsoft empfiehlt die Einrichtung, um die DNS-Datenbank automatisch von veralteten Datensätzen zu bereinigen.",
+        "en": "Note: DNS scavenging is currently globally disabled. Microsoft recommends configuring it to automatically clean up stale records from the DNS database."
+      },
+      "Priority": "Low"
+    },
+    {
+      "Id": "DNS-07",
+      "Title": {
+        "de": "DNS: DNSSEC nicht konfiguriert",
+        "en": "DNS: DNSSEC not configured"
+      },
+      "Category": "Infrastruktur",
+      "SubCategory": {
+        "de": "DNS Zone Health",
+        "en": "DNS Zone Health"
+      },
+      "Property": "DNSSECNotConfigured",
+      "Condition": [
+        "Inactive"
+      ],
+      "Recommendation": {
+        "de": "Hinweis: DNSSEC ist für die analysierten Zonen nicht konfiguriert. Eine Implementierung von DNSSEC schützt vor DNS-Spoofing und Cache-Poisoning Angriffen.",
+        "en": "Note: DNSSEC is not configured for the analyzed zones. Implementing DNSSEC protects against DNS spoofing and cache poisoning attacks."
+      },
+      "Priority": "Low"
+    }
+  ]
+}

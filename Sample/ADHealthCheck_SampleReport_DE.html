@@ -1,0 +1,1006 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Directory Health Report</title>
+    <style>
+        :root {
+    /* LAKE Solutions Gradient Approximation */
+    --header-gradient: linear-gradient(90deg, #004a87 0%, #00a9ce 100%);
+    --bg-color: #f4f6f8;
+    --card-bg: #ffffff;
+    --text-color: #323130;
+    --border-radius: 12px; /* Etwas runder, moderner */
+    --content-width: 1200px;
+}
+
+body { 
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+    background-color: var(--bg-color); 
+    color: var(--text-color); 
+    margin: 0; 
+    padding: 0; 
+    padding-bottom: 40px;
+}
+
+/* --- HEADER --- */
+.header {
+    background: var(--header-gradient);
+    color: white;
+    padding: 25px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    
+    /* Layout Anpassungen gemÃ¤ÃŸ Anforderung */
+    max-width: var(--content-width); /* Gleiche Breite wie Content */
+    margin: 20px auto 30px auto; /* Abstand oben, zentriert, Abstand unten */
+    border-radius: var(--border-radius);
+    box-sizing: border-box; /* Wichtig damit Padding nicht die Breite sprengt */
+}
+
+.header-left { display: flex; align-items: center; gap: 20px; }
+
+/* Logo Container ohne Hintergrund */
+.logo { 
+    max-height: 65px; 
+    background: transparent; 
+    padding: 0; 
+    margin-right: 15px;
+}
+
+.company-info h1 { 
+    margin: 0; 
+    font-size: 1.5rem; 
+    font-weight: 700; 
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.company-info p { 
+    margin: 4px 0 0 0; 
+    font-size: 0.95rem; 
+    opacity: 0.95; 
+    font-weight: 400;
+}
+
+.report-meta { text-align: right; }
+.report-meta h2 { 
+    margin: 0; 
+    font-size: 1.3rem; 
+    font-weight: 600; 
+    opacity: 1; 
+}
+.report-badge { 
+    background: rgba(255,255,255,0.25); 
+    padding: 6px 16px; 
+    border-radius: 20px; 
+    font-size: 0.9rem; 
+    display: inline-block;
+    margin-top: 8px;
+    font-weight: 600;
+    backdrop-filter: blur(5px);
+}
+
+/* --- LAYOUT --- */
+.container { 
+    max-width: var(--content-width); 
+    margin: 0 auto; 
+    padding: 0; /* Padding im Header/Cards geregelt */
+}
+
+/* --- CARD DESIGN --- */
+.card {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    padding: 30px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+.card:hover { box-shadow: 0 5px 20px rgba(0,0,0,0.08); transition: box-shadow 0.3s ease; }
+
+.card h2 { 
+    margin-top: 0; 
+    color: #004a87; /* Dunkles Blau passend zum Header */
+    font-size: 1.2rem; 
+    border-bottom: 2px solid #f0f0f0; 
+    padding-bottom: 12px; 
+    margin-bottom: 25px;
+}
+.card h3 { 
+    font-size: 1rem; 
+    color: #555; 
+    margin-top: 30px; 
+    margin-bottom: 15px; 
+    border-left: 4px solid #00a9ce; /* TÃ¼rkis Akzent */
+    padding-left: 12px; 
+}
+
+/* --- TABLES --- */
+.styled-table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+.styled-table thead tr { border-bottom: 2px solid #e1e1e1; color: #444; text-align: left; }
+.styled-table th { padding: 12px 15px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; color: #555; }
+.styled-table td { padding: 14px 15px; border-bottom: 1px solid #f2f2f2; vertical-align: middle; }
+.styled-table tbody tr:last-of-type td { border-bottom: none; }
+.styled-table tbody tr:hover { background-color: #fafafa; }
+
+/* --- STATUS PILLS / BADGES --- */
+.status-pill {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    min-width: 70px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.status-ok, .status-ok-bg { background-color: #e6f7e8; color: #0e600e; } 
+.status-warning, .status-warn-bg, .status-warn { background-color: #fff8e1; color: #8a6d00; } 
+.status-error, .status-error-bg { background-color: #ffebee; color: #c62828; } 
+
+/* Reset table cells */
+td.status-ok, td.status-warning, td.status-error { background: transparent; }
+
+/* Erzwingt festes Layout fÃ¼r Tabellen in Karten */
+.card .styled-table {
+    table-layout: fixed; /* Verhindert InhaltsabhÃ¤ngige Breite */
+    width: 100%;
+}
+
+/* --- MATRIX (DCDIAG) --- */
+.matrix-container { overflow-x: auto; padding-bottom: 15px; }
+.matrix-table th.rotate { height: 160px; white-space: nowrap; vertical-align: bottom; }
+.matrix-table th.rotate > div { transform: translate(0px, 0px) rotate(-90deg); width: 30px; transform-origin: center bottom; margin-bottom: 15px; }
+.matrix-table th.rotate span { display: block; padding: 5px 10px; font-weight: 600; }
+.matrix-table td { text-align: center; font-size: 1.2em; border-left: 1px solid #f9f9f9; }
+
+/* --- MODERN QUICK-CHECKS DESIGN --- */
+.quick-check-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    align-items: stretch; /* Sorgt fÃ¼r gleiche HÃ¶he aller Kacheln in einer Zeile */
+}
+
+.quick-info-box {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06); /* Subtiler Schatten */
+    border: 1px solid #eef0f2;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quick-info-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+/* Kachel-Akzente oben */
+.qbox-scavenging { flex: 1 1 280px; border-top: 4px solid #00a9ce; }
+.qbox-forwarder  { flex: 1 1 220px; border-top: 4px solid #00a9ce; }
+.qbox-srv        { flex: 1 1 280px; border-top: 4px solid #00a9ce; }
+
+.qbox-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #888;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+/* Modernes SRV Listing */
+.srv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.srv-row:last-child {
+    border-bottom: none;
+}
+
+.srv-name {
+    font-size: 0.85rem;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+/* Status Texte innerhalb der Kacheln (Pillen-Look) */
+.srv-status {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 6px;
+    text-align: center;
+    min-width: 65px;
+}
+
+/* --- DNS --- */
+
+/* Abstandshalter fÃ¼r TabellenÃ¼berschriften */
+.dns-table-header {
+    margin-top: 25px;
+}
+
+/* --- BACKUP TABLE SPECIFIC STYLES --- */
+.card .styled-table.backup-table {
+    table-layout: auto !important;
+    width: 100% !important;
+}
+
+/* Die erste Spalte (Partition) erhÃ¤lt so viel Platz wie nÃ¶tig, 
+   aber drÃ¼ckt die anderen nicht weg */
+.backup-table td:first-child, 
+.backup-table th:first-child {
+    width: auto !important;
+    text-align: left;
+    white-space: nowrap;
+    padding-right: 40px; /* Erzeugt die gewÃ¼nschte Marge zum nÃ¤chsten Wert */
+}
+
+/* Wir geben den restlichen Spalten feste Breiten, 
+   damit sie nicht zusammengedrÃ¼ckt werden */
+.backup-table th:nth-child(2), .backup-table td:nth-child(2) { width: 160px; text-align: center; }
+.backup-table th:nth-child(3), .backup-table td:nth-child(3) { width: 140px; text-align: center; }
+.backup-table th:nth-child(4), .backup-table td:nth-child(4) { width: 120px; text-align: center; }
+
+/* Verhindert Zeilenumbruch in der gesamten Tabelle fÃ¼r saubere Optik */
+.backup-table td {
+    white-space: nowrap;
+}
+
+/* --- DC SYSTEM STATUS TABLE --- */
+.dc-system-table {
+    table-layout: auto !important; /* Hebt das fixed-Layout der Card auf */
+    width: 100%;
+}
+
+.dc-system-table th, .dc-system-table td {
+    white-space: nowrap; /* Verhindert UmbrÃ¼che in den Werten */
+    padding: 12px 10px;
+}
+
+/* Die Server-Spalte darf flexibel sein, die Werte-Spalten bleiben kompakt */
+.dc-system-table th:first-child {
+    width: auto;
+}
+
+/* --- RECOMMENDATION --- */
+
+/* Basis-Struktur der Tabelle */
+.rec-matrix {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 6px; /* Erzeugt den modernen "schwebenden" Zeilen-Effekt */
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+/* Tabellen-Header */
+.rec-matrix th {
+    background: #f8f9fa;
+    color: #5d6d7e;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 12px 15px;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #eaeded;
+}
+
+/* Zeilen-Styling */
+.rec-row {
+    background: #ffffff;
+    transition: all 0.25s ease;
+}
+
+/* Hover-Effekt: Zeile hebt sich leicht ab */
+.rec-row:hover {
+    background: #f4f7f9;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+}
+
+.rec-row td {
+    padding: 15px;
+    border-top: 1px solid #f1f1f1;
+    border-bottom: 1px solid #f1f1f1;
+    font-size: 0.9rem;
+    vertical-align: middle;
+    color: #2c3e50;
+}
+
+/* Hilfsklassen fÃ¼r die Ausrichtung */
+.text-left {
+    text-align: left !important;
+    padding-left: 20px !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+/* Spezifische Spalten-Styles */
+.rec-id { 
+    font-weight: bold; 
+    color: #004a87; 
+    font-family: 'Consolas', 'Monaco', monospace; 
+    width: 80px;
+}
+
+.rec-cat { 
+    color: #7f8c8d; 
+    font-size: 0.8rem; 
+    width: 150px;
+}
+
+.rec-sub { 
+    font-weight: 600; 
+    color: #34495e;
+    width: 140px;
+}
+
+.rec-text { 
+    line-height: 1.5;
+    color: #333;
+    /* Verhindert, dass extrem langer Text das Layout sprengt */
+    max-width: 500px; 
+}
+
+/* PrioritÃ¤ts-Badges */
+.prio-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    display: inline-block;
+    min-width: 85px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* PrioritÃ¤ts-Farben */
+.prio-high { 
+    background: #ffebee; 
+    color: #c62828; 
+    border: 1px solid #ef9a9a; 
+}
+
+.prio-medium { 
+    background: #fff3e0; 
+    color: #ef6c00; 
+    border: 1px solid #ffcc80; 
+}
+
+.prio-low { 
+    background: #e3f2fd; 
+    color: #1565c0; 
+    border: 1px solid #90caf9; 
+}
+
+/* Erster und letzter TD abrunden fÃ¼r den schwebenden Look */
+.rec-row td:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-left: 1px solid #f1f1f1;
+}
+
+.rec-row td:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-right: 1px solid #f1f1f1;
+    width: 110px;
+}
+
+/* --- FOOTER --- */
+
+.footer { 
+    text-align: center; 
+    color: #a0a0a0; 
+    font-size: 0.8rem; 
+    margin-top: 50px; 
+    max-width: var(--content-width);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            <img src="data:image/png;base64,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" alt="Logo" class="logo" onerror="this.style.display='none'">
+            <div class="company-info">
+                <h1>LAKE Solutions AG</h1>
+                <p>Hertistrasse 2, 8304 Wallisellen</p>
+            </div>
+        </div>
+        <div class="report-meta">
+            <h2>Active Directory Health Report</h2>
+            <div class="report-badge">11.05.2026 14:21</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class='card'><h2>Domain Übersicht</h2><table class='styled-table'>
+			<tbody>
+				<tr><td>NetBIOS Name</td><td><b>CONTOSO</b></td>
+					<td>Benutzer Objekte</td><td>1250</td></tr>
+				<tr><td>DNS Root (FQDN)</td><td><b>contoso.local (MOCK DATA)</b></td>
+					<td>Sicherheitsgruppen</td><td>300</td></tr>
+				<tr><td>Forest Level</td><td>5</td>
+					<td>Verteilergruppen</td><td>50</td></tr>
+				<tr><td>Domain Level</td><td>5</td>
+					<td>Kontakte</td><td>10</td></tr>
+				
+				<tr>
+					<td>AD Papierkorb</td><td><span class='status-pill status-error'>Deaktiviert</span></td>
+					<td>KRBTGT Passwort (Datum)</td><td><span class='status-pill status-error' title='Alter: 400 Tage'>06.04.2025</span></td>
+				</tr>
+			</tbody>
+		</table></div>
+
+        <div class='card'><h2>FSMO Rollen</h2><table class='styled-table'><thead><tr><th>FSMO-Rolle</th><th>Server / Inhaber</th><th>Erreichbar (ICMP)</th></tr></thead><tbody><tr><td>Schema-Master</td><td>MOCK-DC-01</td><td><span class='status-pill status-error'>Error</span></td></tr><tr><td>Domaenenbenennungs-Master</td><td>MOCK-DC-02</td><td><span class='status-pill status-error'>Error</span></td></tr><tr><td>PDC-Emulator</td><td>MOCK-DC-01</td><td><span class='status-pill status-error'>Error</span></td></tr><tr><td>RID-Master</td><td>MOCK-DC-02</td><td><span class='status-pill status-error'>Error</span></td></tr><tr><td>Infrastruktur-Master</td><td>MOCK-DC-03</td><td><span class='status-pill status-error'>Error</span></td></tr></tbody></table></div>
+
+        <div class='card'><h2>DCDIAG Health Matrix</h2><div class='matrix-container'><table class='styled-table matrix-table'><thead><tr><th style='width:200px;'>Prüfung</th><th class='rotate'><div><span>MOCK-DC-01</span></div></th><th class='rotate'><div><span>MOCK-DC-02</span></div></th></tr></thead><tbody><tr><td><b>Connectivity</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>Advertising</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>FrsEvent</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>DFSREvent</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>SysVolCheck</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>KccEvent</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>KnowsOfRoleHolders</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>MachineAccount</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>NCSecDesc</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>NetLogons</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>ObjectsReplicated</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>Replications</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>RidManager</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>Services</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>SystemLog</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>VerifyReferences</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>CheckSDRefDom</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>CrossRefValidation</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>LocatorCheck</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>Intersite</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr><tr><td><b>FsmoCheck</b></td><td class='status-error-bg'>&#10008;</td><td class='status-error-bg'>&#10008;</td></tr></tbody></table></div></div>
+
+        <div class='card'><h2>Domain Controller Systemstatus</h2><table class='styled-table dc-system-table'>
+			<thead>
+				<tr>
+					<th>Server</th>
+					<th>Betriebssystem</th>
+					<th>IPv4 Adresse</th>
+					<th style='text-align:center;'>Uptime (h)</th> 
+					<th style='text-align:center;'>Frei (GB)</th>
+					<th style='text-align:center;'>Frei (%)</th>
+					<th style='text-align:center;'>Status</th>
+				</tr>
+			</thead>
+			<tbody><tr>
+				<td>MOCK-DC-01</td>
+				<td>Windows Server 2012 R2</td>
+				<td>10.0.0.1</td>
+				<td style='text-align:center;'>8760</td> 
+				<td style='text-align:center;'>1.2</td>
+				<td style='text-align:center;'>2 %</td>
+				<td style='text-align:center;'><span class='status-pill status-error'>Error</span></td>
+			</tr><tr>
+				<td>MOCK-DC-02</td>
+				<td>Windows Server 2016</td>
+				<td>10.0.0.2</td>
+				<td style='text-align:center;'>4380</td> 
+				<td style='text-align:center;'>8.5</td>
+				<td style='text-align:center;'>12 %</td>
+				<td style='text-align:center;'><span class='status-pill status-error'>Warning</span></td>
+			</tr><tr>
+				<td>MOCK-DC-03</td>
+				<td>Windows Server 2019</td>
+				<td>-</td>
+				<td style='text-align:center;'>-</td> 
+				<td style='text-align:center;'>-</td>
+				<td style='text-align:center;'>-</td>
+				<td style='text-align:center;'><span class='status-pill status-error'>Error</span></td>
+			</tr></tbody></table></div>
+		
+		<div class='card'><h2>Active Directory Backup Status</h2><table class='styled-table backup-table'>
+			<thead>
+				<tr>
+					<th>Partition</th>
+					<th>Letztes Backup</th>
+					<th>Tage vergangen</th>
+					<th>Status</th>
+				</tr>
+			</thead>
+			<tbody><tr>
+				<td>DC=contoso,DC=local</td>
+				<td>06.04.2026 14:21</td>
+				<td>35 Tg. 0 Std.</td>
+				<td><span class='status-pill status-error'>Dringender Handlungsbedarf</span></td>
+			</tr><tr>
+				<td>CN=Configuration,DC=contoso,DC=local</td>
+				<td>08.05.2026 14:21</td>
+				<td>3 Tg. 0 Std.</td>
+				<td><span class='status-pill status-warning'>Warnung</span></td>
+			</tr><tr>
+				<td>CN=Schema,CN=Configuration,DC=contoso,DC=local</td>
+				<td></td>
+				<td>Kein Backup gefunden</td>
+				<td><span class='status-pill status-error'>Kein Backup gefunden</span></td>
+			</tr></tbody></table></div>
+
+        <div class='card'><h2>Dienste Status</h2><table class='styled-table'><thead><tr><th>Server</th><th>Service</th><th>Status</th><th>StartType</th></tr></thead><tbody><tr><td>MOCK-DC-01</td><td>NTDS</td><td><span class='status-pill status-error'>Error</span></td><td>Automatic</td></tr><tr><td>MOCK-DC-01</td><td>Netlogon</td><td><span class='status-pill status-error'>Error</span></td><td>Automatic</td></tr><tr><td>MOCK-DC-01</td><td>DNS</td><td><span class='status-pill status-error'>Error</span></td><td>Automatic</td></tr><tr><td>MOCK-DC-01</td><td>Kdc</td><td><span class='status-pill status-error'>Error</span></td><td>Automatic</td></tr><tr><td>MOCK-DC-02</td><td>NTDS</td><td><span class='status-pill status-error'>Error</span></td><td>Automatic</td></tr><tr><td>MOCK-DC-02</td><td>DNS</td><td><span class='status-pill status-error'>Error</span></td><td>Automatic</td></tr></tbody></table></div>
+
+        <div class='card'><h2>Active Directory Sites & Services</h2><h3>Inter-Site Transports</h3><table class='styled-table'><thead><tr><th>Name</th><th>Typ</th><th>Beschreibung</th><th>Kosten</th><th>Replikationsintervall</th></tr></thead><tbody><tr><td>DEFAULTIPSITELINK</td><td>Site Link</td><td>Standard Site Link (MOCK)</td><td>100</td><td>180</td></tr><tr><td>BRANCH-HQ-LINK</td><td>Site Link</td><td>Branch Office zu HQ</td><td>200</td><td>60</td></tr></tbody></table><h3>Subnetze</h3><table class='styled-table'><thead><tr><th>Name</th><th>Zugewiesene Site</th></tr></thead><tbody><tr><td>10.0.0.0/24</td><td>Default-First-Site-Name</td></tr><tr><td>192.168.1.0/24</td><td>-</td></tr><tr><td>172.16.0.0/16</td><td>-</td></tr></tbody></table><h3>Site Übersicht</h3><div style='background:#fcfcfc; border:1px solid #eee; padding:15px; margin-top:10px; border-radius:6px;'><h4 style='margin:0 0 10px 0; color:#004a87;'>Site: Default-First-Site-Name</h4><table class='styled-table'><thead><tr><th>Server</th><th>Global Catalog</th></tr></thead><tbody><tr><td>MOCK-DC-01</td><td>True</td></tr><tr><td>MOCK-DC-02</td><td>False</td></tr></tbody></table><br/><b>Replikationsverbindungen:</b><table class='styled-table'><thead><tr><th>Source Server</th><th>Transport</th><th>Aktiviert</th><th>Destination</th></tr></thead><tbody><tr><td>MOCK-DC-02</td><td>IP</td><td><span class='status-pill status-ok'>Enabled</span></td><td>MOCK-DC-01</td></tr></tbody></table></div><div style='background:#fcfcfc; border:1px solid #eee; padding:15px; margin-top:10px; border-radius:6px;'><h4 style='margin:0 0 10px 0; color:#004a87;'>Site: BackOffice</h4><p>No Servers</p></div><div style='background:#fcfcfc; border:1px solid #eee; padding:15px; margin-top:10px; border-radius:6px;'><h4 style='margin:0 0 10px 0; color:#004a87;'>Site: BranchOffice</h4><table class='styled-table'><thead><tr><th>Server</th><th>Global Catalog</th></tr></thead><tbody><tr><td>MOCK-DC-03</td><td>False</td></tr></tbody></table></div></div>
+
+        <div class='card'><h2>Sicherheit & Kennwortrichtlinien</h2><h3>Sicherheit</h3><table class='styled-table'>
+			<thead>
+				<tr><th>Eigenschaft</th><th>Wert</th></tr>
+			</thead>
+			<tbody>
+				<tr><td>Grenzwert Inaktivität</td><td>90 Tag(e)</td></tr>
+				<tr>
+					<td>Inaktive Konten gefunden (Aktiviert)</td>
+					<td><span class='status-pill status-error'>72 Benutzer</span></td>
+				</tr>
+				<tr>
+					<td>Deaktivierte Konten (Gesamt)</td>
+					<td><span class='status-pill status-warn'>215 Benutzer</span></td>
+				</tr>
+				<tr>
+					<td>Benutzer ohne Passwortablauf</td>
+					<td><span class='status-pill status-error'>102 Benutzer</span></td>
+				</tr>
+				<tr>
+					<td>Kennwort älter als Richtlinie (42 Tag(e))</td>
+					<td><span class='status-pill status-error'>38 Benutzer</span></td>
+				</tr>
+				<tr>
+					<td>Anzahl Domänen Admin(s)</td>
+					<td><span class='status-pill status-error'>18 Benutzer</span></td>
+				</tr>
+				<tr>
+					<td>Anzahl Enterprise Admin(s)</td>
+					<td><span class='status-pill status-error'>8 Benutzer</span></td>
+				</tr>
+				<tr>
+					<td>Anzahl Schema Admin(s)</td>
+					<td><span class='status-pill status-ok'>3 Benutzer</span></td>
+				</tr>
+			</tbody>
+		</table><br/><h3>Kennwortrichtlinie</h3><table class='styled-table'>
+            <thead>
+                <tr><th>Eigenschaft</th><th>Wert</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Passwort Komplexität</td><td>Deaktiviert</td></tr>
+                <tr><td>Minimale Länge</td><td>6 Zeichen</td></tr>
+                <tr><td>Minimales Alter</td><td>0</td></tr>
+                <tr><td>Maximales Alter</td><td>42</td></tr>
+                <tr><td>Passwort Historie</td><td>5 Kennwörter</td></tr>
+                <tr><td>Sperre nach</td><td>0 Versuchen</td></tr>
+				<tr><td>Sperrdauer</td><td>5 Minuten</td></tr>
+				<tr><td>Zähler zurücksetzen nach</td><td>5 Minuten</td></tr>
+            </tbody>
+        </table></div>
+		
+		<div class='card'><h2>OU & Konto Sicherheit</h2><div style='display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;'><span class='status-pill status-error'>Verwaiste SIDs (ACLs): 51</span><span class='status-pill status-warn'>OUs (Vererbung blockiert): 3</span><span class='status-pill status-error'>Benutzer (Vererbung blockiert): 20</span></div><div style='margin-top:20px;'><h3 style='border-left: 3px solid #004a87; padding-left: 10px;'>Detaillierte Liste: Verwaiste SIDs (ACLs)</h3><table class='styled-table'><thead><tr><th>SID</th><th>Vorkommen</th><th>Empfehlung</th></tr></thead><tbody><tr><td>S-1-5-21-999-888-777-1001</td><td>2400</td><td>Prüfen & Bereinigen</td></tr><tr><td>S-1-5-21-999-888-777-1145</td><td>891</td><td>Prüfen & Bereinigen</td></tr><tr><td>S-1-5-21-999-888-777-2210</td><td>312</td><td>Prüfen & Bereinigen</td></tr></tbody></table></div><div style='margin-top:20px;'><h3 style='border-left: 3px solid #004a87; padding-left: 10px;'>OUs (Vererbung blockiert)</h3><table class='styled-table'><thead><tr><th>OU Name</th><th>Distinguished Name (Pfad)</th><th>Status</th></tr></thead><tbody><tr><td>Tier0-Admins</td><td>OU=Tier0-Admins,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>ServiceAccounts</td><td>OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>Workstations</td><td>OU=Workstations,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr></tbody></table></div><div style='margin-top:20px;'><h3 style='border-left: 3px solid #004a87; padding-left: 10px;'>Benutzer (Vererbung blockiert)</h3><table class='styled-table'><thead><tr><th>Benutzer</th><th>Distinguished Name (Pfad)</th><th>Status</th></tr></thead><tbody><tr><td>svc_app1</td><td>CN=svc_app1,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app2</td><td>CN=svc_app2,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app3</td><td>CN=svc_app3,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app4</td><td>CN=svc_app4,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app5</td><td>CN=svc_app5,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app6</td><td>CN=svc_app6,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app7</td><td>CN=svc_app7,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app8</td><td>CN=svc_app8,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app9</td><td>CN=svc_app9,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app10</td><td>CN=svc_app10,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app11</td><td>CN=svc_app11,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app12</td><td>CN=svc_app12,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app13</td><td>CN=svc_app13,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app14</td><td>CN=svc_app14,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app15</td><td>CN=svc_app15,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app16</td><td>CN=svc_app16,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app17</td><td>CN=svc_app17,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app18</td><td>CN=svc_app18,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app19</td><td>CN=svc_app19,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr><tr><td>svc_app20</td><td>CN=svc_app20,OU=ServiceAccounts,DC=contoso,DC=local</td><td>Vererbung deaktiviert</td></tr></tbody></table></div></div>
+
+        <div class='card'><h2>Entra ID / Azure AD Connect</h2><table class='styled-table'>
+            <thead>
+                <tr>
+                    <th>Sync Server</th>
+                    <th>Installierte Version</th>
+                    <th>Dienstestatus</th>
+                    <th>Gesamtstatus</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><b>SRVSYNC01 (MOCK)</b></td>
+                    <td><span class='status-pill status-warning'>1.1.0.0 (Erwartet: 2.6.3.0)</span></td>
+                    <td><div><b>Microsoft Entra Connect Sync</b>: <span class='status-error'>Stopped</span></div><div><b>Microsoft Azure AD Connect Agent Updater</b>: <span class='status-error'>Stopped</span></div></td>
+                    <td><span class='status-pill status-warning'>Warnung</span></td>
+                </tr>
+            </tbody>
+        </table></div>
+		
+		<div class='card'><h2>DNS Zone Health Status</h2><div class='quick-check-container'><div class='quick-info-box qbox-scavenging'>
+							<div class='qbox-label'>Scavenging (Aging)</div>
+							<div class='status-text status-error' style='font-size: 1.1rem; font-weight: 700;'>Inaktiv - nicht konfiguriert (Global)</div>
+							<div style='font-size: 0.75rem; color: #888; margin-top: auto; padding-top: 10px;'>
+								Geprüft in 3 Zonen
+							</div>
+						</div><div class='quick-info-box qbox-forwarder'>
+							<div class='qbox-label'>DNS Forwarder</div>
+							<div class='status-text status-error' style='font-size: 1.3rem; font-weight: 700;'>2 Fehler</div>
+						</div><div class='quick-info-box qbox-srv'>
+							<div class='qbox-label'>AD Service Einträge</div>
+							<div style='width: 100%;'><div class='srv-row'>
+								<div class='srv-name'>LDAP</div>
+								<div class='srv-status status-ok'>OK</div>
+							</div><div class='srv-row'>
+								<div class='srv-name'>Kerberos</div>
+								<div class='srv-status status-ok'>OK</div>
+							</div><div class='srv-row'>
+								<div class='srv-name'>GC</div>
+								<div class='srv-status status-ok'>OK</div>
+							</div><div class='srv-row'>
+								<div class='srv-name'>PDC</div>
+								<div class='srv-status status-error'>CRITICAL</div>
+							</div></div>
+						</div></div><h3 class='dns-table-header'>Status der Nameserver (NS)</h3><table class='styled-table'><thead><tr>
+						<th>NAMESERVER</th><th>IP</th><th>SERVICE</th><th>ICMP</th>
+					</tr></thead><tbody><tr><td><b>mock-dc-01.contoso.local</b></td><td>10.0.0.1</td>
+						<td><span class='status-pill status-ok'>Gestartet</span></td>
+						<td><span class='status-pill status-ok'>OK</span></td></tr><tr><td><b>mock-dc-02.contoso.local</b></td><td>10.0.0.2</td>
+						<td><span class='status-pill status-error'>Gestoppt</span></td>
+						<td><span class='status-pill status-error'>Fail</span></td></tr><tr><td><b>mock-dc-03.contoso.local</b></td><td>-</td>
+						<td><span class='status-pill status-error'>Nicht gefunden</span></td>
+						<td><span class='status-pill status-error'>Fail</span></td></tr></tbody></table><h3 class='dns-table-header'>Forward Lookup Zonen</h3><table class='styled-table'><thead><tr>
+						<th>DNS Zone</th><th>Typ</th>
+						<th>Status</th><th>Replikation</th><th>DNSSEC</th>
+					</tr></thead><tbody><tr><td><b>contoso.local</b></td><td>Primär, AD-integriert</td>
+						<td><span class='status-pill status-ok'>Gestartet</span></td>
+						<td>Domain</td><td><span class='status-pill status-warning'>INACTIVE</span></td></tr><tr><td><b>legacy.contoso.local</b></td><td>Primär</td>
+						<td><span class='status-pill status-error'>Gestoppt</span></td>
+						<td>None</td><td><span class='status-pill status-warning'>INACTIVE</span></td></tr></tbody></table><h3 class='dns-table-header'>Reverse Lookup Zonen</h3><table class='styled-table'><thead><tr>
+						<th>DNS Zone</th><th>Typ</th>
+						<th>Status</th><th>Replikation</th><th>DNSSEC</th>
+					</tr></thead><tbody><tr><td><b>0.0.10.in-addr.arpa</b></td><td>Primär, AD-integriert</td>
+							<td><span class='status-pill status-ok'>Gestartet</span></td>
+							<td>Domain</td><td><span class='status-pill status-warning'>INACTIVE</span></td></tr></tbody></table></div>
+		
+		<div class='card'><h2>Empfehlung(en)</h2><table class='rec-matrix'><thead><tr><th class='text-center'>ID</th><th class='text-left'>Kategorie</th><th class='text-left'>Bereich</th><th class='text-left'>Empfehlung</th><th class='text-center'>Priorität</th></tr></thead><tbody><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-01</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Forest Level</td>
+								<td class='rec-text text-left'>Das Forest Functional Level sollte auf Windows Server 2016 (Level 7) aktualisiert werden.</td>
+								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-02</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Domain Level</td>
+								<td class='rec-text text-left'>Das Domain Functional Level sollte auf Windows Server 2016 (Level 7) aktualisiert werden.</td>
+								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-03</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Resilience</td>
+								<td class='rec-text text-left'>Der Active Directory Papierkorb ist deaktiviert. Aktivieren Sie diesen, um versehentlich gelöschte Objekte ohne Backup-Restore wiederherstellen zu können.</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-04</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Identity</td>
+								<td class='rec-text text-left'>Das KRBTGT-Kennwort wurde seit über 180 Tagen nicht geändert. Microsoft empfiehlt einen Wechsel alle 180 Tage (zweistufiger Prozess).</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-FSMO-01</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Schema-Master</td>
+								<td class='rec-text text-left'>Der Schema Master ist nicht erreichbar. Schema-Erweiterungen (z.B. für Exchange oder neue Windows-Versionen) sind aktuell nicht möglich. (Server: MOCK-DC-01)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-FSMO-02</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Domaenenbenennungs-Master</td>
+								<td class='rec-text text-left'>Der Domain Naming Master ist nicht erreichbar. Das Hinzufügen oder Entfernen von Domänen im Forest ist aktuell blockiert. (Server: MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-FSMO-03</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>PDC-Emulator</td>
+								<td class='rec-text text-left'>Der PDC-Emulator ist nicht erreichbar. Dies führt zu massiven Problemen bei der Zeitsynchronisation und Passwort-Replikation. (Server: MOCK-DC-01)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-FSMO-04</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>RID-Master</td>
+								<td class='rec-text text-left'>Der RID-Master ist nicht erreichbar. Wenn der lokale RID-Pool eines DCs leer ist, können keine neuen Objekte (User/Computer) mehr erstellt werden. (Server: MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-FSMO-05</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Infrastruktur-Master</td>
+								<td class='rec-text text-left'>Der Infrastructure Master ist nicht erreichbar. Objekt-Referenzen zwischen Domänen werden aktuell nicht aktualisiert. (Server: MOCK-DC-03)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-FSMO-06</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Architektur</td>
+								<td class='rec-text text-left'>Schema Master und Domain Naming Master sollten auf demselben DC betrieben werden (Microsoft Best Practice).</td>
+								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>AD-FSMO-07</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Architektur</td>
+								<td class='rec-text text-left'>In Single-Domain Umgebungen sollten alle 5 Rollen auf einem leistungsfähigen DC (Globaler Katalog) konzentriert werden.</td>
+								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-DFSR</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Fehler in den DFSR-Ereignisprotokollen festgestellt. Die Dateireplikation (Sysvol) ist möglicherweise gestört. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-SYSV</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>SysVol-Check fehlgeschlagen. Prüfen Sie, ob der SysVol-Share vorhanden und die Berechtigungen korrekt sind. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-KCC</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Der KCC (Knowledge Consistency Checker) meldet Fehler. Prüfen Sie die Replikationstopologie. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-ROLE</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Der DC kann die FSMO-Rolleninhaber nicht finden oder erreichen. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-MACH</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Probleme mit dem Computer-Konto des DCs festgestellt (Trust/Passwort). (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-NCSD</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Fehler in den Security Descriptoren der Naming Contexts (NC) gefunden. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-LOGN</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Netlogon-Berechtigungen oder Dienste-Status fehlerhaft. Prüfen Sie die Logon-Fähigkeit. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-OBJR</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Fehler bei der Überprüfung der replizierten Objekte festgestellt. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-REPL</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Allgemeine Replikationsfehler festgestellt. Führen Sie 'repadmin /showrepl' für Details aus. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-RIDM</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Probleme mit dem RID-Master oder dem RID-Pool des DCs festgestellt. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-SVCS</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Erforderliche AD-Dienste laufen nicht ordnungsgemäss. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-SYSL</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Kritische Fehler im System-Ereignisprotokoll innerhalb der letzten 60 Minuten. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-VREF</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Fehler in den Datenbank-Referenzen gefunden. Prüfen Sie die AD-Datenbankintegrität. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-SDREF</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Sicherheitsdeskriptor-Referenzdomänen-Check fehlgeschlagen. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-CRVAL</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Cross-Reference Validierung fehlgeschlagen. Prüfen Sie die Partitionskonfiguration. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-LOCAT</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>DC-Locator-Check fehlgeschlagen. Der DC kann über DNS oder RPC nicht korrekt lokalisiert werden. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-INTER</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Intersite-Replikationsfehler festgestellt. Prüfen Sie Standorte und Verknüpfungen. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DC-FSMOC</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>DCDIAG</td>
+								<td class='rec-text text-left'>Allgemeiner FSMO-Integritätscheck fehlgeschlagen. (Betroffene Server: MOCK-DC-01, MOCK-DC-02)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>OS-01</td>
+								<td class='rec-cat text-left'>Lifecycle</td>
+								<td class='rec-sub text-left'>Betriebssystem</td>
+								<td class='rec-text text-left'>Das Betriebssystem ist veraltet und hat das Ende des Mainstream-Supports erreicht oder überschritten. Ein Upgrade auf Windows Server 2022 oder neuer wird dringend empfohlen. [Mainstream Ende: 09.01.2024 | Extended bis: 09.01.2029] (Server: MOCK-DC-01, MOCK-DC-02, MOCK-DC-03)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SRV-01-E</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>Server Gesundheit</td>
+								<td class='rec-text text-left'>KRITISCH: Der Festplattenplatz auf C: liegt unter 5%. Es besteht unmittelbare Gefahr für die Datenbankintegrität! (Server: MOCK-DC-01 (2 % Frei), MOCK-DC-03 (- Frei))</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SRV-01-W</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>Server Gesundheit</td>
+								<td class='rec-text text-left'>HINWEIS: Der Festplattenplatz auf C: liegt unter 15%. Eine Bereinigung wird empfohlen. (Server: MOCK-DC-02 (12 % Frei))</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>BK-01</td>
+								<td class='rec-cat text-left'>Disaster Recovery</td>
+								<td class='rec-sub text-left'>AD Backup Status</td>
+								<td class='rec-text text-left'>Hinweis: Das AD-Backup ist älter als 24 Stunden. Prüfen Sie, ob die geplanten Backup-Tasks ordnungsgemäss laufen. (Partitionen: CN=Configuration,DC=contoso,DC=local (3 Tag(e), 0 Stunden her))</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>BK-02</td>
+								<td class='rec-cat text-left'>Disaster Recovery</td>
+								<td class='rec-sub text-left'>AD Backup Status</td>
+								<td class='rec-text text-left'>WARNUNG: Das AD-Backup ist älter als 7 Tage oder konnte nicht ermittelt werden! Dies stellt ein erhebliches Risiko für die Wiederherstellbarkeit dar. (Partitionen: DC=contoso,DC=local (35 Tag(e), 0 Stunden her); CN=Schema,CN=Configuration,DC=contoso,DC=local (Kein Backup gefunden))</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SITE-01</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>Sites + Services</td>
+								<td class='rec-text text-left'>Das Replikationsintervall für Site-Links sollte auf 15 Minuten gesetzt werden (Microsoft Best Practice für moderne Netzwerke). (Details: DEFAULTIPSITELINK (180 min), BRANCH-HQ-LINK (60 min))</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SITE-02</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>Sites + Services</td>
+								<td class='rec-text text-left'>Es wurden Subnetze gefunden, die keiner Site zugewiesen sind. Dies führt zu unvorhersehbarem Client-Verhalten beim Login. (Details: 192.168.1.0/24, 172.16.0.0/16)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SITE-04</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>Sites + Services</td>
+								<td class='rec-text text-left'>In einer Site wurde kein Globaler Katalog (GC) gefunden. Dies kann die Anmeldung und Suche im Forest verzögern. (Details: BackOffice (Keine Server vorhanden), BranchOffice (Kein GC konfiguriert))</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-01</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Konten-Hygiene</td>
+								<td class='rec-text text-left'>Identifikation von Benutzerkonten mit verlängerter Inaktivität. Zur Minimierung der Angriffsfläche durch 'Stale Accounts' sollten diese Konten gemäss Microsoft Best Practices deaktiviert oder nach einem definierten Lifecycle-Prozess entfernt werden. (Wert: 72 Benutzer)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-02</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Kennwort-Hygiene</td>
+								<td class='rec-text text-left'>Detektion von Konten mit dauerhafter Kennwortgültigkeit (DONT_EXPIRE_PASSWORD). Dies widerspricht modernen Compliance-Standards. Ausnahme-Regelungen sollten strikt auf Dienstkonten mit kompensierenden Kontrollen beschränkt werden. (Wert: 102 Benutzer)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-03</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Kennwort-Hygiene</td>
+								<td class='rec-text text-left'>Compliance-Abweichung: Kennwörter identifiziert, die die maximale Alterungsfrist der Richtlinie überschritten haben. Dies deutet auf Inkonsistenzen bei der Durchsetzung der Gruppenrichtlinien oder manuelle Ausnahmen hin. (Wert: 38 Benutzer)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-04</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Privilegierte Gruppen</td>
+								<td class='rec-text text-left'>Kritische Anzahl an Mitgliedern in der Gruppe 'Domänen-Admins'. Zur Wahrung der Tier-0-Sicherheit und des 'Least Privilege' Prinzips sollte die Anzahl der administrativen Konten auf ein absolutes Minimum reduziert werden. (Wert: 18 Benutzer)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-05</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Privilegierte Gruppen</td>
+								<td class='rec-text text-left'>Überhöhte Anzahl an Organisations-Admins detektiert. Da diese Gruppe forestweite Privilegien besitzt, sollte die Mitgliedschaft nur temporär für spezifische Aufgaben gewährt werden (Just-in-Time Administration). (Wert: 8 Benutzer)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-06</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Privilegierte Gruppen</td>
+								<td class='rec-text text-left'>Mitgliedschaft in der Gruppe 'Schema-Admins' festgestellt. Diese Gruppe sollte im operativen Tagesgeschäft leer sein, da Schema-Änderungen hochkritische, seltene Eingriffe in die Verzeichnisstruktur darstellen. (Wert: 3 Benutzer)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>PWD-01</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
+								<td class='rec-text text-left'>Die Mindestkennwortlänge ist mit weniger als 12 Zeichen zu gering. Microsoft empfiehlt eine Länge von mindestens 14 Zeichen, um Brute-Force-Angriffe effektiv zu erschweren. (Aktueller Wert: 6 Zeichen)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>PWD-02</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
+								<td class='rec-text text-left'>Die Kennwortkomplexität ist deaktiviert. Die Erzwingung komplexer Kennwörter (Gross-/Kleinschreibung, Zahlen, Sonderzeichen) ist eine grundlegende Schutzmassnahme gegen Wörterbuch-Angriffe. (Aktueller Wert: Deaktiviert)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>PWD-03</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
+								<td class='rec-text text-left'>Die Kennwortchronik ist zu kurz. Microsoft empfiehlt die Speicherung der letzten 24 Kennwörter, um eine sofortige Wiederverwendung alter Passwörter zu verhindern. (Aktueller Wert: 5 Kennwörter)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>PWD-05</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
+								<td class='rec-text text-left'>Die Sperrdauer sollte mindestens 15 Minuten betragen (aktuell: zu kurz), um Brute-Force-Angriffe zeitlich zu bremsen. (Aktueller Wert: 5 Minuten)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>PWD-06</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Kennwortrichtlinien</td>
+								<td class='rec-text text-left'>Das Zurücksetzen des Sperrzählers sollte frühestens nach 15 Minuten erfolgen, um ein systematisches 'Abwarten' des Angreifers zu erschweren. (Aktueller Wert: 5 Minuten)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-07</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Objekt-Sicherheit</td>
+								<td class='rec-text text-left'>Verwaiste SIDs in den Zugriffsberechtigungen gefunden. Dies deutet auf gelöschte Konten hin, deren Reste nicht aus den ACLs entfernt wurden. Bereinigen Sie diese, um die Übersichtlichkeit und Sicherheit zu wahren. (Aktueller Wert: 51)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-08</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Objekt-Sicherheit</td>
+								<td class='rec-text text-left'>OUs mit deaktivierter Vererbung gefunden. Dies kann dazu führen, dass übergeordnete Sicherheitsvorgaben (z.B. für Admins) nicht auf diese OUs angewendet werden. (Aktueller Wert: 3)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>SEC-09</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Objekt-Sicherheit</td>
+								<td class='rec-text text-left'>Benutzerkonten mit deaktivierter Vererbung identifiziert. Sofern es sich nicht um geschützte Gruppen (AdminSDHolder) handelt, sollten Berechtigungen für eine konsistente Verwaltung vererbt werden. (Aktueller Wert: 20)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>ENT-01</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Hybrid Identity</td>
+								<td class='rec-text text-left'>Die installierte Version von Microsoft Entra Connect ist veraltet. Microsoft empfiehlt dringend, den Sync-Agenten aktuell zu halten, um von Sicherheits-Fixes, Performance-Optimierungen und neuen Funktionen zu profitieren. (1.1.0.0 < 2.6.3.0)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>ENT-02</td>
+								<td class='rec-cat text-left'>Sicherheit</td>
+								<td class='rec-sub text-left'>Hybrid Identity</td>
+								<td class='rec-text text-left'>Mindestens ein kritischer Entra Connect Dienst auf dem Sync-Server ist nicht gestartet. Dies unterbricht die Synchronisation von Identitäten und Passwort-Hashes in die Cloud. (Microsoft Entra Connect Sync, Microsoft Azure AD Connect Agent Updater)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DNS-02</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>DNS Zonen</td>
+								<td class='rec-text text-left'>Kritische AD-Diensteeinträge (SRV-Records für LDAP, Kerberos oder PDC) fehlen oder sind nicht auflösbar. Dies verhindert die korrekte Domänen-Discovery und Anmeldung von Clients. (Details: PDC)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DNS-03</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>DNS Zonen</td>
+								<td class='rec-text text-left'>Ein oder mehrere Nameserver (NS) sind per ICMP nicht erreichbar oder der DNS-Dienst ist gestoppt. Die Redundanz der Namensauflösung ist gefährdet. (Details: mock-dc-02.contoso.local (Stopped), mock-dc-03.contoso.local (NotFound))</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DNS-04</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>DNS Zonen</td>
+								<td class='rec-text text-left'>Es wurden DNS-Zonen gefunden, die nicht Active Directory-integriert sind. Microsoft empfiehlt AD-integrierte Zonen für eine sicherere und einfachere Replikation innerhalb der Domäne. (Details: legacy.contoso.local)</td>
+								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DNS-05</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>DNS Zonen</td>
+								<td class='rec-text text-left'>Eine oder mehrere DNS-Zonen befinden sich im Status 'Paused' oder 'Stopped'. Anfragen für diese Zonen können nicht beantwortet werden. (Details: legacy.contoso.local)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DNS-06</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>DNS Zonen</td>
+								<td class='rec-text text-left'>Hinweis: Das DNS-Scavenging ist derzeit global deaktiviert. Microsoft empfiehlt die Einrichtung, um die DNS-Datenbank automatisch von veralteten Datensätzen zu bereinigen.</td>
+								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>DNS-07</td>
+								<td class='rec-cat text-left'>Infrastruktur</td>
+								<td class='rec-sub text-left'>DNS Zonen</td>
+								<td class='rec-text text-left'>Hinweis: DNSSEC ist für die analysierten Zonen nicht konfiguriert. Eine Implementierung von DNSSEC schützt vor DNS-Spoofing und Cache-Poisoning Angriffen. (Details: contoso.local, legacy.contoso.local, 0.0.10.in-addr.arpa)</td>
+								<td class='text-center'><span class='prio-badge prio-low'>LOW</span></td>
+							</tr></tbody></table></div>
+        
+        <div class="footer">Generiert von ADHealthCheck Pro (LAKE Solutions AG)</div>
+    </div>
+
+</body>
+</html>
