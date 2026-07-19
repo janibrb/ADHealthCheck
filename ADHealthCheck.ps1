@@ -3,8 +3,23 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.5.0
-    Changelog:  - FEAT: Upload-JSON schemaVersion 2 — Verdikte tragen jetzt MESSWERTE
+    Version:    2.6.0
+    Changelog:  - FEAT: Zwei neue Pruefungen — die bisher toten Config-Werte
+                  ReplicationLatencyMaxMinutes und MaxEventLogAgeDays sind jetzt
+                  wirksam:
+                  * REP-01 (High): Replikations-Latenz je DC und Partner ueber
+                    Get-ADReplicationPartnerMetadata. Bewertet wird die Zeit seit
+                    der letzten ERFOLGREICHEN Replikation gegen den Grenzwert.
+                  * EVT-01 (Medium): Vorhaltedauer der Ereignisprotokolle
+                    ("Directory Service" und "System"). ACHTUNG zur Auslegung:
+                    geprueft wird, wie weit ein Log ZURUECKREICHT — reicht es
+                    weniger weit als MaxEventLogAgeDays, ist es zu klein bzw.
+                    rotiert zu schnell fuer eine Vorfallanalyse.
+                  Damit 71 Regeln. Beide neuen Bereiche haben eigene GUI-Auswahl
+                  und laufen im NoGui-Modus mit.
+                - FIX: Tooltip der KRBTGT-Kachel war hartcodiert deutsch
+                  ("Alter: N Tage") und erschien so auch im englischen Report.
+                - FEAT: Upload-JSON schemaVersion 2 — Verdikte tragen jetzt MESSWERTE
                   statt nur einen fertig gerenderten Satz: ActualValue, Unit (als
                   i18n-Schluessel, nicht als uebersetztes Wort), AffectedItems,
                   ExpectedValue und Operator. Ein Dashboard kann damit "6 Zeichen
@@ -778,6 +793,14 @@ function Start-Analysis {
             Get-ADOUAndAccountSecurity -Settings $Settings -ProgressCallback $progressCallback
         } else { $null }
 
+        $replData = if ($Selection.Replication) {
+            Get-ADReplicationLatency -DCList $DCs -Settings $Settings
+        } else { $null }
+
+        $evtData = if ($Selection.EventLog) {
+            Get-ADEventLogRetention -DCList $DCs -Settings $Settings
+        } else { $null }
+
         $entraData  = if ($Selection.Entra)  { Get-EntraSyncStatus -Settings $Settings } else { $null }
         $backupData = if ($Selection.Backup) { Get-ADBackupStatus } else { $null }
         $dnsData    = if ($Selection.DNS)    { Get-ADDNSHealthStatus -TargetServer $DNSTarget } else { $null }
@@ -789,6 +812,8 @@ function Start-Analysis {
             DCDiag            = $dcdiagData
             Services          = $svcData
             Sites             = $sitesData
+            Replication       = $replData
+            EventLog          = $evtData
             Security          = $secData
             OUAccountSecurity = $ouSecData
             Entra             = $entraData
@@ -846,6 +871,7 @@ if ($NoGui) {
     $selection = @{
         DomainStats=1; FSMO=1; DCDiag=1; DCSystem=1; Backup=1
         Services=1; Sites=1; Security=1; OUAccountSecurity=1; Entra=1; DNS=1
+        Replication=1; EventLog=1
     }
     Start-Analysis -Selection $selection -LangCode $Language -DNSTarget $defaultDNSServer
     exit 0
@@ -1006,7 +1032,9 @@ $checks = @(
     @{ Name="Security";          Label="Identitäts-Sicherheit (Accounts)"; Var="chkSec";     RecVar="chkRecSec"      },
     @{ Name="OUAccountSecurity"; Label="AD Objekt- und ACL-Audit";          Var="chkOUSec";   RecVar="chkRecOUSec"    },
     @{ Name="Entra";             Label="Entra ID Sync";                     Var="chkEntra";   RecVar="chkRecEntra"    },
-    @{ Name="DNS";               Label="Namensauflösung (DNS Health)";     Var="chkDNS";     RecVar="chkRecDNS"      }
+    @{ Name="DNS";               Label="Namensauflösung (DNS Health)";     Var="chkDNS";     RecVar="chkRecDNS"      },
+    @{ Name="Replication";       Label="Replikations-Latenz";               Var="chkRepl";    RecVar="chkRecRepl"     },
+    @{ Name="EventLog";          Label="Ereignisprotokoll-Vorhaltedauer";   Var="chkEvt";     RecVar="chkRecEvt"      }
 )
 
 $chkY               = 55
@@ -1211,6 +1239,8 @@ $btnRun.Add_Click({
         OUAccountSecurity = $chkRecOUSec.Checked
         Entra             = $chkRecEntra.Checked
         DNS               = $chkRecDNS.Checked
+        Replication       = $chkRecRepl.Checked
+        EventLog          = $chkRecEvt.Checked
     }
 
     # Fix #5: Sicheres Speichern (Safe-Merge)
@@ -1229,6 +1259,8 @@ $btnRun.Add_Click({
         OUAccountSecurity = $chkOUSec.Checked
         Entra             = $chkEntra.Checked
         DNS               = $chkDNS.Checked
+        Replication       = $chkRepl.Checked
+        EventLog          = $chkEvt.Checked
     }
 
     # UI in Analyse-Modus

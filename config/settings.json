@@ -47,6 +47,8 @@
                                 "DomainOverview":  true,
                                 "FSMO":  true,
                                 "OUAccountSecurity":  true,
-                                "Services":  true
+                                "Services":  true,
+                                "Replication":  true,
+                                "EventLog":  true
                             }
 }

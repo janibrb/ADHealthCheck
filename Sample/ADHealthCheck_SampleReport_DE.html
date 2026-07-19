@@ -430,7 +430,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
         </div>
         <div class="report-meta">
             <h2>Active Directory Health Report</h2>
-            <div class="report-badge">19.07.2026 18:47</div>
+            <div class="report-badge">19.07.2026 19:08</div>
         </div>
     </div>
 
@@ -506,12 +506,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			</thead>
 			<tbody><tr>
 				<td>DC=contoso,DC=local</td>
-				<td>14.06.2026 18:47</td>
+				<td>14.06.2026 19:08</td>
 				<td>35 Tg. 0 Std.</td>
 				<td><span class='status-pill status-error'>Dringender Handlungsbedarf</span></td>
 			</tr><tr>
 				<td>CN=Configuration,DC=contoso,DC=local</td>
-				<td>16.07.2026 18:47</td>
+				<td>16.07.2026 19:08</td>
 				<td>3 Tg. 0 Std.</td>
 				<td><span class='status-pill status-warning'>Warnung</span></td>
 			</tr><tr>
@@ -530,7 +530,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 				<tr><th>Eigenschaft</th><th>Wert</th></tr>
 			</thead>
 			<tbody>
-				<tr><td>Grenzwert Inaktivität</td><td>90 Tag(e)</td></tr>
+				<tr><td>Grenzwert Inaktivität</td><td>90 Tage</td></tr>
 				<tr>
 					<td>Inaktive Konten gefunden (Aktiviert)</td>
 					<td><span class='status-pill status-error'>72 Benutzer</span></td>
@@ -544,7 +544,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 					<td><span class='status-pill status-error'>102 Benutzer</span></td>
 				</tr>
 				<tr>
-					<td>Kennwort älter als Richtlinie (42 Tag(e))</td>
+					<td>Kennwort älter als Richtlinie (42 Tage)</td>
 					<td><span class='status-pill status-error'>38 Benutzer</span></td>
 				</tr>
 				<tr>
@@ -851,13 +851,13 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-id text-center'>BK-01</td>
 								<td class='rec-cat text-left'>Disaster Recovery</td>
 								<td class='rec-sub text-left'>AD Backup Status</td>
-								<td class='rec-text text-left'>Hinweis: Das AD-Backup ist älter als 24 Stunden. Prüfen Sie, ob die geplanten Backup-Tasks ordnungsgemäss laufen. (Partitionen: CN=Configuration,DC=contoso,DC=local (3 Tag(e), 0 Stunden her))</td>
+								<td class='rec-text text-left'>Hinweis: Das AD-Backup ist älter als 24 Stunden. Prüfen Sie, ob die geplanten Backup-Tasks ordnungsgemäss laufen. (Partitionen: CN=Configuration,DC=contoso,DC=local (3 Tage, 0 Stunden her))</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>BK-02</td>
 								<td class='rec-cat text-left'>Disaster Recovery</td>
 								<td class='rec-sub text-left'>AD Backup Status</td>
-								<td class='rec-text text-left'>WARNUNG: Das AD-Backup ist älter als 7 Tage oder konnte nicht ermittelt werden! Dies stellt ein erhebliches Risiko für die Wiederherstellbarkeit dar. (Partitionen: DC=contoso,DC=local (35 Tag(e), 0 Stunden her); CN=Schema,CN=Configuration,DC=contoso,DC=local (Kein Backup gefunden))</td>
+								<td class='rec-text text-left'>WARNUNG: Das AD-Backup ist älter als 7 Tage oder konnte nicht ermittelt werden! Dies stellt ein erhebliches Risiko für die Wiederherstellbarkeit dar. (Partitionen: DC=contoso,DC=local (35 Tage, 0 Stunden her); CN=Schema,CN=Configuration,DC=contoso,DC=local (Kein Backup gefunden))</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SVC-DNS</td>
@@ -906,6 +906,18 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-cat text-left'>Infrastruktur</td>
 								<td class='rec-sub text-left'>Sites + Services</td>
 								<td class='rec-text text-left'>In einer Site wurde kein Globaler Katalog (GC) gefunden. Dies kann die Anmeldung und Suche im Forest verzögern. (Details: BackOffice (Keine Server vorhanden))</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>REP-01</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Replikations-Latenz zwischen Domänencontrollern</td>
+								<td class='rec-text text-left'>Mindestens eine Replikationspartnerschaft ist rückständig: die letzte erfolgreiche Replikation liegt länger zurück als der konfigurierte Grenzwert. Anhaltende Latenz führt zu inkonsistenten Verzeichnisdaten, fehlschlagenden Anmeldungen nach Kennwortänderungen und im Extremfall zu Lingering Objects. Ursache mit 'repadmin /showrepl' und 'repadmin /replsummary' eingrenzen. (Betroffene Server: MOCK-DC-01 -> MOCK-DC-03 (320 Minuten), MOCK-DC-02 -> MOCK-DC-01 (90 Minuten)) (empfohlen: ≤45 Minuten)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>EVT-01</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Vorhaltedauer der Ereignisprotokolle</td>
+								<td class='rec-text text-left'>Mindestens ein Ereignisprotokoll reicht weniger weit zurück als der konfigurierte Mindestzeitraum. Das Protokoll ist zu klein bemessen oder rotiert zu schnell — nach einem Sicherheitsvorfall fehlen damit genau die Einträge, die zur Aufklärung gebraucht werden. Maximale Protokollgrösse per Gruppenrichtlinie erhöhen oder Weiterleitung an ein zentrales SIEM einrichten. (Betroffene Server: MOCK-DC-01 / Directory Service (3 Tage), MOCK-DC-02 / Directory Service (11 Tage)) (empfohlen: ≥30 Tage)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-01</td>

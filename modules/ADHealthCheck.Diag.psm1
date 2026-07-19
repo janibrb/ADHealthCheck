@@ -174,6 +174,38 @@ function Get-ADHCMockData {
     )
 
     # -----------------------------------------------------------------------
+    # REPLIKATIONS-LATENZ
+    # Ausgeloeste Regeln:
+    #   REP-01: LatencyMinutes > ReplicationLatencyMaxMinutes (45) -> High
+    # -----------------------------------------------------------------------
+    $replData = @(
+        [PSCustomObject]@{ Server="MOCK-DC-01"; Partner="MOCK-DC-02"; Partition="DC=contoso,DC=local"
+                           LastSuccess=(Get-Date).AddMinutes(-15);  LatencyMinutes=15;  Failures=0; LastResult=0; Status="OK" }
+        [PSCustomObject]@{ Server="MOCK-DC-01"; Partner="MOCK-DC-03"; Partition="DC=contoso,DC=local"
+                           LastSuccess=(Get-Date).AddMinutes(-320); LatencyMinutes=320; Failures=7; LastResult=1722; Status="Error" }  # -> REP-01
+        [PSCustomObject]@{ Server="MOCK-DC-02"; Partner="MOCK-DC-01"; Partition="DC=contoso,DC=local"
+                           LastSuccess=(Get-Date).AddMinutes(-90);  LatencyMinutes=90;  Failures=2; LastResult=8524; Status="Error" }  # -> REP-01
+    )
+
+    # -----------------------------------------------------------------------
+    # EREIGNISPROTOKOLL-VORHALTEDAUER
+    # Ausgeloeste Regeln:
+    #   EVT-01: RetentionDays < MaxEventLogAgeDays (30) -> Medium
+    # Gemessen wird, wie weit das Log ZURUECKREICHT — ein Log, das nur 3 Tage
+    # vorhaelt, taugt nicht zur Vorfallanalyse.
+    # -----------------------------------------------------------------------
+    $evtData = @(
+        [PSCustomObject]@{ Server="MOCK-DC-01"; LogName="Directory Service"; OldestEntry=(Get-Date).AddDays(-3)
+                           RetentionDays=3;  Status="Error" }   # -> EVT-01
+        [PSCustomObject]@{ Server="MOCK-DC-01"; LogName="System";            OldestEntry=(Get-Date).AddDays(-45)
+                           RetentionDays=45; Status="OK" }
+        [PSCustomObject]@{ Server="MOCK-DC-02"; LogName="Directory Service"; OldestEntry=(Get-Date).AddDays(-11)
+                           RetentionDays=11; Status="Error" }   # -> EVT-01
+        [PSCustomObject]@{ Server="MOCK-DC-02"; LogName="System";            OldestEntry=(Get-Date).AddDays(-60)
+                           RetentionDays=60; Status="OK" }
+    )
+
+    # -----------------------------------------------------------------------
     # SERVICES
     # Ausgeloeste Regeln:
     #   SVC-NTDS: NTDS  Status=Error -> High
@@ -421,6 +453,8 @@ function Get-ADHCMockData {
     $mockData = @{
         DomainStats       = $domainStats
         FSMO              = $fsmoData
+        Replication       = $replData
+        EventLog          = $evtData
         Discovery         = $discoveryData
         DCDiag            = $dcdiagData
         Services          = $svcData
@@ -1149,4 +1183,113 @@ function Get-ADOUAndAccountSecurity {
     return $syncHash.Result
 }
 
-Export-ModuleMember -Function Get-ADHealthDiscovery, Get-ADServiceStatus, Invoke-DetailedDcdiag, Get-ADSecurityInfo, Get-ADFSMORoles, Get-ADDomainStats, Get-ADSitesInfo, Get-ADBackupStatus, Get-ADOUAndAccountSecurity, Get-ADHCMockData
+function Get-ADReplicationLatency {
+<#
+.SYNOPSIS
+    Ermittelt je DC und Replikationspartner die Zeit seit der letzten
+    ERFOLGREICHEN Replikation.
+.DESCRIPTION
+    Grundlage ist Get-ADReplicationPartnerMetadata (-Scope Server). Bewertet wird
+    LastReplicationSuccess: liegt der Zeitpunkt weiter zurueck als
+    Thresholds.ReplicationLatencyMaxMinutes, gilt die Partnerschaft als
+    rueckstaendig. ConsecutiveReplicationFailures und LastReplicationResult
+    werden zur Diagnose mitgefuehrt.
+
+    Nicht erreichbare DCs erzeugen einen Eintrag mit Status "Unreachable",
+    damit sie im Report sichtbar bleiben statt still zu verschwinden.
+#>
+    param($DCList, $Settings)
+
+    $maxMin = if ($Settings.Thresholds.ReplicationLatencyMaxMinutes) {
+        [int]$Settings.Thresholds.ReplicationLatencyMaxMinutes
+    } else { 45 }
+
+    $res = @()
+    foreach ($dc in $DCList) {
+        Write-ADHCLog -Message "Ermittle Replikations-Latenz auf $dc..." -Component "Replication"
+        try {
+            $partners = Get-ADReplicationPartnerMetadata -Target $dc -Scope Server -ErrorAction Stop
+            foreach ($p in $partners) {
+                $lastOk = $p.LastReplicationSuccess
+                # Kein Erfolgszeitpunkt = noch nie erfolgreich repliziert
+                if (-not $lastOk -or $lastOk -eq [datetime]::MinValue) {
+                    $ageMin = $null
+                    $status = "Error"
+                } else {
+                    $ageMin = [int]((Get-Date) - $lastOk).TotalMinutes
+                    $status = if ($ageMin -gt $maxMin) { "Error" } else { "OK" }
+                }
+
+                $res += [PSCustomObject]@{
+                    Server         = $dc
+                    Partner        = $p.PartnerAddress
+                    Partition      = $p.Partition
+                    LastSuccess    = $lastOk
+                    LatencyMinutes = $ageMin
+                    Failures       = [int]$p.ConsecutiveReplicationFailures
+                    LastResult     = $p.LastReplicationResult
+                    Status         = $status
+                }
+            }
+        } catch {
+            Write-ADHCLog -Message "Replikations-Metadaten von $dc nicht abrufbar: $($_.Exception.Message)" -Level Warning -Component "Replication"
+            $res += [PSCustomObject]@{
+                Server = $dc; Partner = "-"; Partition = "-"; LastSuccess = $null
+                LatencyMinutes = $null; Failures = 0; LastResult = "-"; Status = "Unreachable"
+            }
+        }
+    }
+    return $res
+}
+
+function Get-ADEventLogRetention {
+<#
+.SYNOPSIS
+    Prueft, wie weit die Ereignisprotokolle auf den DCs zurueckreichen.
+.DESCRIPTION
+    ACHTUNG — Auslegung von Thresholds.MaxEventLogAgeDays: Geprueft wird die
+    VORHALTEDAUER, nicht das Alter einzelner Ereignisse. Reicht der aelteste
+    Eintrag eines Logs WENIGER weit zurueck als MaxEventLogAgeDays, ist das
+    Protokoll zu klein bzw. rotiert zu schnell, um einen Vorfall im Nachhinein
+    noch analysieren zu koennen. Genau das ist der zu meldende Befund.
+
+    Geprueft werden "Directory Service" und "System" — die beiden Logs, die bei
+    AD-Vorfaellen zuerst gebraucht werden.
+#>
+    param($DCList, $Settings)
+
+    $minDays = if ($Settings.Thresholds.MaxEventLogAgeDays) {
+        [int]$Settings.Thresholds.MaxEventLogAgeDays
+    } else { 30 }
+
+    $logsToCheck = @("Directory Service", "System")
+    $res = @()
+
+    foreach ($dc in $DCList) {
+        Write-ADHCLog -Message "Pruefe Ereignisprotokoll-Vorhaltedauer auf $dc..." -Component "EventLog"
+        foreach ($logName in $logsToCheck) {
+            try {
+                # -Oldest liefert den aeltesten noch vorhandenen Eintrag; ein
+                # einzelnes Event genuegt, das ist auch auf grossen Logs schnell.
+                $oldest = Get-WinEvent -ComputerName $dc -LogName $logName -MaxEvents 1 -Oldest -ErrorAction Stop
+                $days   = [int]((Get-Date) - $oldest.TimeCreated).TotalDays
+                $res += [PSCustomObject]@{
+                    Server        = $dc
+                    LogName       = $logName
+                    OldestEntry   = $oldest.TimeCreated
+                    RetentionDays = $days
+                    Status        = if ($days -lt $minDays) { "Error" } else { "OK" }
+                }
+            } catch {
+                Write-ADHCLog -Message "Ereignisprotokoll '$logName' auf $dc nicht lesbar: $($_.Exception.Message)" -Level Warning -Component "EventLog"
+                $res += [PSCustomObject]@{
+                    Server = $dc; LogName = $logName; OldestEntry = $null
+                    RetentionDays = $null; Status = "Unreachable"
+                }
+            }
+        }
+    }
+    return $res
+}
+
+Export-ModuleMember -Function Get-ADHealthDiscovery, Get-ADServiceStatus, Invoke-DetailedDcdiag, Get-ADSecurityInfo, Get-ADFSMORoles, Get-ADDomainStats, Get-ADSitesInfo, Get-ADBackupStatus, Get-ADOUAndAccountSecurity, Get-ADHCMockData, Get-ADReplicationLatency, Get-ADEventLogRetention

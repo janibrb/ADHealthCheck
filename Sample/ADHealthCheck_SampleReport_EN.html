@@ -430,7 +430,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
         </div>
         <div class="report-meta">
             <h2>Active Directory Health Check Report</h2>
-            <div class="report-badge">19.07.2026 18:47</div>
+            <div class="report-badge">19.07.2026 19:08</div>
         </div>
     </div>
 
@@ -448,7 +448,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 				
 				<tr>
 					<td>Active Directory Recycle Bin</td><td><span class='status-pill status-error'>Disabled</span></td>
-					<td>KRBTGT Password (Date)</td><td><span class='status-pill status-error' title='Alter: 400 Tage'>14.06.2025</span></td>
+					<td>KRBTGT Password (Date)</td><td><span class='status-pill status-error' title='Age: 400 days'>14.06.2025</span></td>
 				</tr>
 			</tbody>
 		</table></div>
@@ -506,12 +506,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			</thead>
 			<tbody><tr>
 				<td>DC=contoso,DC=local</td>
-				<td>14.06.2026 18:47</td>
+				<td>14.06.2026 19:08</td>
 				<td>35 days 0 hrs</td>
 				<td><span class='status-pill status-error'>Urgent action required</span></td>
 			</tr><tr>
 				<td>CN=Configuration,DC=contoso,DC=local</td>
-				<td>16.07.2026 18:47</td>
+				<td>16.07.2026 19:08</td>
 				<td>3 days 0 hrs</td>
 				<td><span class='status-pill status-warning'>Warning</span></td>
 			</tr><tr>
@@ -530,7 +530,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 				<tr><th>Property</th><th>Value</th></tr>
 			</thead>
 			<tbody>
-				<tr><td>Inactive User Threshold</td><td>90 day(s)</td></tr>
+				<tr><td>Inactive User Threshold</td><td>90 days</td></tr>
 				<tr>
 					<td>Inactive Accounts Found (Active)</td>
 					<td><span class='status-pill status-error'>72 User</span></td>
@@ -544,7 +544,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 					<td><span class='status-pill status-error'>102 User</span></td>
 				</tr>
 				<tr>
-					<td>Password older than policy (42 day(s))</td>
+					<td>Password older than policy (42 days)</td>
 					<td><span class='status-pill status-error'>38 User</span></td>
 				</tr>
 				<tr>
@@ -851,13 +851,13 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-id text-center'>BK-01</td>
 								<td class='rec-cat text-left'>Disaster Recovery</td>
 								<td class='rec-sub text-left'>AD Backup Status</td>
-								<td class='rec-text text-left'>Note: The AD backup is older than 24 hours. Check if scheduled backup tasks are running correctly. (Partitions: CN=Configuration,DC=contoso,DC=local (3 day(s), 0 hours old))</td>
+								<td class='rec-text text-left'>Note: The AD backup is older than 24 hours. Check if scheduled backup tasks are running correctly. (Partitions: CN=Configuration,DC=contoso,DC=local (3 days, 0 hours old))</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>BK-02</td>
 								<td class='rec-cat text-left'>Disaster Recovery</td>
 								<td class='rec-sub text-left'>AD Backup Status</td>
-								<td class='rec-text text-left'>WARNING: The AD backup is older than 7 days or could not be determined! This poses a significant risk to recoverability. (Partitions: DC=contoso,DC=local (35 day(s), 0 hours old); CN=Schema,CN=Configuration,DC=contoso,DC=local (No backup found))</td>
+								<td class='rec-text text-left'>WARNING: The AD backup is older than 7 days or could not be determined! This poses a significant risk to recoverability. (Partitions: DC=contoso,DC=local (35 days, 0 hours old); CN=Schema,CN=Configuration,DC=contoso,DC=local (No backup found))</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SVC-DNS</td>
@@ -906,6 +906,18 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-cat text-left'>Infrastruktur</td>
 								<td class='rec-sub text-left'>Sites + Services</td>
 								<td class='rec-text text-left'>No Global Catalog (GC) found in a site. This can delay logons and searches within the forest. (Details: BackOffice (No servers present))</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>REP-01</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Replication latency between domain controllers</td>
+								<td class='rec-text text-left'>At least one replication partnership is lagging: the last successful replication is older than the configured threshold. Sustained latency causes inconsistent directory data, failing logons after password changes and, in the worst case, lingering objects. Investigate using 'repadmin /showrepl' and 'repadmin /replsummary'. (Affected servers: MOCK-DC-01 -> MOCK-DC-03 (320 minutes), MOCK-DC-02 -> MOCK-DC-01 (90 minutes)) (recommended: ≤45 minutes)</td>
+								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>EVT-01</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Event log retention period</td>
+								<td class='rec-text text-left'>At least one event log covers a shorter period than the configured minimum. The log is undersized or rotates too quickly — after a security incident, exactly the entries needed for analysis will be missing. Increase the maximum log size via Group Policy or forward events to a central SIEM. (Affected servers: MOCK-DC-01 / Directory Service (3 days), MOCK-DC-02 / Directory Service (11 days)) (recommended: ≥30 days)</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-01</td>

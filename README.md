@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.5.0-blue)
+![Version](https://img.shields.io/badge/Version-2.6.0-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -55,7 +55,7 @@ Professionelles PowerShell-Tool zur Analyse und Bewertung von Microsoft Active D
 - **Asynchrone ACL-Analyse** via PowerShell Runspace — kein GUI-Freeze auch bei grossen Umgebungen (10.000+ Objekte)
 - **Fortschrittsanzeige** während der ACL-Analyse (ProgressBar + StatusLabel)
 - **Dynamisches Ampel-System** im HTML-Dashboard (Grün / Gelb / Rot)
-- **Empfehlungs-Engine** mit 69 Regeln in 12 Kategorien (deklarativ via `recommendations.json`)
+- **Empfehlungs-Engine** mit 71 Regeln in 14 Kategorien (deklarativ via `recommendations.json`)
 - **Automatisierter CSV-Export** für Security-Details (Compliance-Audits)
 - **Sample-Report** mit realistischen Mock-Daten (Demo / Onboarding ohne AD-Verbindung)
 - **NoGui-Modus** für Scheduled Tasks und Automatisierung
@@ -79,8 +79,10 @@ Professionelles PowerShell-Tool zur Analyse und Bewertung von Microsoft Active D
 | 10 | **Entra ID Sync** | Agent-Version, Dienste-Status, Verbindung zum Sync-Server | 2 |
 | 11 | **DNS Health** | Zonen, SRV-Records (LDAP/Kerberos/GC/PDC), Scavenging, DNSSEC | 7 |
 | 12 | **Kennwortrichtlinien** | Länge, Komplexität, Historie, Lockout-Konfiguration | 6 |
+| 13 | **Replikations-Latenz** | Zeit seit letzter erfolgreicher Replikation je DC-Partnerschaft | 1 |
+| 14 | **Protokollierung** | Vorhaltedauer von „Directory Service" und „System" | 1 |
 
-**Total: 69 Empfehlungsregeln** — davon 46 HIGH, 16 MEDIUM, 7 LOW
+**Total: 71 Empfehlungsregeln** — davon 47 HIGH, 17 MEDIUM, 7 LOW
 
 ---
 
@@ -98,7 +100,7 @@ ADHealthCheck/
 │   ├── i18n.de.json               Sprachdatei Deutsch (150+ Keys)
 │   ├── i18n.en.json               Sprachdatei Englisch
 │   ├── mapping.json               Werte-Mapping (Forest/Domain Functional Levels)
-│   └── recommendations.json      Empfehlungs-Engine (69 Regeln, zweisprachig)
+│   └── recommendations.json      Empfehlungs-Engine (71 Regeln, zweisprachig)
 │
 ├── modules/
 │   ├── ADHealthCheck.Utils.psm1   Logging, Config-Laden, i18n, HTML-Helpers
@@ -231,7 +233,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.5.0                    # Einzige Stelle. $script:LocalVersion
+Version:    2.6.0                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -344,6 +346,20 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.6.0 — Zwei neue Prüfungen: Replikations-Latenz und Protokoll-Vorhaltedauer
+Die beiden Werte `ReplicationLatencyMaxMinutes` (45) und `MaxEventLogAgeDays` (30) standen seit jeher in `settings.json`, wurden aber **von keiner Zeile Code gelesen** — Kunden konnten sie einstellen, ohne dass etwas geschah. Beide sind jetzt wirksam.
+
+- **feat:** **REP-01 (HIGH) — Replikations-Latenz.** Über `Get-ADReplicationPartnerMetadata -Scope Server` wird je DC und Partner die Zeit seit der **letzten erfolgreichen** Replikation ermittelt (`LastReplicationSuccess`). Liegt sie über dem Grenzwert, greift die Regel. `ConsecutiveReplicationFailures` und `LastReplicationResult` werden zur Diagnose mitgeführt. Nicht erreichbare DCs erzeugen einen Eintrag mit Status `Unreachable`, statt still zu verschwinden.
+- **feat:** **EVT-01 (MEDIUM) — Vorhaltedauer der Ereignisprotokolle.**
+
+  > **Auslegung von `MaxEventLogAgeDays`:** Geprüft wird die **Vorhaltedauer**, nicht das Alter einzelner Ereignisse. Reicht der älteste noch vorhandene Eintrag von „Directory Service" oder „System" **weniger weit zurück** als der konfigurierte Zeitraum, ist das Protokoll zu klein bemessen oder rotiert zu schnell — nach einem Sicherheitsvorfall fehlen dann genau die Einträge, die zur Aufklärung gebraucht werden. Das ist eine Auslegungsentscheidung; wenn ihr die Semantik anders wollt, ist sie in `Get-ADEventLogRetention` an einer Stelle geändert.
+
+- **feat:** Beide Bereiche haben eigene GUI-Auswahl (Analyse + Empfehlungen) und laufen im NoGui-Modus mit. `settings.json` kennt sie unter `ShowRecommendations`.
+- **fix:** Der Tooltip der KRBTGT-Kachel war hartcodiert deutsch (`Alter: N Tage`) und erschien so auch im englischen Report.
+- Verifiziert: **2 neue Verdikte, 0 Statusänderungen** bei den bestehenden 69 Regeln.
+
+> ⚠️ **Noch nicht gegen ein echtes Active Directory verifiziert.** Beide Collector wurden ausschliesslich mit Mock-Daten getestet — `Get-ADReplicationPartnerMetadata` und `Get-WinEvent -ComputerName` lassen sich ohne Domänencontroller nicht ausführen. Vor dem Kundeneinsatz in einer echten Umgebung prüfen, insbesondere Laufzeit bei vielen DCs und Berechtigungen für den Remote-Zugriff auf die Ereignisprotokolle.
 
 ### v2.5.0 — Messwerte im Upload-JSON (schemaVersion 2) und tunebare Schwellenwerte
 - **feat:** **Verdikte tragen jetzt Messwerte, nicht nur einen fertigen Satz.** Bisher enthielt ein Verdikt ausschliesslich `Detail` — eine in *einer* Sprache gerenderte Zeichenkette wie „… (Aktueller Wert: 6 Zeichen)". Zahl, Einheit und Formulierung waren untrennbar verschmolzen. Neu kommen hinzu:
@@ -520,4 +536,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.5.0 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.6.0 — LAKE Solutions AG*

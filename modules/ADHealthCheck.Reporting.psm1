@@ -118,7 +118,7 @@ function New-ADHCReport {
 			$limit = if ($Settings.Thresholds.KrbtgtPasswordAgeDays) { $Settings.Thresholds.KrbtgtPasswordAgeDays } else { 180 }
 			$krbClass = if ($daysOld -gt $limit) { "status-error" } else { "status-ok" }
 			$krbDisplay = $krbDate.ToString("dd.MM.yyyy")
-			$krbPill = "<span class='status-pill $krbClass' title='Alter: $daysOld Tage'>$krbDisplay</span>"
+			$krbPill = "<span class='status-pill $krbClass' title='$($I18n.Labels.Age): $daysOld $($I18n.Labels.Days)'>$krbDisplay</span>"
 		}
 	
 		# --- HTML TABELLE ---
@@ -1189,6 +1189,80 @@ function New-ADHCReport {
 			}
 		}
 	
+		# --- PRÜFUNG: REPLIKATIONS-LATENZ (Replication) ---
+		if ($Settings.ShowRecommendations.Replication -and $Data.Replication) {
+			Write-ADHCLog "Analysiere Replikations-Latenz..." -Component "Reporting"
+
+			foreach ($rule in $recJson.Replication) {
+				$affectedItems = @()
+				$worstLatency  = $null
+
+				foreach ($r in $Data.Replication) {
+					if ($rule.Condition -notcontains $r.Status) { continue }
+					# Der schlechteste Wert ist der aussagekraeftigste Einzelmesswert
+					if ($null -ne $r.LatencyMinutes -and ($null -eq $worstLatency -or $r.LatencyMinutes -gt $worstLatency)) {
+						$worstLatency = [int]$r.LatencyMinutes
+					}
+					$detailTxt = if ($null -ne $r.LatencyMinutes) {
+						"$($r.LatencyMinutes) $($I18n.Labels.Minutes)"
+					} else { $r.Status }
+					$affectedItems += "$($r.Server) -> $($r.Partner) ($detailTxt)"
+				}
+
+				if ($affectedItems.Count -gt 0) {
+					$activeRecs += [PSCustomObject]@{
+						Id            = $rule.Id
+						Category      = $rule.Category
+						Area          = Get-ADHCDisplayTitle -Rule $rule -Lang $LangCode
+						ActualValue   = $worstLatency
+						Unit          = $rule.Threshold.unit
+						ExpectedValue = $rule.Threshold.value
+						Operator      = $rule.Threshold.operator
+						AffectedItems = @($affectedItems)
+						Description   = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.AffectedServers): $($affectedItems -join ', '))"
+						Priority      = $rule.Priority
+					}
+				}
+			}
+		}
+
+		# --- PRÜFUNG: EREIGNISPROTOKOLL-VORHALTEDAUER (EventLog) ---
+		if ($Settings.ShowRecommendations.EventLog -and $Data.EventLog) {
+			Write-ADHCLog "Analysiere Vorhaltedauer der Ereignisprotokolle..." -Component "Reporting"
+
+			foreach ($rule in $recJson.EventLog) {
+				$affectedItems = @()
+				$worstDays     = $null
+
+				foreach ($e in $Data.EventLog) {
+					if ($rule.Condition -notcontains $e.Status) { continue }
+					# Kuerzeste Vorhaltedauer ist der kritischste Wert
+					if ($null -ne $e.RetentionDays -and ($null -eq $worstDays -or $e.RetentionDays -lt $worstDays)) {
+						$worstDays = [int]$e.RetentionDays
+					}
+					$detailTxt = if ($null -ne $e.RetentionDays) {
+						"$($e.RetentionDays) $($I18n.Labels.Days)"
+					} else { $e.Status }
+					$affectedItems += "$($e.Server) / $($e.LogName) ($detailTxt)"
+				}
+
+				if ($affectedItems.Count -gt 0) {
+					$activeRecs += [PSCustomObject]@{
+						Id            = $rule.Id
+						Category      = $rule.Category
+						Area          = Get-ADHCDisplayTitle -Rule $rule -Lang $LangCode
+						ActualValue   = $worstDays
+						Unit          = $rule.Threshold.unit
+						ExpectedValue = $rule.Threshold.value
+						Operator      = $rule.Threshold.operator
+						AffectedItems = @($affectedItems)
+						Description   = "$($rule.Recommendation.$LangCode) ($($I18n.Labels.AffectedServers): $($affectedItems -join ', '))"
+						Priority      = $rule.Priority
+					}
+				}
+			}
+		}
+
 		# --- PRÜFUNG: SICHERHEIT (Security) ---
 		if ($Settings.ShowRecommendations.Security -and $Data.Security) {
 			Write-ADHCLog "Verarbeite Sicherheits-Empfehlungen (lokalisiert)..." -Component "Reporting"
@@ -1543,7 +1617,7 @@ function New-ADHCReport {
 	# Verdikte über ALLE Sektionen (ShowRecommendations-Toggles bewusst ignoriert, damit
 	# das Dashboard vollständig bewertet): Evaluator mit allen Sektionen=$true erneut
 	# aufrufen; die gefeuerten Regeln kommen via $script:ADHCLastActiveRecs (Stash).
-	$recSections = @('DomainOverview','FSMO','DCDIag','DCSystem','Backup','Services','Sites','Security','OUAccountSecurity','PasswordPolicy','Entra','DNS')
+	$recSections = @('DomainOverview','FSMO','DCDIag','DCSystem','Backup','Services','Sites','Security','OUAccountSecurity','PasswordPolicy','Entra','DNS','Replication','EventLog')
 	$allOn = @{}; foreach ($s in $recSections) { $allOn[$s] = $true }
 	$settingsAllOn = [PSCustomObject]@{ ShowRecommendations = $allOn }
 	$null = Get-ADHCRecommendations -Data $Data -Settings $settingsAllOn -I18n $I18n -LangCode $LangCode
@@ -1554,7 +1628,7 @@ function New-ADHCReport {
 	$verdicts = @()
 	if (Test-Path $recPathV) {
 		$recAll = Get-Content $recPathV -Raw -Encoding UTF8 | ConvertFrom-Json
-		$sectionData = @{ DomainOverview='DomainStats'; FSMO='FSMO'; DCDIag='DCDiag'; DCSystem='Discovery'; Backup='Backup'; Services='Services'; Sites='Sites'; Security='Security'; OUAccountSecurity='OUAccountSecurity'; PasswordPolicy='Security'; Entra='Entra'; DNS='DNS' }
+		$sectionData = @{ DomainOverview='DomainStats'; FSMO='FSMO'; DCDIag='DCDiag'; DCSystem='Discovery'; Backup='Backup'; Services='Services'; Sites='Sites'; Security='Security'; OUAccountSecurity='OUAccountSecurity'; PasswordPolicy='Security'; Entra='Entra'; DNS='DNS'; Replication='Replication'; EventLog='EventLog' }
 		foreach ($sec in $recAll.PSObject.Properties.Name) {
 			$dataKey = $sectionData[$sec]
 			$hasData = $dataKey -and $Data.$dataKey

@@ -1526,5 +1526,53 @@
       },
       "Priority": "Low"
     }
+  ],
+  "Replication": [
+    {
+      "Id": "REP-01",
+      "Title": {
+        "de": "Replikations-Latenz zwischen Domänencontrollern",
+        "en": "Replication latency between domain controllers"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Replikation",
+        "en": "Replication"
+      },
+      "Property": "ReplicationLatency",
+      "Threshold": { "value": 45, "operator": "lte", "unit": "Minutes" },
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Mindestens eine Replikationspartnerschaft ist rückständig: die letzte erfolgreiche Replikation liegt länger zurück als der konfigurierte Grenzwert. Anhaltende Latenz führt zu inkonsistenten Verzeichnisdaten, fehlschlagenden Anmeldungen nach Kennwortänderungen und im Extremfall zu Lingering Objects. Ursache mit 'repadmin /showrepl' und 'repadmin /replsummary' eingrenzen.",
+        "en": "At least one replication partnership is lagging: the last successful replication is older than the configured threshold. Sustained latency causes inconsistent directory data, failing logons after password changes and, in the worst case, lingering objects. Investigate using 'repadmin /showrepl' and 'repadmin /replsummary'."
+      },
+      "Priority": "High"
+    }
+  ],
+  "EventLog": [
+    {
+      "Id": "EVT-01",
+      "Title": {
+        "de": "Vorhaltedauer der Ereignisprotokolle",
+        "en": "Event log retention period"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Protokollierung",
+        "en": "Logging"
+      },
+      "Property": "EventLogRetention",
+      "Threshold": { "value": 30, "operator": "gte", "unit": "Days" },
+      "Condition": [
+        "Error"
+      ],
+      "Recommendation": {
+        "de": "Mindestens ein Ereignisprotokoll reicht weniger weit zurück als der konfigurierte Mindestzeitraum. Das Protokoll ist zu klein bemessen oder rotiert zu schnell — nach einem Sicherheitsvorfall fehlen damit genau die Einträge, die zur Aufklärung gebraucht werden. Maximale Protokollgrösse per Gruppenrichtlinie erhöhen oder Weiterleitung an ein zentrales SIEM einrichten.",
+        "en": "At least one event log covers a shorter period than the configured minimum. The log is undersized or rotates too quickly — after a security incident, exactly the entries needed for analysis will be missing. Increase the maximum log size via Group Policy or forward events to a central SIEM."
+      },
+      "Priority": "Medium"
+    }
   ]
 }
