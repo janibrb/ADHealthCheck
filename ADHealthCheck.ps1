@@ -3,7 +3,7 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.4.5
+    Version:    2.4.6
     Changelog:  - FIX: Reporting.psm1 mit UTF-8-BOM (PS5.1 las BOM-lose UTF-8 auf ANSI-CP1252-
                   Servern falsch -> "Missing closing '}'"-Ladefehler)
                 - Self-Update haertet ab: Temp-Download + Syntax/JSON-Validierung + atomarer Move
