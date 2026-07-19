@@ -1549,6 +1549,27 @@
         "en": "At least one replication partnership is lagging: the last successful replication is older than the configured threshold. Sustained latency causes inconsistent directory data, failing logons after password changes and, in the worst case, lingering objects. Investigate using 'repadmin /showrepl' and 'repadmin /replsummary'."
       },
       "Priority": "High"
+    },
+    {
+      "Id": "REP-02",
+      "Title": {
+        "de": "Replikations-Metadaten nicht abrufbar",
+        "en": "Replication metadata not retrievable"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Replikation",
+        "en": "Replication"
+      },
+      "Property": "ReplicationUnreachable",
+      "Condition": [
+        "Unreachable"
+      ],
+      "Recommendation": {
+        "de": "Von mindestens einem Domänencontroller konnten keine Replikations-Metadaten abgerufen werden. Für diesen DC liegt KEINE Aussage zur Replikation vor — das Ergebnis der Latenzprüfung ist unvollständig. Erreichbarkeit (RPC/LDAP), Firewall und Berechtigungen prüfen und den Check anschliessend wiederholen.",
+        "en": "Replication metadata could not be retrieved from at least one domain controller. For that DC there is NO statement about replication — the latency check result is incomplete. Verify reachability (RPC/LDAP), firewall and permissions, then repeat the check."
+      },
+      "Priority": "Medium"
     }
   ],
   "EventLog": [
@@ -1571,6 +1592,27 @@
       "Recommendation": {
         "de": "Mindestens ein Ereignisprotokoll reicht weniger weit zurück als der konfigurierte Mindestzeitraum. Das Protokoll ist zu klein bemessen oder rotiert zu schnell — nach einem Sicherheitsvorfall fehlen damit genau die Einträge, die zur Aufklärung gebraucht werden. Maximale Protokollgrösse per Gruppenrichtlinie erhöhen oder Weiterleitung an ein zentrales SIEM einrichten.",
         "en": "At least one event log covers a shorter period than the configured minimum. The log is undersized or rotates too quickly — after a security incident, exactly the entries needed for analysis will be missing. Increase the maximum log size via Group Policy or forward events to a central SIEM."
+      },
+      "Priority": "Medium"
+    },
+    {
+      "Id": "EVT-02",
+      "Title": {
+        "de": "Ereignisprotokoll nicht abrufbar",
+        "en": "Event log not retrievable"
+      },
+      "Category": "Active Directory",
+      "SubCategory": {
+        "de": "Protokollierung",
+        "en": "Logging"
+      },
+      "Property": "EventLogUnreachable",
+      "Condition": [
+        "Unreachable"
+      ],
+      "Recommendation": {
+        "de": "Mindestens ein Ereignisprotokoll konnte nicht gelesen werden. Für den betroffenen Domänencontroller liegt KEINE Aussage zur Vorhaltedauer vor — das Prüfergebnis ist unvollständig und darf nicht als 'unauffällig' gewertet werden. Bei 'RPC-Server nicht verfügbar' die Firewall-Regel 'Remote-Ereignisprotokollverwaltung' auf dem DC aktivieren; bei 'Zugriff verweigert' das ausführende Konto in die Gruppe 'Ereignisprotokollleser' aufnehmen.",
+        "en": "At least one event log could not be read. For the affected domain controller there is NO statement about retention — the check result is incomplete and must not be treated as 'clean'. For 'RPC server is unavailable' enable the 'Remote Event Log Management' firewall rule on the DC; for 'Access denied' add the executing account to the 'Event Log Readers' group."
       },
       "Priority": "Medium"
     }

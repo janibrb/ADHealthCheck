@@ -1203,10 +1203,15 @@ function New-ADHCReport {
 					if ($null -ne $r.LatencyMinutes -and ($null -eq $worstLatency -or $r.LatencyMinutes -gt $worstLatency)) {
 						$worstLatency = [int]$r.LatencyMinutes
 					}
-					$detailTxt = if ($null -ne $r.LatencyMinutes) {
-						"$($r.LatencyMinutes) $($I18n.Labels.Minutes)"
-					} else { $r.Status }
-					$affectedItems += "$($r.Server) -> $($r.Partner) ($detailTxt)"
+					if ($r.Status -eq "Unreachable") {
+						# REP-02: nicht pruefbar — Grund statt Messwert ausweisen
+						$affectedItems += "$($r.Server)$(if ($r.Reason) { " ($($r.Reason))" })"
+					} else {
+						$detailTxt = if ($null -ne $r.LatencyMinutes) {
+							"$($r.LatencyMinutes) $($I18n.Labels.Minutes)"
+						} else { $r.Status }
+						$affectedItems += "$($r.Server) -> $($r.Partner) ($detailTxt)"
+					}
 				}
 
 				if ($affectedItems.Count -gt 0) {
@@ -1240,10 +1245,16 @@ function New-ADHCReport {
 					if ($null -ne $e.RetentionDays -and ($null -eq $worstDays -or $e.RetentionDays -lt $worstDays)) {
 						$worstDays = [int]$e.RetentionDays
 					}
-					$detailTxt = if ($null -ne $e.RetentionDays) {
-						"$($e.RetentionDays) $($I18n.Labels.Days)"
-					} else { $e.Status }
-					$affectedItems += "$($e.Server) / $($e.LogName) ($detailTxt)"
+					if ($e.Status -eq "Unreachable") {
+						# EVT-02: nicht pruefbar — Grund statt Messwert ausweisen.
+						# Der Hinweis kommt als i18n-Schluessel aus dem Collector und
+						# wird erst hier aufgeloest, damit er der Reportsprache folgt.
+						$hintTxt = if ($e.HintKey -and $I18n.Labels.$($e.HintKey)) { " — $($I18n.Labels.$($e.HintKey))" } else { "" }
+						$reasonTxt = if ($e.Reason) { " ($($e.Reason)$hintTxt)" } else { "" }
+						$affectedItems += "$($e.Server) / $($e.LogName)$reasonTxt"
+					} else {
+						$affectedItems += "$($e.Server) / $($e.LogName) ($($e.RetentionDays) $($I18n.Labels.Days))"
+					}
 				}
 
 				if ($affectedItems.Count -gt 0) {

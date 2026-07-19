@@ -180,6 +180,8 @@
 		"Recommended": "empfohlen",
 		"Days": "Tage",
 		"Age": "Alter",
+		"HintRpcFirewall": "Firewall-Regel 'Remote-Ereignisprotokollverwaltung' auf dem DC aktivieren",
+		"HintEventLogReaders": "Konto in die Gruppe 'Ereignisprotokollleser' auf dem DC aufnehmen",
 		"Replication": "Replikation",
 		"EventLogging": "Protokollierung",
 		"Characters": "Zeichen",

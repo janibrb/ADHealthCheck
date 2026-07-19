@@ -430,7 +430,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
         </div>
         <div class="report-meta">
             <h2>Active Directory Health Check Report</h2>
-            <div class="report-badge">19.07.2026 19:08</div>
+            <div class="report-badge">19.07.2026 19:34</div>
         </div>
     </div>
 
@@ -506,12 +506,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			</thead>
 			<tbody><tr>
 				<td>DC=contoso,DC=local</td>
-				<td>14.06.2026 19:08</td>
+				<td>14.06.2026 19:34</td>
 				<td>35 days 0 hrs</td>
 				<td><span class='status-pill status-error'>Urgent action required</span></td>
 			</tr><tr>
 				<td>CN=Configuration,DC=contoso,DC=local</td>
-				<td>16.07.2026 19:08</td>
+				<td>16.07.2026 19:34</td>
 				<td>3 days 0 hrs</td>
 				<td><span class='status-pill status-warning'>Warning</span></td>
 			</tr><tr>
@@ -914,10 +914,22 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-text text-left'>At least one replication partnership is lagging: the last successful replication is older than the configured threshold. Sustained latency causes inconsistent directory data, failing logons after password changes and, in the worst case, lingering objects. Investigate using 'repadmin /showrepl' and 'repadmin /replsummary'. (Affected servers: MOCK-DC-01 -> MOCK-DC-03 (320 minutes), MOCK-DC-02 -> MOCK-DC-01 (90 minutes)) (recommended: ≤45 minutes)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>REP-02</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Replication metadata not retrievable</td>
+								<td class='rec-text text-left'>Replication metadata could not be retrieved from at least one domain controller. For that DC there is NO statement about replication — the latency check result is incomplete. Verify reachability (RPC/LDAP), firewall and permissions, then repeat the check. (Affected servers: MOCK-DC-03 (The RPC server is unavailable))</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>EVT-01</td>
 								<td class='rec-cat text-left'>Active Directory</td>
 								<td class='rec-sub text-left'>Event log retention period</td>
 								<td class='rec-text text-left'>At least one event log covers a shorter period than the configured minimum. The log is undersized or rotates too quickly — after a security incident, exactly the entries needed for analysis will be missing. Increase the maximum log size via Group Policy or forward events to a central SIEM. (Affected servers: MOCK-DC-01 / Directory Service (3 days), MOCK-DC-02 / Directory Service (11 days)) (recommended: ≥30 days)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>EVT-02</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Event log not retrievable</td>
+								<td class='rec-text text-left'>At least one event log could not be read. For the affected domain controller there is NO statement about retention — the check result is incomplete and must not be treated as 'clean'. For 'RPC server is unavailable' enable the 'Remote Event Log Management' firewall rule on the DC; for 'Access denied' add the executing account to the 'Event Log Readers' group. (Affected servers: MOCK-DC-03 / Directory Service (The RPC server is unavailable — Enable the 'Remote Event Log Management' firewall rule on the DC), MOCK-DC-03 / System (The RPC server is unavailable — Enable the 'Remote Event Log Management' firewall rule on the DC))</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-01</td>

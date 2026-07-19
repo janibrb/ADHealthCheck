@@ -185,6 +185,9 @@ function Get-ADHCMockData {
                            LastSuccess=(Get-Date).AddMinutes(-320); LatencyMinutes=320; Failures=7; LastResult=1722; Status="Error" }  # -> REP-01
         [PSCustomObject]@{ Server="MOCK-DC-02"; Partner="MOCK-DC-01"; Partition="DC=contoso,DC=local"
                            LastSuccess=(Get-Date).AddMinutes(-90);  LatencyMinutes=90;  Failures=2; LastResult=8524; Status="Error" }  # -> REP-01
+        [PSCustomObject]@{ Server="MOCK-DC-03"; Partner="-"; Partition="-"
+                           LastSuccess=$null; LatencyMinutes=$null; Failures=0; LastResult="-"; Status="Unreachable"                    # -> REP-02
+                           Reason="The RPC server is unavailable" }
     )
 
     # -----------------------------------------------------------------------
@@ -203,6 +206,14 @@ function Get-ADHCMockData {
                            RetentionDays=11; Status="Error" }   # -> EVT-01
         [PSCustomObject]@{ Server="MOCK-DC-02"; LogName="System";            OldestEntry=(Get-Date).AddDays(-60)
                            RetentionDays=60; Status="OK" }
+        # Nicht abrufbar — genau der Fall aus dem ersten Feldtest: RPC blockiert.
+        # Ohne EVT-02 waere dieser DC im Report unsichtbar geblieben.
+        [PSCustomObject]@{ Server="MOCK-DC-03"; LogName="Directory Service"; OldestEntry=$null
+                           RetentionDays=$null; Status="Unreachable"                                  # -> EVT-02
+                           Reason="The RPC server is unavailable"; HintKey="HintRpcFirewall" }
+        [PSCustomObject]@{ Server="MOCK-DC-03"; LogName="System";            OldestEntry=$null
+                           RetentionDays=$null; Status="Unreachable"
+                           Reason="The RPC server is unavailable"; HintKey="HintRpcFirewall" }
     )
 
     # -----------------------------------------------------------------------
@@ -1229,6 +1240,7 @@ function Get-ADReplicationLatency {
                     Failures       = [int]$p.ConsecutiveReplicationFailures
                     LastResult     = $p.LastReplicationResult
                     Status         = $status
+                    Reason         = $null
                 }
             }
         } catch {
@@ -1236,6 +1248,7 @@ function Get-ADReplicationLatency {
             $res += [PSCustomObject]@{
                 Server = $dc; Partner = "-"; Partition = "-"; LastSuccess = $null
                 LatencyMinutes = $null; Failures = 0; LastResult = "-"; Status = "Unreachable"
+                Reason = $_.Exception.Message
             }
         }
     }
@@ -1267,7 +1280,23 @@ function Get-ADEventLogRetention {
 
     foreach ($dc in $DCList) {
         Write-ADHCLog -Message "Pruefe Ereignisprotokoll-Vorhaltedauer auf $dc..." -Component "EventLog"
+        # Ist der erste Zugriff am RPC gescheitert, sind weitere Logs auf
+        # DEMSELBEN DC aussichtslos — jeder Versuch kostet rund 20 Sekunden
+        # Timeout. Nach einem Transportfehler die restlichen Logs ueberspringen.
+        $dcUnreachable = $false
+        $dcReason      = $null
+        $dcHintKey     = $null
+
         foreach ($logName in $logsToCheck) {
+            if ($dcUnreachable) {
+                $res += [PSCustomObject]@{
+                    Server = $dc; LogName = $logName; OldestEntry = $null
+                    RetentionDays = $null; Status = "Unreachable"
+                    Reason = $dcReason; HintKey = $dcHintKey
+                }
+                continue
+            }
+
             try {
                 # -Oldest liefert den aeltesten noch vorhandenen Eintrag; ein
                 # einzelnes Event genuegt, das ist auch auf grossen Logs schnell.
@@ -1279,12 +1308,29 @@ function Get-ADEventLogRetention {
                     OldestEntry   = $oldest.TimeCreated
                     RetentionDays = $days
                     Status        = if ($days -lt $minDays) { "Error" } else { "OK" }
+                    Reason        = $null
+                    HintKey       = $null
                 }
             } catch {
-                Write-ADHCLog -Message "Ereignisprotokoll '$logName' auf $dc nicht lesbar: $($_.Exception.Message)" -Level Warning -Component "EventLog"
+                $msg = $_.Exception.Message
+                # Der Hinweis wird als i18n-SCHLUESSEL abgelegt, nicht als Text —
+                # sonst stuende deutscher Hilfetext im englischen Report. Aufgeloest
+                # wird er beim Rendern (siehe Reporting: $I18n.Labels.<Key>).
+                $hintKey = if ($msg -match 'RPC server is unavailable|RPC-Server ist nicht verf') {
+                    "HintRpcFirewall"
+                } elseif ($msg -match 'Access is denied|Zugriff verweigert') {
+                    "HintEventLogReaders"
+                } else { $null }
+
+                Write-ADHCLog -Message "Ereignisprotokoll '$logName' auf $dc nicht lesbar: $msg" -Level Warning -Component "EventLog"
+
+                $dcUnreachable = $true
+                $dcReason      = $msg
+                $dcHintKey     = $hintKey
                 $res += [PSCustomObject]@{
                     Server = $dc; LogName = $logName; OldestEntry = $null
                     RetentionDays = $null; Status = "Unreachable"
+                    Reason = $dcReason; HintKey = $hintKey
                 }
             }
         }

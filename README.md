@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.6.0-blue)
+![Version](https://img.shields.io/badge/Version-2.6.1-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -55,7 +55,7 @@ Professionelles PowerShell-Tool zur Analyse und Bewertung von Microsoft Active D
 - **Asynchrone ACL-Analyse** via PowerShell Runspace — kein GUI-Freeze auch bei grossen Umgebungen (10.000+ Objekte)
 - **Fortschrittsanzeige** während der ACL-Analyse (ProgressBar + StatusLabel)
 - **Dynamisches Ampel-System** im HTML-Dashboard (Grün / Gelb / Rot)
-- **Empfehlungs-Engine** mit 71 Regeln in 14 Kategorien (deklarativ via `recommendations.json`)
+- **Empfehlungs-Engine** mit 73 Regeln in 14 Kategorien (deklarativ via `recommendations.json`)
 - **Automatisierter CSV-Export** für Security-Details (Compliance-Audits)
 - **Sample-Report** mit realistischen Mock-Daten (Demo / Onboarding ohne AD-Verbindung)
 - **NoGui-Modus** für Scheduled Tasks und Automatisierung
@@ -79,10 +79,10 @@ Professionelles PowerShell-Tool zur Analyse und Bewertung von Microsoft Active D
 | 10 | **Entra ID Sync** | Agent-Version, Dienste-Status, Verbindung zum Sync-Server | 2 |
 | 11 | **DNS Health** | Zonen, SRV-Records (LDAP/Kerberos/GC/PDC), Scavenging, DNSSEC | 7 |
 | 12 | **Kennwortrichtlinien** | Länge, Komplexität, Historie, Lockout-Konfiguration | 6 |
-| 13 | **Replikations-Latenz** | Zeit seit letzter erfolgreicher Replikation je DC-Partnerschaft | 1 |
-| 14 | **Protokollierung** | Vorhaltedauer von „Directory Service" und „System" | 1 |
+| 13 | **Replikations-Latenz** | Zeit seit letzter erfolgreicher Replikation; nicht abrufbare DCs | 2 |
+| 14 | **Protokollierung** | Vorhaltedauer von „Directory Service" und „System"; nicht lesbare Logs | 2 |
 
-**Total: 71 Empfehlungsregeln** — davon 47 HIGH, 17 MEDIUM, 7 LOW
+**Total: 73 Empfehlungsregeln** — davon 47 HIGH, 19 MEDIUM, 7 LOW
 
 ---
 
@@ -100,7 +100,7 @@ ADHealthCheck/
 │   ├── i18n.de.json               Sprachdatei Deutsch (150+ Keys)
 │   ├── i18n.en.json               Sprachdatei Englisch
 │   ├── mapping.json               Werte-Mapping (Forest/Domain Functional Levels)
-│   └── recommendations.json      Empfehlungs-Engine (71 Regeln, zweisprachig)
+│   └── recommendations.json      Empfehlungs-Engine (73 Regeln, zweisprachig)
 │
 ├── modules/
 │   ├── ADHealthCheck.Utils.psm1   Logging, Config-Laden, i18n, HTML-Helpers
@@ -233,7 +233,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.6.0                    # Einzige Stelle. $script:LocalVersion
+Version:    2.6.1                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -346,6 +346,28 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.6.1 — Nicht prüfbare Domänencontroller wurden verschwiegen
+Gefunden im ersten Feldtest von v2.6.0 gegen ein produktives AD mit zwei DCs.
+
+- **fix:** **REP-01 und EVT-01 meldeten PASS, wenn ein DC gar nicht geprüft werden konnte.** Der Collector setzt bei einem Fehler `Status = "Unreachable"`, die `Condition` beider Regeln lautete aber nur `["Error"]` — nicht prüfbare Einträge wurden übersprungen. Im Feldtest war auf einem der beiden DCs der RPC-Zugriff blockiert; das Ergebnis lautete:
+
+  ```json
+  "Id": "EVT-01",  "Status": "PASS",  "ActualValue": null,  "AffectedItems": null
+  ```
+
+  Grün, obwohl die Hälfte der Umgebung nie betrachtet wurde. Das ist dieselbe Fehlerklasse wie die acht toten Regeln aus v2.4.11/v2.4.12 — eine Prüfung, die bei einem Problem schweigt.
+
+- **feat:** **REP-02 und EVT-02** (beide MEDIUM) melden jetzt explizit, dass für einen DC **keine Aussage** vorliegt, samt Ursache und Handlungsanweisung. Bewusst als **eigene Regeln** statt `Unreachable` in die Condition von REP-01/EVT-01 aufzunehmen: „nicht prüfbar" und „geprüft und zu kurz" erfordern unterschiedliche Reaktionen und dürfen im Dashboard nicht verschmelzen.
+- **perf:** Schlägt der erste Log-Zugriff auf einem DC am RPC fehl, werden die restlichen Logs desselben DCs übersprungen. Jeder Versuch kostet rund 20 Sekunden Timeout — im Feldtest gingen so 42 Sekunden für einen einzigen unerreichbaren DC verloren.
+- **fix:** Die Fehlermeldung nennt jetzt die wahrscheinliche Ursache statt nur `The RPC server is unavailable`:
+
+  | Fehler | Hinweis im Report und Log |
+  |---|---|
+  | RPC nicht verfügbar | Firewall-Regel „Remote-Ereignisprotokollverwaltung" auf dem DC aktivieren |
+  | Zugriff verweigert | Konto in die Gruppe „Ereignisprotokollleser" aufnehmen |
+
+- Verifiziert: 2 neue Verdikte, **0 Statusänderungen** bei den bestehenden 71 Regeln.
 
 ### v2.6.0 — Zwei neue Prüfungen: Replikations-Latenz und Protokoll-Vorhaltedauer
 Die beiden Werte `ReplicationLatencyMaxMinutes` (45) und `MaxEventLogAgeDays` (30) standen seit jeher in `settings.json`, wurden aber **von keiner Zeile Code gelesen** — Kunden konnten sie einstellen, ohne dass etwas geschah. Beide sind jetzt wirksam.
@@ -536,4 +558,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.6.0 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.6.1 — LAKE Solutions AG*

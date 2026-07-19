@@ -430,7 +430,7 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
         </div>
         <div class="report-meta">
             <h2>Active Directory Health Report</h2>
-            <div class="report-badge">19.07.2026 19:08</div>
+            <div class="report-badge">19.07.2026 19:34</div>
         </div>
     </div>
 
@@ -506,12 +506,12 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 			</thead>
 			<tbody><tr>
 				<td>DC=contoso,DC=local</td>
-				<td>14.06.2026 19:08</td>
+				<td>14.06.2026 19:34</td>
 				<td>35 Tg. 0 Std.</td>
 				<td><span class='status-pill status-error'>Dringender Handlungsbedarf</span></td>
 			</tr><tr>
 				<td>CN=Configuration,DC=contoso,DC=local</td>
-				<td>16.07.2026 19:08</td>
+				<td>16.07.2026 19:34</td>
 				<td>3 Tg. 0 Std.</td>
 				<td><span class='status-pill status-warning'>Warnung</span></td>
 			</tr><tr>
@@ -914,10 +914,22 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
 								<td class='rec-text text-left'>Mindestens eine Replikationspartnerschaft ist rückständig: die letzte erfolgreiche Replikation liegt länger zurück als der konfigurierte Grenzwert. Anhaltende Latenz führt zu inkonsistenten Verzeichnisdaten, fehlschlagenden Anmeldungen nach Kennwortänderungen und im Extremfall zu Lingering Objects. Ursache mit 'repadmin /showrepl' und 'repadmin /replsummary' eingrenzen. (Betroffene Server: MOCK-DC-01 -> MOCK-DC-03 (320 Minuten), MOCK-DC-02 -> MOCK-DC-01 (90 Minuten)) (empfohlen: ≤45 Minuten)</td>
 								<td class='text-center'><span class='prio-badge prio-high'>HIGH</span></td>
 							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>REP-02</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Replikations-Metadaten nicht abrufbar</td>
+								<td class='rec-text text-left'>Von mindestens einem Domänencontroller konnten keine Replikations-Metadaten abgerufen werden. Für diesen DC liegt KEINE Aussage zur Replikation vor — das Ergebnis der Latenzprüfung ist unvollständig. Erreichbarkeit (RPC/LDAP), Firewall und Berechtigungen prüfen und den Check anschliessend wiederholen. (Betroffene Server: MOCK-DC-03 (The RPC server is unavailable))</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>EVT-01</td>
 								<td class='rec-cat text-left'>Active Directory</td>
 								<td class='rec-sub text-left'>Vorhaltedauer der Ereignisprotokolle</td>
 								<td class='rec-text text-left'>Mindestens ein Ereignisprotokoll reicht weniger weit zurück als der konfigurierte Mindestzeitraum. Das Protokoll ist zu klein bemessen oder rotiert zu schnell — nach einem Sicherheitsvorfall fehlen damit genau die Einträge, die zur Aufklärung gebraucht werden. Maximale Protokollgrösse per Gruppenrichtlinie erhöhen oder Weiterleitung an ein zentrales SIEM einrichten. (Betroffene Server: MOCK-DC-01 / Directory Service (3 Tage), MOCK-DC-02 / Directory Service (11 Tage)) (empfohlen: ≥30 Tage)</td>
+								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
+							</tr><tr class='rec-row'>
+								<td class='rec-id text-center'>EVT-02</td>
+								<td class='rec-cat text-left'>Active Directory</td>
+								<td class='rec-sub text-left'>Ereignisprotokoll nicht abrufbar</td>
+								<td class='rec-text text-left'>Mindestens ein Ereignisprotokoll konnte nicht gelesen werden. Für den betroffenen Domänencontroller liegt KEINE Aussage zur Vorhaltedauer vor — das Prüfergebnis ist unvollständig und darf nicht als 'unauffällig' gewertet werden. Bei 'RPC-Server nicht verfügbar' die Firewall-Regel 'Remote-Ereignisprotokollverwaltung' auf dem DC aktivieren; bei 'Zugriff verweigert' das ausführende Konto in die Gruppe 'Ereignisprotokollleser' aufnehmen. (Betroffene Server: MOCK-DC-03 / Directory Service (The RPC server is unavailable — Firewall-Regel 'Remote-Ereignisprotokollverwaltung' auf dem DC aktivieren), MOCK-DC-03 / System (The RPC server is unavailable — Firewall-Regel 'Remote-Ereignisprotokollverwaltung' auf dem DC aktivieren))</td>
 								<td class='text-center'><span class='prio-badge prio-medium'>MEDIUM</span></td>
 							</tr><tr class='rec-row'>
 								<td class='rec-id text-center'>SEC-01</td>

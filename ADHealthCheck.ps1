@@ -3,8 +3,23 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.6.0
-    Changelog:  - FEAT: Zwei neue Pruefungen — die bisher toten Config-Werte
+    Version:    2.6.1
+    Changelog:  - FIX: REP-01 und EVT-01 meldeten PASS, wenn ein DC gar nicht
+                  gepruefte werden konnte. Der Collector setzt bei einem Fehler
+                  Status="Unreachable", die Condition beider Regeln lautete aber
+                  nur ["Error"] — nicht pruefbare DCs wurden stillschweigend
+                  uebersprungen. Im ersten Feldtest lieferte EVT-01 dadurch PASS,
+                  obwohl einer von zwei DCs nie erreicht wurde.
+                  Neu: REP-02 und EVT-02 (Medium) melden explizit, dass fuer einen
+                  DC KEINE Aussage vorliegt — bewusst als eigene Regeln, damit
+                  "nicht pruefbar" nicht mit "geprueft und zu kurz" vermischt wird.
+                - PERF: Schlaegt der erste Log-Zugriff auf einem DC am RPC fehl,
+                  werden die restlichen Logs desselben DCs uebersprungen. Jeder
+                  Versuch kostet rund 20 Sekunden Timeout; bisher liefen sie alle.
+                - FIX: Fehlermeldung nennt jetzt die Ursache — bei RPC-Fehlern die
+                  Firewall-Regel "Remote-Ereignisprotokollverwaltung", bei
+                  Zugriffsfehlern die Gruppe "Ereignisprotokollleser".
+                - FEAT: Zwei neue Pruefungen — die bisher toten Config-Werte
                   ReplicationLatencyMaxMinutes und MaxEventLogAgeDays sind jetzt
                   wirksam:
                   * REP-01 (High): Replikations-Latenz je DC und Partner ueber
