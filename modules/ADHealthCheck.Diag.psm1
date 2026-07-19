@@ -129,7 +129,11 @@ function Get-ADHCMockData {
         }
         [PSCustomObject]@{
             Server           = "MOCK-DC-03"
-            OS               = "Windows Server 2019"
+            # OS = "Unreachable" ist das Kennzeichen, an dem SRV-02 einen nicht
+            # erreichbaren DC erkennt (so setzt es auch Get-ADHealthDiscovery).
+            # Vorher stand hier ein regulaerer OS-Name, weshalb SRV-02 im
+            # Sample-Report fehlte, obwohl Status bereits "Error" war.
+            OS               = "Unreachable"
             OSSupportStatus  = "OK"
             IPv4             = "-"
             UptimeHrs        = "-"
@@ -238,7 +242,11 @@ function Get-ADHCMockData {
             [PSCustomObject]@{
                 Name        = "BranchOffice"
                 Servers     = @(
-                    [PSCustomObject]@{ Name = "MOCK-DC-03"; IsGC = $false }  # Kein GC -> SITE-04
+                    # IsGC = $true, damit AD-FSMO-08 greift: MOCK-DC-03 haelt die
+                    # Infrastruktur-Master-Rolle, und ein GC in dieser Rolle ist bei
+                    # mehreren DCs ohne AD-Papierkorb genau der zu meldende Konflikt.
+                    # SITE-04 feuert weiterhin ueber die Site "BackOffice" (0 Server).
+                    [PSCustomObject]@{ Name = "MOCK-DC-03"; IsGC = $true }
                 )
                 Connections = @()
             }

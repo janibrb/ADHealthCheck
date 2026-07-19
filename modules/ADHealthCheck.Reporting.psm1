@@ -890,8 +890,15 @@ function New-ADHCReport {
 		
 			# AD-FSMO-08: Infrastructure Master vs. Global Catalog (Die "Phantom-Objekt" Regel)
 			# Wir suchen den Infrastructure-Owner in der Discovery-Liste, um seinen GC-Status zu prüfen
-			$infraDC = $dcs | Where-Object { $infraOwner -like "*$($_.Server)*" }
-			$isGC = $infraDC.IsGC -eq $true -or $infraDC.IsGC -eq "True"
+			# IsGC steht NICHT in $Data.Discovery — dieses Objekt fuehrt nur
+			# Server, OS, IPv4, UptimeHrs, FreeDiskGB, FreeDiskPct, Status.
+			# Die GC-Eigenschaft liefert Get-ADSitesInfo unter
+			# $Data.Sites.Sites[].Servers[].IsGC. Vorher wurde $infraDC.IsGC
+			# aus Discovery gelesen und war immer $null, wodurch AD-FSMO-08
+			# nie feuern konnte.
+			$siteServers = @($Data.Sites.Sites | ForEach-Object { $_.Servers })
+			$infraSrv = $siteServers | Where-Object { $_.Name -and $infraOwner -like "*$($_.Name)*" } | Select-Object -First 1
+			$isGC = ($infraSrv.IsGC -eq $true -or $infraSrv.IsGC -eq "True")
 		
 			if ($dcs.Count -gt 1 -and $stats.RecycleBin -eq $false -and $isGC) {
 				$rule = $recJson.FSMO | Where-Object { $_.Id -eq "AD-FSMO-08" }
@@ -1119,6 +1126,17 @@ function New-ADHCReport {
 							# Prüfung gegen 15 Min (Microsoft Empfehlung)
 							if ($link.ReplInterval -ne "Default" -and [int]$link.ReplInterval -gt 15) {
 								$affectedItems += "$($link.Name) ($($link.ReplInterval) min)"
+							}
+						}
+					}
+					# Fuer SITE-03 existierte bisher KEIN case — die Regel stand in
+					# recommendations.json, wurde aber nirgends ausgewertet und meldete
+					# daher immer PASS. Get-ADSitesInfo liefert das Feld seit jeher
+					# (ChangeNotification = options -band 1).
+					"ChangeNotification" {
+						foreach ($link in $Data.Sites.Transports) {
+							if ($link.ChangeNotification -eq "Disabled") {
+								$affectedItems += $link.Name
 							}
 						}
 					}

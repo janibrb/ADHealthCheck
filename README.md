@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.4.11-blue)
+![Version](https://img.shields.io/badge/Version-2.4.12-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -231,7 +231,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.4.11                    # Einzige Stelle. $script:LocalVersion
+Version:    2.4.12                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -344,6 +344,19 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.4.12 — Die letzten drei nicht feuernden Regeln repariert
+- **fix:** **SITE-03 (Änderungsbenachrichtigung der Site-Links).** Für diese Regel existierte **überhaupt kein Auswertungscode** — sie stand in `recommendations.json`, wurde aber nirgends geprüft und meldete immer PASS. Das benötigte Feld liefert `Get-ADSitesInfo` seit jeher (`ChangeNotification = options -band 1`).
+- **fix:** **AD-FSMO-08 (Infrastruktur-Master ist Global Catalog).** Die Prüfung las `IsGC` aus `$Data.Discovery`; dieses Objekt führt nur `Server, OS, IPv4, UptimeHrs, FreeDiskGB, FreeDiskPct, Status`. Die GC-Eigenschaft steht unter `$Data.Sites.Sites[].Servers[].IsGC`. `$isGC` war damit immer `$false`.
+- **fix:** **SRV-02 (DC-Erreichbarkeit).** Der Auswertungscode war korrekt — die Mock-Daten setzten `Status = "Error"`, aber nicht `OS = "Unreachable"`, woran die Regel einen nicht erreichbaren DC erkennt. Nur der Sample-Report war betroffen, nicht der Produktivbetrieb.
+- Verifiziert gegen die Referenzmessung: exakt 3 Statusänderungen, keine Regression bei den abhängigen Regeln (SITE-04, OS-01, SRV-01-E/W feuern weiterhin).
+
+**Damit feuern bei Worst-Case-Mockdaten 67 von 69 Regeln.** Die verbleibenden zwei sind **bewusst** inaktiv und kein Defekt:
+
+| Regel | Grund |
+|---|---|
+| `DNS-01` Scavenging-Zonenkonflikt | schliesst sich mit `DNS-06` aus — DNS-01 meldet *einige* Zonen ohne Scavenging, DNS-06 *alle*. Die Mock-Daten decken den DNS-06-Fall ab. |
+| `SITE-05` Keine Subnetze definiert | schliesst sich mit `SITE-02` aus — sind Subnetze vorhanden (aber ohne Site), greift SITE-02. |
 
 ### v2.4.11 — Fünf Empfehlungsregeln haben nie gefeuert
 - **fix:** **PWD-04 (Sperrschwelle bei Fehlversuchen).** Das Switch-Label in `Reporting.psm1` hiess `"LockoutThreshold"`, Collector und `recommendations.json` liefern aber `LockoutThresh`. Der `case` matchte nie. Bei einer Domäne mit `LockoutThreshold = 0` — also **komplett deaktiviertem Kontosperr-Schutz** — meldete der Report für diese HIGH-Prüfung „bestanden".
@@ -484,4 +497,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.4.11 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.4.12 — LAKE Solutions AG*

@@ -3,8 +3,19 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.4.11
-    Changelog:  - FIX: Fuenf Empfehlungsregeln haben NIE gefeuert und meldeten auch im
+    Version:    2.4.12
+    Changelog:  - FIX: Die letzten drei nicht feuernden Regeln repariert:
+                  * SITE-03 (Aenderungsbenachrichtigung): hatte ueberhaupt keinen
+                    Auswertungscode. Das Feld liefert Get-ADSitesInfo seit jeher.
+                  * AD-FSMO-08 (Infrastruktur-Master ist GC): las IsGC aus
+                    $Data.Discovery, das dieses Feld nicht fuehrt. Kommt aus
+                    $Data.Sites.Sites[].Servers[].
+                  * SRV-02 (DC-Erreichbarkeit): Code war korrekt, die Mock-Daten
+                    setzten Status="Error" ohne OS="Unreachable".
+                  Damit feuern bei Worst-Case-Mockdaten 67 von 69 Regeln; die
+                  restlichen zwei (DNS-01, SITE-05) sind bewusst inaktiv, weil sie
+                  sich mit DNS-06 bzw. SITE-02 gegenseitig ausschliessen.
+                - FIX: Fuenf Empfehlungsregeln haben NIE gefeuert und meldeten auch im
                   Fehlerfall PASS:
                   * PWD-04 (Sperrschwelle): Switch-Label hiess "LockoutThreshold",
                     Collector und recommendations.json liefern aber "LockoutThresh".
