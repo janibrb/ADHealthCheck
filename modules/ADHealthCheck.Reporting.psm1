@@ -774,6 +774,22 @@ function New-ADHCReport {
 	
 		$activeRecs = @()
 
+		# Messwert-Stash: haelt je Regel-Id den gemessenen Wert fest — AUCH wenn die
+		# Regel nicht feuert. Ohne das ist ein PASS im Upload-JSON nicht von einer
+		# Pruefung zu unterscheiden, die gar nichts gemessen hat (beides ergab
+		# ActualValue = null). Genau diese Verwechslung trat im Feldtest auf.
+		$script:ADHCMeasurements = @{}
+		function Set-ADHCMeasure {
+			param([string]$Id, $ActualValue, $Unit, $ExpectedValue, $Operator, $AffectedItems)
+			$script:ADHCMeasurements[$Id] = [PSCustomObject]@{
+				ActualValue   = $ActualValue
+				Unit          = $Unit
+				ExpectedValue = $ExpectedValue
+				Operator      = $Operator
+				AffectedItems = if ($AffectedItems) { @($AffectedItems) } else { $null }
+			}
+		}
+
 		# Anzeige-Titel je Regel: bevorzugt den kuratierten, EINDEUTIGEN Title{de,en}
 		# (v2.4.1), faellt auf die (gruppierende, ggf. mehrfach genutzte) SubCategory
 		# zurueck, wenn keine Title vorhanden ist. Analog zum M365-Dashboard.
@@ -1197,6 +1213,19 @@ function New-ADHCReport {
 				$affectedItems = @()
 				$worstLatency  = $null
 
+				# Messwert ueber ALLE Partnerschaften — auch die unauffaelligen.
+				# Damit belegt ein PASS, dass tatsaechlich gemessen wurde.
+				if ($rule.Id -eq "REP-01") {
+					$measured = $Data.Replication | Where-Object { $null -ne $_.LatencyMinutes }
+					$maxAll   = if ($measured) { ($measured | Measure-Object -Property LatencyMinutes -Maximum).Maximum } else { $null }
+					Set-ADHCMeasure -Id $rule.Id -ActualValue $(if ($null -ne $maxAll) { [int]$maxAll } else { $null }) `
+						-Unit $rule.Threshold.unit -ExpectedValue $rule.Threshold.value -Operator $rule.Threshold.operator
+				} else {
+					# REP-02: Anzahl nicht abrufbarer DCs — 0 ist der Nachweis "alle erreicht"
+					$unreach = @($Data.Replication | Where-Object { $_.Status -eq "Unreachable" })
+					Set-ADHCMeasure -Id $rule.Id -ActualValue $unreach.Count -Unit "Servers" -ExpectedValue 0 -Operator "lte"
+				}
+
 				foreach ($r in $Data.Replication) {
 					if ($rule.Condition -notcontains $r.Status) { continue }
 					# Der schlechteste Wert ist der aussagekraeftigste Einzelmesswert
@@ -1238,6 +1267,19 @@ function New-ADHCReport {
 			foreach ($rule in $recJson.EventLog) {
 				$affectedItems = @()
 				$worstDays     = $null
+
+				# Messwert ueber ALLE gelesenen Logs — die KUERZESTE Vorhaltedauer ist
+				# der kritischste Wert und belegt zugleich, dass gemessen wurde.
+				if ($rule.Id -eq "EVT-01") {
+					$readable = $Data.EventLog | Where-Object { $null -ne $_.RetentionDays }
+					$minAll   = if ($readable) { ($readable | Measure-Object -Property RetentionDays -Minimum).Minimum } else { $null }
+					Set-ADHCMeasure -Id $rule.Id -ActualValue $(if ($null -ne $minAll) { [int]$minAll } else { $null }) `
+						-Unit $rule.Threshold.unit -ExpectedValue $rule.Threshold.value -Operator $rule.Threshold.operator
+				} else {
+					# EVT-02: Anzahl nicht lesbarer Logs — 0 belegt "alle gelesen"
+					$unreach = @($Data.EventLog | Where-Object { $_.Status -eq "Unreachable" })
+					Set-ADHCMeasure -Id $rule.Id -ActualValue $unreach.Count -Unit "Logs" -ExpectedValue 0 -Operator "lte"
+				}
 
 				foreach ($e in $Data.EventLog) {
 					if ($rule.Condition -notcontains $e.Status) { continue }
@@ -1297,6 +1339,11 @@ function New-ADHCReport {
 					"SchAdminCount" { $isTriggered = ($val -gt $(if($null -ne $secLimit){$secLimit}else{1})) }
 					Default         { $isTriggered = ($val -gt 0) }
 				}
+
+				# Zaehler IMMER festhalten — "0 inaktive Konten" ist ein Nachweis,
+				# ein leeres Feld waere nicht von "nicht geprueft" zu unterscheiden.
+				Set-ADHCMeasure -Id $rule.Id -ActualValue $val -Unit "Users" `
+					-ExpectedValue $secLimit -Operator $secTh.operator
 		
 				if ($isTriggered) {
 					# Anzeige-Titel: kuratiertes Title{de,en} bevorzugt, sonst SubCategory
@@ -1384,6 +1431,11 @@ function New-ADHCReport {
 					}
 				}
 		
+				# Messwert IMMER festhalten — auch wenn die Richtlinie in Ordnung ist.
+				# Sonst traegt ein PASS keinen Nachweis (siehe $script:ADHCMeasurements).
+				Set-ADHCMeasure -Id $rule.Id -ActualValue $measured -Unit $unitKey `
+					-ExpectedValue $limit -Operator $th.operator
+
 				if ($isTriggered) {
 					$activeRecs += [PSCustomObject]@{
 						Id            = $rule.Id
@@ -1652,10 +1704,24 @@ function New-ADHCReport {
 				# und eigenem Format darstellen und ueber die Zeit vergleichen kann.
 				# Nicht jede Regel hat einen Skalar: listenartige Befunde (betroffene
 				# Server, Partitionen, Subnetze) landen in AffectedItems.
+				# Messwert-Stash: liefert den gemessenen Wert AUCH fuer PASS-Regeln.
+				# Vorher war ein PASS im JSON nicht von einer Pruefung zu
+				# unterscheiden, die gar nichts gemessen hatte — beides ActualValue=null.
+				$meas = $script:ADHCMeasurements[$rule.Id]
+
 				$expected = if ($hit -and $null -ne $hit.ExpectedValue) { $hit.ExpectedValue }
+				            elseif ($meas -and $null -ne $meas.ExpectedValue) { $meas.ExpectedValue }
 				            elseif ($null -ne $rule.Threshold.value) { $rule.Threshold.value }
 				            else { $null }
-				$operator = if ($hit -and $hit.Operator) { $hit.Operator } else { $rule.Threshold.operator }
+				$operator = if ($hit -and $hit.Operator) { $hit.Operator }
+				            elseif ($meas -and $meas.Operator) { $meas.Operator }
+				            else { $rule.Threshold.operator }
+				$unit     = if ($hit -and $hit.Unit) { $hit.Unit }
+				            elseif ($meas -and $meas.Unit) { $meas.Unit }
+				            else { $rule.Threshold.unit }
+				$actual   = if ($hit -and $null -ne $hit.ActualValue) { $hit.ActualValue }
+				            elseif ($meas) { $meas.ActualValue }
+				            else { $null }
 
 				$verdicts += [PSCustomObject]@{
 					Id            = $rule.Id
@@ -1665,8 +1731,8 @@ function New-ADHCReport {
 					Priority      = $rule.Priority
 					Status        = $status
 					Detail        = if ($hit) { $hit.Description } else { $null }
-					ActualValue   = if ($hit) { $hit.ActualValue } else { $null }
-					Unit          = if ($hit -and $hit.Unit) { $hit.Unit } else { $rule.Threshold.unit }
+					ActualValue   = $actual
+					Unit          = $unit
 					AffectedItems = if ($hit -and $hit.AffectedItems) { @($hit.AffectedItems) } else { $null }
 					ExpectedValue = $expected
 					Operator      = $operator

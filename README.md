@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.6.1-blue)
+![Version](https://img.shields.io/badge/Version-2.7.0-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -233,7 +233,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.6.1                    # Einzige Stelle. $script:LocalVersion
+Version:    2.7.0                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -346,6 +346,28 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.7.0 — Ein PASS trägt jetzt seinen Nachweis
+Direkte Folge des zweiten Feldtests. Nach der Firewall-Freischaltung lieferte EVT-01 **exakt dasselbe JSON** wie zuvor — obwohl der eine Fall „ein DC wurde übersprungen" und der andere „alles gemessen und in Ordnung" bedeutete:
+
+```json
+"Id": "EVT-01",  "Status": "PASS",  "ActualValue": null,  "AffectedItems": null
+```
+
+- **feat:** **PASS-Verdikte liefern ihren Messwert mit.** Ursache war das Design aus v2.5.0: `ActualValue` kam ausschliesslich aus dem gefeuerten Befund (`$hit`). Ohne Befund gab es keinen Wert. Neu hält ein Messwert-Stash den gemessenen Wert je Regel fest — unabhängig davon, ob sie feuert:
+
+  | Verdikt | vorher | jetzt |
+  |---|---|---|
+  | `EVT-01` PASS | `null` | `87 Days` (kürzeste Vorhaltedauer über alle DCs) |
+  | `EVT-02` PASS | `null` | `0 Logs` (nicht lesbare Protokolle) |
+  | `REP-01` PASS | `null` | `31 Minutes` (höchste Latenz über alle Partnerschaften) |
+  | `REP-02` PASS | `null` | `0 Servers` (nicht abrufbare DCs) |
+  | `PWD-01` PASS | `null` | `14 Characters` |
+
+  **Ein leeres `ActualValue` bei PASS ist damit ein Warnsignal statt Normalzustand.** Dashboard wie Auditbericht können jetzt belegen, dass tatsächlich gemessen wurde — und die Werte über die Zeit vergleichen.
+
+- Umgesetzt für Replikation, Ereignisprotokolle, Kennwortrichtlinien und die Security-Zähler. Verifiziert: **0 Statusänderungen** über alle 73 Verdikte, der Umbau ist rein additiv.
+- Ohne Nachweis bleiben nur `DNS-01` und `SITE-05` — die beiden Regeln, die sich bewusst mit `DNS-06` bzw. `SITE-02` gegenseitig ausschliessen.
 
 ### v2.6.1 — Nicht prüfbare Domänencontroller wurden verschwiegen
 Gefunden im ersten Feldtest von v2.6.0 gegen ein produktives AD mit zwei DCs.
@@ -558,4 +580,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.6.1 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.7.0 — LAKE Solutions AG*

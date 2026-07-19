@@ -3,8 +3,21 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.6.1
-    Changelog:  - FIX: REP-01 und EVT-01 meldeten PASS, wenn ein DC gar nicht
+    Version:    2.7.0
+    Changelog:  - FEAT: PASS-Verdikte tragen jetzt ihren MESSWERT. Bisher kam
+                  ActualValue nur aus dem gefeuerten Befund — bei PASS war das Feld
+                  leer und damit nicht von einer Pruefung zu unterscheiden, die gar
+                  nichts gemessen hatte. Genau diese Verwechslung trat im Feldtest
+                  auf: EVT-01 meldete zweimal exakt dasselbe JSON, einmal weil ein DC
+                  uebersprungen wurde und einmal weil alles in Ordnung war.
+                  Neu belegt ein PASS die Messung:
+                    EVT-01 PASS -> ActualValue 87 Days   (kuerzeste Vorhaltedauer)
+                    EVT-02 PASS -> ActualValue 0 Logs    (nicht lesbare Logs)
+                    REP-01 PASS -> ActualValue 31 Minutes (hoechste Latenz)
+                  Ein leeres ActualValue bei PASS ist damit ein Warnsignal statt
+                  Normalzustand. Umgesetzt fuer Replication, EventLog,
+                  Kennwortrichtlinien und die Security-Zaehler.
+                - FIX: REP-01 und EVT-01 meldeten PASS, wenn ein DC gar nicht
                   gepruefte werden konnte. Der Collector setzt bei einem Fehler
                   Status="Unreachable", die Condition beider Regeln lautete aber
                   nur ["Error"] — nicht pruefbare DCs wurden stillschweigend
