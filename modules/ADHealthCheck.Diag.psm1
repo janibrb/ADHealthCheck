@@ -180,14 +180,14 @@ function Get-ADHCMockData {
     # -----------------------------------------------------------------------
     $replData = @(
         [PSCustomObject]@{ Server="MOCK-DC-01"; Partner="MOCK-DC-02"; Partition="DC=contoso,DC=local"
-                           LastSuccess=(Get-Date).AddMinutes(-15);  LatencyMinutes=15;  Failures=0; LastResult=0; Status="OK"; Coverage="AllPartitions" }
+                           LastSuccess=(Get-Date).AddMinutes(-15);  LatencyMinutes=15;  Failures=0; LastResult=0; Status="OK"; PartitionScope="AllPartitions"; PartitionsFound=[string[]]@("DC=contoso,DC=local","CN=Configuration,DC=contoso,DC=local") }
         [PSCustomObject]@{ Server="MOCK-DC-01"; Partner="MOCK-DC-03"; Partition="DC=contoso,DC=local"
-                           LastSuccess=(Get-Date).AddMinutes(-320); LatencyMinutes=320; Failures=7; LastResult=1722; Status="Error"; Coverage="AllPartitions" }  # -> REP-01
+                           LastSuccess=(Get-Date).AddMinutes(-320); LatencyMinutes=320; Failures=7; LastResult=1722; Status="Error"; PartitionScope="AllPartitions"; PartitionsFound=[string[]]@("DC=contoso,DC=local","CN=Configuration,DC=contoso,DC=local") }  # -> REP-01
         [PSCustomObject]@{ Server="MOCK-DC-02"; Partner="MOCK-DC-01"; Partition="DC=contoso,DC=local"
-                           LastSuccess=(Get-Date).AddMinutes(-90);  LatencyMinutes=90;  Failures=2; LastResult=8524; Status="Error"; Coverage="AllPartitions" }  # -> REP-01
+                           LastSuccess=(Get-Date).AddMinutes(-90);  LatencyMinutes=90;  Failures=2; LastResult=8524; Status="Error"; PartitionScope="AllPartitions"; PartitionsFound=[string[]]@("DC=contoso,DC=local","CN=Configuration,DC=contoso,DC=local") }  # -> REP-01
         [PSCustomObject]@{ Server="MOCK-DC-03"; Partner="-"; Partition="-"
                            LastSuccess=$null; LatencyMinutes=$null; Failures=0; LastResult="-"; Status="Unreachable"                    # -> REP-02
-                           Reason="The RPC server is unavailable"; Coverage="AllPartitions" }
+                           Reason="The RPC server is unavailable"; PartitionScope="AllPartitions"; PartitionsFound=[string[]]@() }
     )
 
     # -----------------------------------------------------------------------
@@ -1231,8 +1231,12 @@ function Get-ADReplicationLatency {
             if ($cmd.Parameters.ContainsKey($cand)) { $partParam = $cand; break }
         }
     }
-    $coverage = if ($partParam) { "AllPartitions" } else { "DefaultPartitionOnly" }
-    Write-ADHCLog -Message "Replikations-Abfrage: Partitions-Abdeckung = $coverage$(if ($partParam) { " (via -$partParam)" })" -Component "Replication"
+    # PartitionScope beschreibt, was ABGEFRAGT wurde — nicht, was zurueckkam.
+    # Beides zu verwechseln waere ein Ueberversprechen: im Feldtest lieferte
+    # "AllPartitions" drei von fuenf bekannten Partitionen. Was tatsaechlich
+    # geantwortet hat, steht je DC in PartitionsFound.
+    $partitionScope = if ($partParam) { "AllPartitions" } else { "DefaultPartitionOnly" }
+    Write-ADHCLog -Message "Replikations-Abfrage: Partitions-Scope = $partitionScope$(if ($partParam) { " (via -$partParam)" })" -Component "Replication"
 
     $res = @()
     foreach ($dc in $DCList) {
@@ -1241,6 +1245,13 @@ function Get-ADReplicationLatency {
             $callArgs = @{ Target = $dc; Scope = 'Server'; ErrorAction = 'Stop' }
             if ($partParam) { $callArgs[$partParam] = '*' }
             $partners = Get-ADReplicationPartnerMetadata @callArgs
+
+            # Welche Partitionen haben TATSAECHLICH geantwortet? Typisiert, damit
+            # einelementige Listen im JSON nicht zum Skalar kollabieren.
+            [string[]]$partitionsFound = @($partners | ForEach-Object { [string]$_.Partition } |
+                                           Where-Object { $_ } | Sort-Object -Unique)
+            Write-ADHCLog -Message "$dc : $($partitionsFound.Count) Partition(en) beantwortet — $($partitionsFound -join ', ')" -Component "Replication"
+
             foreach ($p in $partners) {
                 $lastOk = $p.LastReplicationSuccess
                 # Kein Erfolgszeitpunkt = noch nie erfolgreich repliziert
@@ -1262,7 +1273,8 @@ function Get-ADReplicationLatency {
                     LastResult     = $p.LastReplicationResult
                     Status         = $status
                     Reason         = $null
-                    Coverage       = $coverage
+                    PartitionScope  = $partitionScope
+                    PartitionsFound = $partitionsFound
                 }
             }
         } catch {
@@ -1271,7 +1283,9 @@ function Get-ADReplicationLatency {
                 Server = $dc; Partner = "-"; Partition = "-"; LastSuccess = $null
                 LatencyMinutes = $null; Failures = 0; LastResult = "-"; Status = "Unreachable"
                 Reason = $_.Exception.Message
-                Coverage = $coverage
+                PartitionScope = $partitionScope
+                # Nichts beantwortet — leere Liste statt $null, damit der Typ stabil bleibt
+                PartitionsFound = [string[]]@()
             }
         }
     }

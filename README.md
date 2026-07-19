@@ -1,6 +1,6 @@
 # AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.7.2-blue)
+![Version](https://img.shields.io/badge/Version-2.7.3-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -233,7 +233,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.7.2                    # Einzige Stelle. $script:LocalVersion
+Version:    2.7.3                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -346,6 +346,22 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.7.3 — `Coverage` behauptete mehr, als es belegte
+Gefunden im Feldtest von v2.7.2. Die Partitions-Erweiterung funktionierte — `Coverage: "AllPartitions"`, sechs Einträge statt zwei. Zurück kamen aber nur **drei der fünf bekannten Partitionen**: `ForestDnsZones` und `DomainDnsZones` fehlten, obwohl sie nachweislich existieren (sie stehen im Backup-Block).
+
+- **fix:** `Coverage` beschrieb, was **abgefragt** wurde — ein Konsument las daraus „alles geprüft". Ersetzt durch zwei getrennte Felder:
+
+  | Feld | Bedeutung |
+  |---|---|
+  | `PartitionScope` | was abgefragt wurde (`AllPartitions` / `DefaultPartitionOnly`) |
+  | `PartitionsFound` | welche Partitionen **tatsächlich** geantwortet haben, je DC |
+
+  Damit lässt sich gegen die bekannten Partitionen abgleichen, statt der Zusage zu vertrauen. Die antwortenden Partitionen werden zusätzlich ins Log geschrieben.
+
+- `PartitionsFound` ist typisiert (`[string[]]`) und bleibt auch bei null oder einem Eintrag ein Array — die Lehre aus v2.7.1.
+
+> **Warum das zählt:** Ob `ForestDnsZones` und `DomainDnsZones` legitim fehlen (weil sie über andere Partnerbeziehungen replizieren) oder ob dort ein blinder Fleck bleibt, ist nicht abschliessend geklärt. Genau deshalb darf das Werkzeug keine Vollständigkeit behaupten, die es nicht geprüft hat — es liefert jetzt die Rohdaten für diese Beurteilung, statt sie vorwegzunehmen.
 
 ### v2.7.2 — Regression aus v2.7.1 behoben
 - **fix:** Der in v2.7.1 eingeführte Parameter **`-PartitionFilter` existiert nicht.** Der Name war aus dem Gedächtnis behauptet und ohne Domänencontroller nicht überprüfbar. Folge: **jeder** Aufruf von `Get-ADReplicationPartnerMetadata` schlug fehl, REP-01 lieferte überhaupt keine Daten mehr. Im Feldtest sichtbar als:
@@ -619,4 +635,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.7.2 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.7.3 — LAKE Solutions AG*

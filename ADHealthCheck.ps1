@@ -3,8 +3,21 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.7.2
-    Changelog:  - FIX: REGRESSION AUS v2.7.1 BEHOBEN. Der dort eingefuehrte Parameter
+    Version:    2.7.3
+    Changelog:  - FIX: Das Feld "Coverage" behauptete mehr, als es belegte. Der Wert
+                  "AllPartitions" beschrieb, was ABGEFRAGT wurde — im Feldtest kamen
+                  daraufhin aber nur drei der fuenf bekannten Partitionen zurueck
+                  (ForestDnsZones und DomainDnsZones fehlten). Ein Konsument las
+                  daraus "alles geprueft".
+                  Ersetzt durch zwei getrennte Felder:
+                    PartitionScope  = was abgefragt wurde (AllPartitions |
+                                      DefaultPartitionOnly)
+                    PartitionsFound = welche Partitionen TATSAECHLICH geantwortet
+                                      haben, je DC
+                  Damit laesst sich gegen die bekannten Partitionen (z.B. aus dem
+                  Backup-Block) abgleichen, statt der Zusage zu vertrauen. Die
+                  antwortenden Partitionen werden zusaetzlich protokolliert.
+                - FIX: REGRESSION AUS v2.7.1 BEHOBEN. Der dort eingefuehrte Parameter
                   "-PartitionFilter" existiert nicht — der Name war aus dem Gedaechtnis
                   behauptet und ohne AD nicht pruefbar. Folge: JEDER Aufruf von
                   Get-ADReplicationPartnerMetadata schlug fehl, REP-01 lieferte
