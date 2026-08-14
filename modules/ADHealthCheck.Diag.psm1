@@ -1001,7 +1001,7 @@ function Get-ADSecurityInfo {
             if ($groupObj) {
                 $members = Get-ADUser -Filter "MemberOf -RecursiveMatch '$($groupObj.DistinguishedName)'" -Properties GivenName, Surname, UserPrincipalName, LastLogonDate, PasswordLastSet, PasswordNeverExpires, Enabled
                 Add-ToExport -SourceList $members -Reason "Mitglied: $($groupObj.Name)"
-                $groupResults[$g.Name] = @{ Name = $groupObj.Name; Count = ($members.Count) }
+                $groupResults[$g.Name] = @{ Name = $groupObj.Name; Count = @($members).Count }
             } else {
                 $groupResults[$g.Name] = @{ Name = "Nicht gefunden"; Count = 0 }
             }
@@ -1018,10 +1018,10 @@ function Get-ADSecurityInfo {
 			LockoutDuration         = [int]$pwdPolicy.LockoutDuration.TotalMinutes
 			ResetLockoutCount       = [int]$pwdPolicy.LockoutObservationWindow.TotalMinutes
             InactiveThresholdDays   = $thresholdDays
-            InactiveUsers           = ($listInactive.Count)
-            DisabledUsers           = ($listDisabled.Count)
-            NoPwdExpiryUsers        = ($listNoExpiry.Count)
-            ExpiredPwdUsers         = ($listExpired.Count)
+            InactiveUsers           = @($listInactive).Count
+            DisabledUsers           = @($listDisabled).Count
+            NoPwdExpiryUsers        = @($listNoExpiry).Count
+            ExpiredPwdUsers         = @($listExpired).Count
             
             DomAdminName            = $groupResults["DomAdmin"].Name
             DomAdminCount           = $groupResults["DomAdmin"].Count

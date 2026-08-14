@@ -3,8 +3,22 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.7.3
-    Changelog:  - FIX: Das Feld "Coverage" behauptete mehr, als es belegte. Der Wert
+    Version:    2.7.4
+    Changelog:  - FIX: DNS-Check auf Single DC schlug fehl ("Failed to enumerate
+                  zones from the server"). Get-DnsServerZone/-ResourceRecord bekamen
+                  den DC-FQDN via -ComputerName und erzwangen eine Remote-CIM-Sitzung
+                  ueber WinRM, die auf einem Single DC oft nicht erreichbar ist,
+                  obwohl die DNS-Rolle lokal laeuft. Lokaler Zielserver wird jetzt
+                  erkannt; dann ohne -ComputerName (lokale CIM-Sitzung). Betrifft
+                  ADHealthCheck.DNS.psm1.
+                - FIX: Security-Zaehler brachen bei genau einem Treffer ab. Traf ein
+                  User-Filter genau ein Konto, war das Ergebnis ein einzelnes ADUser
+                  statt eines Arrays; dessen .Count lieferte eine
+                  ADPropertyValueCollection, deren [int]-Cast im Reporting (Z. 452)
+                  einen terminierenden Fehler warf und den Report-Lauf abbrach.
+                  Zaehler auf @(...).Count umgestellt (inkl. Gruppen-Mitgliederzahl).
+                  Betrifft ADHealthCheck.Diag.psm1.
+                - FIX: Das Feld "Coverage" behauptete mehr, als es belegte. Der Wert
                   "AllPartitions" beschrieb, was ABGEFRAGT wurde — im Feldtest kamen
                   daraufhin aber nur drei der fuenf bekannten Partitionen zurueck
                   (ForestDnsZones und DomainDnsZones fehlten). Ein Konsument las

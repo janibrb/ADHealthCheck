@@ -14,10 +14,23 @@ function Get-ADDNSHealthStatus {
     }
 
     Write-ADHCLog -Message "Analysiere DNS Zonen und Server Status auf '$TargetServer'..." -Component "DNS-Check"
-    
+
+    # Lokalen Zielserver erkennen. Bei einem lokalen DC erzwingt -ComputerName mit dem
+    # FQDN eine Remote-CIM-Sitzung ueber WinRM, die auf einem Single DC oft nicht
+    # erreichbar ist. In dem Fall ohne -ComputerName arbeiten (lokale CIM-Sitzung).
+    $localNames = @(
+        $env:COMPUTERNAME,
+        "$env:COMPUTERNAME.$env:USERDNSDOMAIN",
+        'localhost', '.', '127.0.0.1'
+    )
+    $dnsCn = @{}
+    if ($localNames -notcontains $TargetServer) {
+        $dnsCn = @{ ComputerName = $TargetServer }
+    }
+
     try {
         # Alle DNS Zonen vom Zielserver abrufen
-        $allZones = Get-DnsServerZone -ComputerName $TargetServer -ErrorAction Stop
+        $allZones = Get-DnsServerZone @dnsCn -ErrorAction Stop
         
         # --- Forward Lookup Zonen aufbereiten ---
         $forwardZones = foreach ($zone in ($allZones | Where-Object { $_.ZoneType -ne "Forwarder" -and $_.IsReverseLookupZone -eq $false })) {
@@ -62,7 +75,7 @@ function Get-ADDNSHealthStatus {
         # Eindeutige Nameserver (NS) sammeln (Abfrage am TargetServer)
         $nsList = New-Object System.Collections.Generic.HashSet[string]
         foreach ($zone in $allZones) {
-            $nsRecords = Get-DnsServerResourceRecord -ComputerName $TargetServer -ZoneName $zone.ZoneName -RRType "NS" -ErrorAction SilentlyContinue
+            $nsRecords = Get-DnsServerResourceRecord @dnsCn -ZoneName $zone.ZoneName -RRType "NS" -ErrorAction SilentlyContinue
             foreach ($record in $nsRecords) {
                 $name = $record.RecordData.NameServer.TrimEnd('.')
                 if (-not [string]::IsNullOrWhiteSpace($name)) {
@@ -93,7 +106,7 @@ function Get-ADDNSHealthStatus {
                     # Versuch 2: Direkte Abfrage der Resource Records am TargetServer
                     foreach ($z in $forwardZones) {
                         $shortName = $server.Split('.')[0]
-                        $aRecord = Get-DnsServerResourceRecord -ComputerName $TargetServer -ZoneName $z.ZoneName -Name $shortName -RRType A -ErrorAction SilentlyContinue
+                        $aRecord = Get-DnsServerResourceRecord @dnsCn -ZoneName $z.ZoneName -Name $shortName -RRType A -ErrorAction SilentlyContinue
                         if ($aRecord) {
                             $ip = $aRecord.RecordData.IPv4Address.IPAddressToString
                             break
