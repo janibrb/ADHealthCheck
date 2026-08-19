@@ -394,7 +394,9 @@ function Get-ADHCMockData {
                 ZoneStatus       = "Running"
                 ReplicationScope = "Domain"
                 IsSigned         = $false    # -> DNS-07 (DNSSEC fehlt)
-                Aging            = $null     # Kein Scavenging
+                AgingEnabled     = $false    # -> DNS-01 (Zone ohne Scavenging)
+                RefreshHours     = $null
+                NoRefreshHours   = $null
             }
             [PSCustomObject]@{
                 ZoneName         = "legacy.contoso.local"
@@ -403,7 +405,9 @@ function Get-ADHCMockData {
                 ZoneStatus       = "Stopped" # -> DNS-05 (Zone gestoppt)
                 ReplicationScope = "None"
                 IsSigned         = $false
-                Aging            = $null
+                AgingEnabled     = $null     # Secondary/Stub: nicht ermittelbar
+                RefreshHours     = $null
+                NoRefreshHours   = $null
             }
         )
         ReverseZones = @(
@@ -414,7 +418,9 @@ function Get-ADHCMockData {
                 ZoneStatus       = "Running"
                 ReplicationScope = "Domain"
                 IsSigned         = $false
-                Aging            = $null     # Kein Scavenging
+                AgingEnabled     = $true     # gemessen: aktiv
+                RefreshHours     = 168
+                NoRefreshHours   = 168
             }
         )
         # Rein informativ, wird NICHT geprueft und fliesst in keine Empfehlung ein.
@@ -439,9 +445,16 @@ function Get-ADHCMockData {
                 [PSCustomObject]@{ Name = "mock-dc-02.contoso.local"; Status = "Fail" }
                 [PSCustomObject]@{ Name = "mock-dc-03.contoso.local"; Status = "Fail" }
             )
-            # Alle 3 Zonen ohne Scavenging -> triggert DNS-06 (global disabled)
-            MissingScavenging = @("contoso.local", "legacy.contoso.local", "0.0.10.in-addr.arpa")
-            TotalZoneCount    = 3
+            # Gemessene Werte: eine Zone nachweislich ohne Aging, eine nicht
+            # ermittelbar, eine aktiv. Server-Schalter AN -> DNS-01 feuert und
+            # listet die betroffene Zone. DNS-06 kann dann nicht feuern: seit
+            # v2.7.6 schliessen sich beide Regeln gegenseitig aus (serverweit
+            # aus ODER serverweit an mit einzelnen Zonen aus).
+            MissingScavenging  = @("contoso.local")
+            ScavengingUnknown  = @("legacy.contoso.local")
+            ScavengingMeasured = 2
+            ServerScavenging   = [PSCustomObject]@{ Enabled = $true; IntervalHours = 168 }
+            TotalZoneCount     = 3
             SRVDetails        = @(
                 [PSCustomObject]@{ ServiceKey = "LDAP";     Status = "OK"       }
                 [PSCustomObject]@{ ServiceKey = "Kerberos"; Status = "OK"       }
@@ -488,7 +501,7 @@ function Get-ADHCMockData {
         DNS               = $dnsData
     }
 
-    Write-ADHCLog "Mock-Daten generiert: alle 69 Empfehlungsregeln aktiv." -Component "Discovery"
+    Write-ADHCLog "Mock-Daten generiert: 72 von 73 Empfehlungsregeln aktiv. DNS-06 (Scavenging serverweit aus) schliesst DNS-01 (einzelne Zonen aus) aus - im Sample feuert DNS-01." -Component "Discovery"
     return $mockData
 }
 

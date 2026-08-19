@@ -3,8 +3,36 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.7.5
-    Changelog:  - FIX: Der Nameserver-Block im DNS-Report listete Geister-DCs. Die
+    Version:    2.7.6
+    Changelog:  - FIX: Die Kachel "Scavenging (Aging)" hat nie etwas gemessen. Der Check
+                  las $zone.Aging auf den selbst gebauten Zonenobjekten — die tragen
+                  gar keine solche Eigenschaft (und "AgingState" existiert ohnehin
+                  nicht; das Feld heisst AgingEnabled). $null -eq $zone.Aging war
+                  damit immer wahr, JEDE Zone landete unbesehen in MissingScavenging.
+                  Im Feldtest sichtbar als "Inaktiv - nicht konfiguriert (Global)"
+                  ueber alle 21 Zonen, unabhaengig von der echten Konfiguration.
+                  Aging wird jetzt je Zone ueber Get-DnsServerZoneAging erhoben
+                  (neue Funktion Get-ADHCZoneAging) und in AgingEnabled/RefreshHours/
+                  NoRefreshHours am Zonenobjekt gefuehrt. AgingEnabled = $null heisst
+                  ausdruecklich "nicht ermittelbar" (Secondary/Stub/Forwarder) und
+                  zaehlt NICHT als "ohne Scavenging" — solche Zonen werden getrennt
+                  ausgewiesen.
+                - FEAT: Der Report zeigt jetzt je Zone, ob Scavenging aktiv ist. Neue
+                  Spalte SCAVENGING in Forward- und Reverse-Zonentabelle mit AKTIV /
+                  INAKTIV / UNBEKANNT; bei AKTIV nennt der Tooltip No-Refresh- und
+                  Refresh-Intervall in Stunden.
+                - FEAT: Der serverweite Schalter wird geprueft (Get-DnsServerScavenging,
+                  neue Funktion Get-ADHCServerScavenging). Ohne ihn laeuft Aging auf
+                  Zonenebene ins Leere. Die Kachel zeigt ihn zuerst; die Fusszeile
+                  zaehlt nur noch tatsaechlich gemessene Zonen und nennt nicht
+                  ermittelbare getrennt.
+                - CHANGE: DNS-01 und DNS-06 loesen jetzt das aus, was ihre Texte seit
+                  jeher behaupten. DNS-06 haengt am serverweiten Schalter statt an
+                  "alle Zonen ohne Aging"; DNS-01 feuert, wenn der Schalter AN ist und
+                  einzelne Zonen kein Aging haben. Beide schliessen sich damit
+                  gegenseitig aus — der Sample-Report zeigt deshalb DNS-01, nicht mehr
+                  beide.
+                - FIX: Der Nameserver-Block im DNS-Report listete Geister-DCs. Die
                   NS-Records wurden ueber ALLE Zonen des Servers eingesammelt —
                   darunter die DNSSEC-Systemzone "TrustAnchors". Die wird forestweit
                   repliziert, nie bereinigt und traegt NS-Eintraege laengst entfernter

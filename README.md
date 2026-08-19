@@ -1,6 +1,6 @@
 ﻿# AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.7.5-blue)
+![Version](https://img.shields.io/badge/Version-2.7.6-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -233,7 +233,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.7.5                    # Einzige Stelle. $script:LocalVersion
+Version:    2.7.6                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -346,6 +346,37 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.7.6 — Scavenging wurde nie gemessen
+Gefunden beim Feldtest von v2.7.5. Die Kachel meldete **„Inaktiv – nicht konfiguriert (Global)" über alle 21 Zonen**. Der Grund war nicht die Konfiguration:
+
+```powershell
+foreach ($zone in $allTestedZones) {
+    if ($null -eq $zone.Aging -or $zone.Aging.AgingState -eq $false) { ... }
+}
+```
+
+`$allTestedZones` sind die selbst gebauten Zonenobjekte — und die tragen **keine** Eigenschaft `Aging`. `$null -eq $zone.Aging` war damit immer wahr, **jede** Zone landete unbesehen in `MissingScavenging`. `AgingState` existiert obendrein nicht; das Feld heisst `AgingEnabled` und kommt aus `Get-DnsServerZoneAging`.
+
+- **fix:** Aging wird jetzt je Zone tatsächlich erhoben (`Get-ADHCZoneAging`) und als `AgingEnabled` / `RefreshHours` / `NoRefreshHours` am Zonenobjekt geführt.
+
+- **`AgingEnabled = $null` heisst „nicht ermittelbar", nicht „deaktiviert".** Secondary-, Stub- und Forwarder-Zonen kennen kein Aging — solche Zonen zählen **nicht** als „ohne Scavenging", sondern werden getrennt ausgewiesen (`ScavengingUnknown`). Genau diese Verwechslung war der Fehler.
+
+- **feat:** Neue Spalte `SCAVENGING` in Forward- und Reverse-Zonentabelle:
+
+  | Pille | Bedeutung |
+  |---|---|
+  | **AKTIV** (grün) | Aging aktiv; Tooltip nennt No-Refresh- und Refresh-Intervall in Stunden |
+  | **INAKTIV** (gelb) | Aging nachweislich aus |
+  | **UNBEKANNT** (grau) | nicht ermittelbar — bewusst neutral, damit eine fehlende Messung nicht wie ein Befund aussieht |
+
+- **feat:** Der serverweite Schalter wird geprüft (`Get-ADHCServerScavenging` über `Get-DnsServerScavenging`). Ohne ihn läuft Aging auf Zonenebene ins Leere: die Zonen sind konfiguriert, aufgeräumt wird trotzdem nie. Die Kachel zeigt ihn zuerst; die Fusszeile zählt nur noch gemessene Zonen und nennt nicht ermittelbare separat.
+
+- **change:** `DNS-01` und `DNS-06` lösen jetzt das aus, was ihre Texte seit jeher behaupten. `DNS-06` hängt am serverweiten Schalter statt an „alle Zonen ohne Aging"; `DNS-01` feuert, wenn der Schalter **an** ist und einzelne Zonen kein Aging haben. Beide schliessen sich damit gegenseitig aus — der Sample-Report zeigt deshalb `DNS-01`, nicht mehr beide. Die Log-Zeile in `Get-ADHCMockData` behauptete „alle 69 Empfehlungsregeln aktiv"; es sind 73 Regeln, und eine davon kann im Sample nicht feuern. Der Text sagt das jetzt.
+
+> **Warum das zählt:** Zwei Releases hintereinander derselbe Fehlertyp — ein Feld, das nie erhoben wurde, aber als Befund im Report stand. Erst die Trust-Anchor-NS, jetzt das Aging. Ein Report, der Unwissen als Messwert ausgibt, ist schlimmer als einer, der die Spalte weglässt.
+
+- **Kosten:** ein `Get-DnsServerZoneAging`-Aufruf je Zone. Lokal vernachlässigbar, bei entferntem Zielserver über WinRM merkbar.
 
 ### v2.7.5 — Geister-Nameserver aus `TrustAnchors`
 Gefunden im Feldtest. Die Tabelle **Status der Nameserver (NS)** listete rund zwei Dutzend DNS-Server, die alle `Stopped` / `Fail` meldeten — und damit die Empfehlung `NSUnreachable` auslösten. Auf demselben Server lieferte `Get-DnsServerTrustPoint` nichts, `Get-DnsServerResourceRecord -ZoneName TrustAnchors -RRType NS` dagegen genau diese Liste.
@@ -665,4 +696,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.7.5 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.7.6 — LAKE Solutions AG*

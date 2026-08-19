@@ -583,6 +583,23 @@ function New-ADHCReport {
 		$htmlOUSec += "</div>"
 	}
 
+	# Scavenging-Pille je Zone. $null heisst "nicht ermittelbar" und wird auch so
+	# angezeigt — nicht als "inaktiv". Genau diese Verwechslung war der Fehler.
+	$scavPill = {
+		param($zone, $I18n)
+		if ($null -eq $zone.AgingEnabled) {
+			return "<span class='status-pill status-neutral'>$($I18n.Labels.Unknown)</span>"
+		}
+		if ($zone.AgingEnabled) {
+			$tip = ""
+			if ($null -ne $zone.NoRefreshHours -and $null -ne $zone.RefreshHours) {
+				$tip = " title='$($I18n.Labels.NoRefreshInterval): $($zone.NoRefreshHours) h / $($I18n.Labels.RefreshInterval): $($zone.RefreshHours) h'"
+			}
+			return "<span class='status-pill status-ok'${tip}>$($I18n.Labels.Active)</span>"
+		}
+		return "<span class='status-pill status-warning'>$($I18n.Labels.Inactive)</span>"
+	}
+
 	# --- Sektion: DNS Health ---
 	$htmlDNS = ""
 	if ($Data.DNS) {
@@ -599,30 +616,45 @@ function New-ADHCReport {
 			$missingScavCount    = @($qc.MissingScavenging).Count
 		
 			# --- Kachel 1: Scavenging ---
-			$scavClass = "status-ok"
-			if ($missingScavCount -gt 0) {
-				$scavClass = if ($missingScavCount -ge $effectiveTotalZones) { "status-error" } else { "status-warning" }
-			}
-		
-			if ($missingScavCount -eq 0) {
+			# Zwei Ebenen: der serverweite Schalter und die Zonen. Ist der Schalter aus,
+			# steht das zuerst — dann ist jede Zonenkonfiguration wirkungslos und eine
+			# Zonenliste waere irrefuehrend.
+			$srvScav      = $qc.ServerScavenging
+			$unknownCount = @($qc.ScavengingUnknown).Count
+			$measured     = if ($null -ne $qc.ScavengingMeasured) { [int]$qc.ScavengingMeasured } else { $effectiveTotalZones }
+
+			if ($srvScav -and $srvScav.Enabled -eq $false) {
+				$scavClass   = "status-error"
+				$scavContent = $I18n.Labels.ScavengingServerDisabled
+			} elseif ($missingScavCount -eq 0) {
+				$scavClass   = "status-ok"
 				$scavContent = $I18n.Labels.Active
-			} elseif ($missingScavCount -ge $effectiveTotalZones) {
-				$scavContent = $I18n.Labels.ScavengingGlobalInactive
 			} else {
-				$maxDisplay = 2
+				$scavClass      = if ($measured -gt 0 -and $missingScavCount -ge $measured) { "status-error" } else { "status-warning" }
+				$maxDisplay     = 2
 				$displayedZones = $qc.MissingScavenging | Select-Object -First $maxDisplay
-				$scavContent = "$($I18n.Labels.Inactive): " + ($displayedZones -join ", ")
+				$scavContent    = "$($I18n.Labels.Inactive): " + ($displayedZones -join ", ")
 				if ($missingScavCount -gt $maxDisplay) {
 					$remaining = $missingScavCount - $maxDisplay
 					$scavContent += " (+ ${remaining})"
 				}
 			}
-		
+
+			# Fusszeile: nur zaehlen, was tatsaechlich gemessen wurde. Nicht ermittelbare
+			# Zonen werden getrennt genannt statt stillschweigend mitgezaehlt.
+			$scavFooter = $I18n.Labels.ScavengingCheckedIn -f $measured
+			if ($unknownCount -gt 0) {
+				$scavFooter += " &middot; " + ($I18n.Labels.ScavengingUnknownCount -f $unknownCount)
+			}
+			if ($srvScav -and $srvScav.Enabled -eq $true -and $null -ne $srvScav.IntervalHours) {
+				$scavFooter += " &middot; " + ($I18n.Labels.ScavengingServerInterval -f $srvScav.IntervalHours)
+			}
+
 			$htmlDNS += "<div class='quick-info-box qbox-scavenging'>
 							<div class='qbox-label'>Scavenging (Aging)</div>
 							<div class='status-text ${scavClass}' style='font-size: 1.1rem; font-weight: 700;'>${scavContent}</div>
 							<div style='font-size: 0.75rem; color: #888; margin-top: auto; padding-top: 10px;'>
-								$($I18n.Labels.ScavengingCheckedIn -f $effectiveTotalZones)
+								${scavFooter}
 							</div>
 						</div>"
 		
@@ -683,7 +715,8 @@ function New-ADHCReport {
 		$htmlDNS += "<h3 class='dns-table-header'>$($I18n.Labels.ForwardZones)</h3>"
 		$htmlDNS += "<table class='styled-table'><thead><tr>
 						<th>$($I18n.Labels.ZoneName)</th><th>$($I18n.Labels.Type)</th>
-						<th>$($I18n.Labels.Status)</th><th>$($I18n.Labels.Replication)</th><th>DNSSEC</th>
+						<th>$($I18n.Labels.Status)</th><th>$($I18n.Labels.Replication)</th>
+						<th>SCAVENGING</th><th>DNSSEC</th>
 					</tr></thead><tbody>"
 		foreach ($zone in $Data.DNS.ForwardZones) {
 			$translatedBaseType = switch ($zone.ZoneType) {
@@ -698,7 +731,8 @@ function New-ADHCReport {
 			$secPill = if ($zone.IsSigned) { "<span class='status-pill status-ok'>ACTIVE</span>" } else { "<span class='status-pill status-warning'>INACTIVE</span>" }
 			$htmlDNS += "<tr><td><b>$($zone.ZoneName)</b></td><td>${fullTypeDisplay}</td>
 						<td><span class='status-pill ${statusClass}'>${statusText}</span></td>
-						<td>$($zone.ReplicationScope)</td><td>${secPill}</td></tr>"
+						<td>$($zone.ReplicationScope)</td>
+						<td>$(& $scavPill $zone $I18n)</td><td>${secPill}</td></tr>"
 		}
 		$htmlDNS += "</tbody></table>"
 	
@@ -706,10 +740,11 @@ function New-ADHCReport {
 		$htmlDNS += "<h3 class='dns-table-header'>$($I18n.Labels.ReverseZones)</h3>"
 		$htmlDNS += "<table class='styled-table'><thead><tr>
 						<th>$($I18n.Labels.ZoneName)</th><th>$($I18n.Labels.Type)</th>
-						<th>$($I18n.Labels.Status)</th><th>$($I18n.Labels.Replication)</th><th>DNSSEC</th>
+						<th>$($I18n.Labels.Status)</th><th>$($I18n.Labels.Replication)</th>
+						<th>SCAVENGING</th><th>DNSSEC</th>
 					</tr></thead><tbody>"
 		if ($Data.DNS.ReverseZones.Count -eq 0) {
-			$htmlDNS += "<tr><td colspan='5' style='text-align:center;'>$($I18n.Labels.NoZonesFound)</td></tr>"
+			$htmlDNS += "<tr><td colspan='6' style='text-align:center;'>$($I18n.Labels.NoZonesFound)</td></tr>"
 		} else {
 			foreach ($zone in $Data.DNS.ReverseZones) {
 				$translatedBaseType = switch ($zone.ZoneType) {
@@ -724,7 +759,8 @@ function New-ADHCReport {
 				$secPill = if ($zone.IsSigned) { "<span class='status-pill status-ok'>ACTIVE</span>" } else { "<span class='status-pill status-warning'>INACTIVE</span>" }
 				$htmlDNS += "<tr><td><b>$($zone.ZoneName)</b></td><td>${fullTypeDisplay}</td>
 							<td><span class='status-pill ${statusClass}'>${statusText}</span></td>
-							<td>$($zone.ReplicationScope)</td><td>${secPill}</td></tr>"
+							<td>$($zone.ReplicationScope)</td>
+							<td>$(& $scavPill $zone $I18n)</td><td>${secPill}</td></tr>"
 			}
 		}
 		$htmlDNS += "</tbody></table>"
@@ -1628,7 +1664,11 @@ function New-ADHCReport {
 				switch ($rule.Property) {
 					# 1. Scavenging Mismatch (Teilweise vergessen)
 					"ScavengingZoneMismatch" {
-						if ($missingScavengingCount -gt 0 -and $missingScavengingCount -lt $totalZonesCount) {
+						# Genau das, was der Regeltext behauptet: Server aktiv, einzelne Zonen aus.
+						# Bis v2.7.5 wurde stattdessen nur abgezaehlt, ohne den Serverzustand je
+						# erhoben zu haben.
+						$serverScavOn = ($dns.QuickChecks.ServerScavenging -and $dns.QuickChecks.ServerScavenging.Enabled -eq $true)
+						if ($serverScavOn -and $missingScavengingCount -gt 0) {
 							$isTriggered = $true
 							$affectedItems = $dns.QuickChecks.MissingScavenging
 						}
@@ -1671,7 +1711,9 @@ function New-ADHCReport {
 					}
 					# 6. Scavenging Global Aus (Nur Hinweis)
 					"ScavengingGloballyDisabled" {
-						if ($missingScavengingCount -eq $totalZonesCount -and $totalZonesCount -gt 0) {
+						# Haengt jetzt am serverweiten Schalter statt an "alle Zonen ohne Aging".
+						# Ist er nicht ermittelbar ($null), wird nichts behauptet.
+						if ($dns.QuickChecks.ServerScavenging -and $dns.QuickChecks.ServerScavenging.Enabled -eq $false) {
 							$isTriggered = $true
 						}
 					}

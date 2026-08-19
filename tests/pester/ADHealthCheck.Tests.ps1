@@ -513,3 +513,76 @@ Describe "Get-ADHCTrustAnchorInfo" {
         }
     }
 }
+
+# ===========================================================================
+# BLOCK 8: DNS — Scavenging wird gemessen, nicht behauptet
+# ===========================================================================
+Describe "Get-ADHCZoneAging" {
+
+    BeforeAll {
+        $dnsPath = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\..")) "modules\ADHealthCheck.DNS.psm1"
+        Import-Module $dnsPath -Force -DisableNameChecking
+        Mock -CommandName Write-ADHCLog -ModuleName ADHealthCheck.DNS -MockWith { }
+    }
+
+    AfterAll {
+        Remove-Module ADHealthCheck.DNS -ErrorAction SilentlyContinue
+    }
+
+    It "meldet AgingEnabled=True samt Intervallen in Stunden" {
+        Mock -CommandName Get-DnsServerZoneAging -ModuleName ADHealthCheck.DNS -MockWith {
+            [PSCustomObject]@{
+                AgingEnabled      = $true
+                RefreshInterval   = [TimeSpan]::FromDays(7)
+                NoRefreshInterval = [TimeSpan]::FromDays(7)
+            }
+        }
+        $r = Get-ADHCZoneAging -ZoneName "contoso.local"
+        $r.AgingEnabled   | Should -BeTrue
+        $r.RefreshHours   | Should -Be 168
+        $r.NoRefreshHours | Should -Be 168
+    }
+
+    It "meldet AgingEnabled=False, wenn Aging aus ist" {
+        Mock -CommandName Get-DnsServerZoneAging -ModuleName ADHealthCheck.DNS -MockWith {
+            [PSCustomObject]@{ AgingEnabled = $false; RefreshInterval = $null; NoRefreshInterval = $null }
+        }
+        (Get-ADHCZoneAging -ZoneName "contoso.local").AgingEnabled | Should -BeFalse
+    }
+
+    It "unterscheidet 'nicht ermittelbar' von 'deaktiviert'" {
+        # Secondary-/Stub-Zonen kennen kein Aging: das Cmdlet wirft.
+        Mock -CommandName Get-DnsServerZoneAging -ModuleName ADHealthCheck.DNS -MockWith { throw "Zone type not supported" }
+        $r = Get-ADHCZoneAging -ZoneName "stub.partner.com"
+        $r.AgingEnabled | Should -BeNullOrEmpty
+        # Ausdruecklich NICHT $false — sonst waere es wieder eine Behauptung.
+        ($r.AgingEnabled -eq $false) | Should -BeFalse
+    }
+}
+
+Describe "Get-ADHCServerScavenging" {
+
+    BeforeAll {
+        $dnsPath = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\..")) "modules\ADHealthCheck.DNS.psm1"
+        Import-Module $dnsPath -Force -DisableNameChecking
+        Mock -CommandName Write-ADHCLog -ModuleName ADHealthCheck.DNS -MockWith { }
+    }
+
+    AfterAll {
+        Remove-Module ADHealthCheck.DNS -ErrorAction SilentlyContinue
+    }
+
+    It "liest den serverweiten Schalter samt Intervall" {
+        Mock -CommandName Get-DnsServerScavenging -ModuleName ADHealthCheck.DNS -MockWith {
+            [PSCustomObject]@{ ScavengingState = $true; ScavengingInterval = [TimeSpan]::FromDays(7) }
+        }
+        $r = Get-ADHCServerScavenging
+        $r.Enabled       | Should -BeTrue
+        $r.IntervalHours | Should -Be 168
+    }
+
+    It "liefert Enabled=\$null, wenn der Schalter nicht ermittelbar ist" {
+        Mock -CommandName Get-DnsServerScavenging -ModuleName ADHealthCheck.DNS -MockWith { throw "RPC server unavailable" }
+        (Get-ADHCServerScavenging).Enabled | Should -BeNullOrEmpty
+    }
+}

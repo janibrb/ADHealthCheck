@@ -110,6 +110,75 @@ function Select-ADHCNameserverZone {
     })
 }
 
+function Get-ADHCZoneAging {
+    <#
+    .SYNOPSIS
+        Ermittelt den Aging-/Scavenging-Zustand EINER Zone.
+    .DESCRIPTION
+        Quelle ist Get-DnsServerZoneAging. Secondary-, Stub- und Forwarder-Zonen
+        kennen kein Aging — dort wirft das Cmdlet, und AgingEnabled bleibt $null.
+
+        $null bedeutet ausdruecklich "nicht ermittelbar", NICHT "deaktiviert".
+        Der Unterschied ist der Kern des Fehlers, den diese Funktion behebt:
+        vorher wurde die Eigenschaft nie erhoben und jede Zone unbesehen als
+        "ohne Scavenging" gemeldet.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$ZoneName,
+
+        [Parameter(Mandatory=$false)]
+        [hashtable]$CimArgs = @{}
+    )
+
+    $result = [PSCustomObject]@{
+        AgingEnabled   = $null
+        RefreshHours   = $null
+        NoRefreshHours = $null
+    }
+
+    try {
+        $aging = Get-DnsServerZoneAging @CimArgs -Name $ZoneName -ErrorAction Stop
+        if ($aging) {
+            $result.AgingEnabled   = [bool]$aging.AgingEnabled
+            $result.RefreshHours   = if ($null -ne $aging.RefreshInterval)   { [int]$aging.RefreshInterval.TotalHours }   else { $null }
+            $result.NoRefreshHours = if ($null -ne $aging.NoRefreshInterval) { [int]$aging.NoRefreshInterval.TotalHours } else { $null }
+        }
+    } catch {
+        # AgingEnabled bleibt $null = nicht ermittelbar.
+    }
+
+    return $result
+}
+
+function Get-ADHCServerScavenging {
+    <#
+    .SYNOPSIS
+        Serverweiter Scavenging-Schalter.
+    .DESCRIPTION
+        Ohne diesen Schalter laeuft Aging auf Zonenebene ins Leere: die Zonen
+        sind konfiguriert, aufgeraeumt wird trotzdem nie. Enabled = $null heisst
+        "nicht ermittelbar", nicht "aus".
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false)]
+        [hashtable]$CimArgs = @{}
+    )
+
+    try {
+        $sc = Get-DnsServerScavenging @CimArgs -ErrorAction Stop
+        return [PSCustomObject]@{
+            Enabled       = if ($null -ne $sc.ScavengingState) { [bool]$sc.ScavengingState } else { $null }
+            IntervalHours = if ($null -ne $sc.ScavengingInterval) { [int]$sc.ScavengingInterval.TotalHours } else { $null }
+        }
+    } catch {
+        Write-ADHCLog -Message "Serverweiter Scavenging-Status nicht ermittelbar: $($_.Exception.Message)" -Level Warning -Component "DNS-Check"
+        return [PSCustomObject]@{ Enabled = $null; IntervalHours = $null }
+    }
+}
+
 function Get-ADDNSHealthStatus {
     [CmdletBinding()]
     param(
@@ -159,6 +228,10 @@ function Get-ADDNSHealthStatus {
                 $zone.ZoneType 
             }
 
+            # Aging je Zone tatsaechlich erheben — vorher trug das Objekt keine
+            # solche Eigenschaft, wodurch die Scavenging-Pruefung ins Leere lief.
+            $aging = Get-ADHCZoneAging -ZoneName $zone.ZoneName -CimArgs $dnsCn
+
             [PSCustomObject]@{
                 ZoneName         = $zone.ZoneName
                 FullType         = $typeStr
@@ -166,7 +239,10 @@ function Get-ADDNSHealthStatus {
 				IsADIntegrated   = ($zone.ReplicationScope -ne "None")
                 ZoneStatus       = if ($zone.Paused) { "Stopped" } else { "Running" }
                 ReplicationScope = $zone.ReplicationScope
-                IsSigned         = $zone.IsSigned				
+                IsSigned         = $zone.IsSigned
+                AgingEnabled     = $aging.AgingEnabled
+                RefreshHours     = $aging.RefreshHours
+                NoRefreshHours   = $aging.NoRefreshHours
             }
         }
 
@@ -178,6 +254,8 @@ function Get-ADDNSHealthStatus {
                 $zone.ZoneType 
             }
 
+            $aging = Get-ADHCZoneAging -ZoneName $zone.ZoneName -CimArgs $dnsCn
+
             [PSCustomObject]@{
                 ZoneName         = $zone.ZoneName
                 FullType         = $typeStr
@@ -186,7 +264,9 @@ function Get-ADDNSHealthStatus {
                 ZoneStatus       = if ($zone.Paused) { "Stopped" } else { "Running" }
                 ReplicationScope = $zone.ReplicationScope
                 IsSigned         = $zone.IsSigned
-
+                AgingEnabled     = $aging.AgingEnabled
+                RefreshHours     = $aging.RefreshHours
+                NoRefreshHours   = $aging.NoRefreshHours
             }
         }
 
@@ -262,15 +342,17 @@ function Get-ADDNSHealthStatus {
         }
 		
 		# --- Quick Check: Scavenging Status ---
-		# Fix: $allTestedZones (nur Forward+Reverse) statt $allZones (enthält Forwarder)
-		# Konsistent mit TotalZoneCount in Reporting
-		$zonesWithoutScavenging = @()
-		$allTestedZones = @($forwardZones) + @($reverseZones)
-		foreach ($zone in $allTestedZones) {
-			if ($null -eq $zone.Aging -or $zone.Aging.AgingState -eq $false) {
-				$zonesWithoutScavenging += $zone.ZoneName
-			}
-		}
+		# $allTestedZones = nur Forward+Reverse, konsistent mit TotalZoneCount im Reporting.
+		# WICHTIG: In die Liste kommt nur, wer NACHWEISLICH kein Aging hat
+		# (AgingEnabled -eq $false). Zonen mit $null sind nicht ermittelbar — die
+		# werden getrennt gezaehlt, statt sie als "ohne Scavenging" auszugeben.
+		$allTestedZones         = @($forwardZones) + @($reverseZones)
+		$zonesWithoutScavenging = @($allTestedZones | Where-Object { $_.AgingEnabled -eq $false } | ForEach-Object { $_.ZoneName })
+		$scavengingUnknown      = @($allTestedZones | Where-Object { $null -eq $_.AgingEnabled } | ForEach-Object { $_.ZoneName })
+		$scavengingMeasured     = @($allTestedZones | Where-Object { $null -ne $_.AgingEnabled }).Count
+
+		# Serverweiter Schalter: ohne ihn ist jede Zonenkonfiguration wirkungslos.
+		$serverScavenging = Get-ADHCServerScavenging -CimArgs $dnsCn
 		
 		# --- Quick Check: Nameserver Erreichbarkeit ---
 		$nsSummary = foreach ($ns in $serverStatus) {
@@ -314,6 +396,9 @@ function Get-ADDNSHealthStatus {
 			QuickChecks  = @{
 				NSCondition       = $nsSummary
 				MissingScavenging  = $zonesWithoutScavenging
+				ScavengingUnknown  = $scavengingUnknown
+				ScavengingMeasured = $scavengingMeasured
+				ServerScavenging   = $serverScavenging
 				TotalZoneCount     = $allTestedZones.Count
 				SRVDetails        = $srvResults
 			}
@@ -324,4 +409,4 @@ function Get-ADDNSHealthStatus {
     }
 }
 
-Export-ModuleMember -Function Get-ADDNSHealthStatus, Select-ADHCNameserverZone, Get-ADHCTrustAnchorInfo
+Export-ModuleMember -Function Get-ADDNSHealthStatus, Select-ADHCNameserverZone, Get-ADHCTrustAnchorInfo, Get-ADHCZoneAging, Get-ADHCServerScavenging

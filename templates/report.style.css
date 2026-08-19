@@ -133,6 +133,9 @@ body {
 }
 .status-ok, .status-ok-bg { background-color: #e6f7e8; color: #0e600e; } 
 .status-warning, .status-warn-bg, .status-warn { background-color: #fff8e1; color: #8a6d00; } 
+/* Neutral: "nicht ermittelbar". Bewusst grau — weder gut noch schlecht,
+   damit eine fehlende Messung nicht wie ein Befund aussieht. */
+.status-neutral { background-color: #f0f1f3; color: #6b7079; }
 .status-error, .status-error-bg { background-color: #ffebee; color: #c62828; } 
 
 /* Reset table cells */
