@@ -3,8 +3,30 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.7.4
-    Changelog:  - FIX: DNS-Check auf Single DC schlug fehl ("Failed to enumerate
+    Version:    2.7.5
+    Changelog:  - FIX: Der Nameserver-Block im DNS-Report listete Geister-DCs. Die
+                  NS-Records wurden ueber ALLE Zonen des Servers eingesammelt —
+                  darunter die DNSSEC-Systemzone "TrustAnchors". Die wird forestweit
+                  repliziert, nie bereinigt und traegt NS-Eintraege laengst entfernter
+                  DCs; im Report standen sie als "Stopped/Fail" und loesten die
+                  Empfehlung NSUnreachable aus. Get-DnsServerTrustPoint meldet auf
+                  denselben Servern korrekt nichts — der Befund war reines Artefakt
+                  der Abfrage. Neue Funktion Select-ADHCNameserverZone filtert jetzt
+                  Systemzonen (TrustAnchors, ".", 0/127/255.in-addr.arpa) sowie Stub-
+                  und Forwarder-Zonen (halten per Definition NS fremder Server) aus.
+                  Betrifft ADHealthCheck.DNS.psm1.
+                - CHANGE: Trust Anchors werden separat und rein informativ ausgegeben.
+                  Die Zone "TrustAnchors" faellt aus ForwardZones heraus und damit aus
+                  TotalZoneCount, Scavenging- und DNSSEC-Bewertung sowie aus den Regeln
+                  NonADIntegrated und ZoneStopped. Neue Funktion Get-ADHCTrustAnchorInfo
+                  meldet stattdessen Existenz und Replikationsbereich der Zone, die
+                  ANZAHL ihrer NS-Records (ungeprueft) und - sofern vorhanden - die
+                  Trust Points aus Get-DnsServerTrustPoint/-TrustAnchor. Das Objekt
+                  traegt bewusst kein Statusfeld; der Block im Report ist neutral
+                  gestaltet und fliesst in keine Empfehlung ein. Er erscheint nur, wenn
+                  ueberhaupt etwas vorhanden ist. Betrifft ADHealthCheck.DNS.psm1,
+                  ADHealthCheck.Reporting.psm1, ADHealthCheck.Diag.psm1, i18n, CSS.
+                - FIX: DNS-Check auf Single DC schlug fehl ("Failed to enumerate
                   zones from the server"). Get-DnsServerZone/-ResourceRecord bekamen
                   den DC-FQDN via -ComputerName und erzwangen eine Remote-CIM-Sitzung
                   ueber WinRM, die auf einem Single DC oft nicht erreichbar ist,

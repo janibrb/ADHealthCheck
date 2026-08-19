@@ -727,7 +727,46 @@ function New-ADHCReport {
 							<td>$($zone.ReplicationScope)</td><td>${secPill}</td></tr>"
 			}
 		}
-		$htmlDNS += "</tbody></table></div>"
+		$htmlDNS += "</tbody></table>"
+
+		# --- INFO: TRUST ANCHORS ---
+		# Bewusst ohne Bewertung: keine status-pill, keine Ampelfarbe, kein Eintrag in
+		# den Empfehlungen. Die Zone "TrustAnchors" wird forestweit repliziert und nie
+		# bereinigt — ihre Eintraege lassen sich nicht sinnvoll pruefen. Der Block
+		# erscheint nur, wenn ueberhaupt etwas vorhanden ist.
+		$ta = $Data.DNS.TrustAnchors
+		if ($ta) {
+			$taFacts = @()
+
+			if ($ta.ZonePresent) {
+				$taType = switch ($ta.ZoneType) {
+					"Primary"   { $I18n.Labels.Primary }
+					"Secondary" { $I18n.Labels.Secondary }
+					"Stub"      { $I18n.Labels.Stub }
+					Default     { $ta.ZoneType }
+				}
+				if ($ta.IsADIntegrated) { $taType = "${taType}, $($I18n.Labels.ADIntegrated)" }
+				$scope = if ($ta.ReplicationScope) { ", $($ta.ReplicationScope)" } else { "" }
+				$taFacts += "$($I18n.Labels.ZoneName) <b>$($ta.ZoneName)</b> (${taType}${scope})"
+				$taFacts += ($I18n.Labels.TrustAnchorNSCount -f $ta.NSRecordCount)
+			}
+
+			if (@($ta.TrustPoints).Count -eq 0) {
+				$taFacts += $I18n.Labels.NoTrustPoints
+			} else {
+				foreach ($tp in $ta.TrustPoints) {
+					$taFacts += "$($I18n.Labels.TrustPoint) <b>$($tp.Name)</b> ($($tp.State), $($I18n.Labels.TrustAnchorCount -f $tp.AnchorCount))"
+				}
+			}
+
+			$htmlDNS += "<h3 class='dns-table-header'>$($I18n.Labels.TrustAnchors)</h3>"
+			$htmlDNS += "<div class='info-note'>
+							<div>$($taFacts -join ' &middot; ')</div>
+							<div class='info-note-hint'>$($I18n.Labels.TrustAnchorsNotChecked)</div>
+						</div>"
+		}
+
+		$htmlDNS += "</div>"
 	}
 	
 	# --- START DEBUG MOCK DATA: DNS FULL TEST ---

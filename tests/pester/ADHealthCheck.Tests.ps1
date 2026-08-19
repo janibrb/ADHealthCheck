@@ -369,3 +369,147 @@ Describe "New-ADHCReport — Keine hartcodierten DE-Strings im EN-Modus" {
         $script:enHtml | Should -Match 'Review'
     }
 }
+
+# ===========================================================================
+# BLOCK 6: DNS — Auswahl der Zonen für die Nameserver-Ermittlung
+# ===========================================================================
+Describe "Select-ADHCNameserverZone" {
+
+    BeforeAll {
+        $dnsPath = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\..")) "modules\ADHealthCheck.DNS.psm1"
+        if (-not (Test-Path $dnsPath)) { throw "DNS-Modul nicht gefunden: $dnsPath" }
+        Import-Module $dnsPath -Force -DisableNameChecking
+
+        $script:allZones = @(
+            [PSCustomObject]@{ ZoneName = "contoso.local";            ZoneType = "Primary" }
+            [PSCustomObject]@{ ZoneName = "_msdcs.contoso.local";     ZoneType = "Primary" }
+            [PSCustomObject]@{ ZoneName = "1.168.192.in-addr.arpa";   ZoneType = "Primary" }
+            [PSCustomObject]@{ ZoneName = "TrustAnchors";             ZoneType = "Primary" }
+            [PSCustomObject]@{ ZoneName = ".";                        ZoneType = "Primary" }
+            [PSCustomObject]@{ ZoneName = "0.in-addr.arpa";           ZoneType = "Primary" }
+            [PSCustomObject]@{ ZoneName = "127.in-addr.arpa";         ZoneType = "Primary" }
+            [PSCustomObject]@{ ZoneName = "255.in-addr.arpa";         ZoneType = "Primary" }
+            [PSCustomObject]@{ ZoneName = "partner.example.com";      ZoneType = "Stub" }
+            [PSCustomObject]@{ ZoneName = "extern.example.com";       ZoneType = "Forwarder" }
+        )
+        $script:selected = @(Select-ADHCNameserverZone -Zone $script:allZones | ForEach-Object { $_.ZoneName })
+    }
+
+    AfterAll {
+        Remove-Module ADHealthCheck.DNS -ErrorAction SilentlyContinue
+    }
+
+    It "schliesst die DNSSEC-Systemzone 'TrustAnchors' aus" {
+        $script:selected | Should -Not -Contain "TrustAnchors"
+    }
+    It "schliesst die Root-Hints-Zone '.' aus" {
+        $script:selected | Should -Not -Contain "."
+    }
+    It "schliesst die automatischen Reverse-Systemzonen aus" {
+        $script:selected | Should -Not -Contain "0.in-addr.arpa"
+        $script:selected | Should -Not -Contain "127.in-addr.arpa"
+        $script:selected | Should -Not -Contain "255.in-addr.arpa"
+    }
+    It "schliesst Stub- und Forwarder-Zonen aus (NS fremder Server)" {
+        $script:selected | Should -Not -Contain "partner.example.com"
+        $script:selected | Should -Not -Contain "extern.example.com"
+    }
+    It "behaelt die echten Domaenen- und Reverse-Zonen" {
+        $script:selected | Should -Contain "contoso.local"
+        $script:selected | Should -Contain "_msdcs.contoso.local"
+        $script:selected | Should -Contain "1.168.192.in-addr.arpa"
+    }
+    It "ist unabhaengig von der Gross-/Kleinschreibung des Zonennamens" {
+        $mixed = @([PSCustomObject]@{ ZoneName = "trustanchors"; ZoneType = "primary" })
+        @(Select-ADHCNameserverZone -Zone $mixed) | Should -HaveCount 0
+    }
+    It "liefert ein leeres Array bei leerer Eingabe" {
+        @(Select-ADHCNameserverZone -Zone @()) | Should -HaveCount 0
+    }
+}
+
+# ===========================================================================
+# BLOCK 7: DNS — Trust Anchors als reine Information
+# ===========================================================================
+Describe "Get-ADHCTrustAnchorInfo" {
+
+    BeforeAll {
+        $dnsPath = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\..")) "modules\ADHealthCheck.DNS.psm1"
+        Import-Module $dnsPath -Force -DisableNameChecking
+    }
+
+    AfterAll {
+        Remove-Module ADHealthCheck.DNS -ErrorAction SilentlyContinue
+    }
+
+    Context "Zone TrustAnchors vorhanden" {
+        BeforeAll {
+            Mock -CommandName Get-DnsServerResourceRecord -ModuleName ADHealthCheck.DNS -MockWith {
+                1..22 | ForEach-Object { [PSCustomObject]@{ RecordType = "NS" } }
+            }
+            Mock -CommandName Get-DnsServerTrustPoint -ModuleName ADHealthCheck.DNS -MockWith { }
+            Mock -CommandName Write-ADHCLog -ModuleName ADHealthCheck.DNS -MockWith { }
+
+            $zones = @(
+                [PSCustomObject]@{ ZoneName = "contoso.local"; ZoneType = "Primary"; ReplicationScope = "Domain" }
+                [PSCustomObject]@{ ZoneName = "TrustAnchors";  ZoneType = "Primary"; ReplicationScope = "Forest" }
+            )
+            $script:info = Get-ADHCTrustAnchorInfo -Zone $zones
+        }
+
+        It "meldet die Zone als vorhanden" {
+            $script:info.ZonePresent | Should -BeTrue
+            $script:info.ZoneName    | Should -Be "TrustAnchors"
+        }
+        It "zaehlt die NS-Records, ohne sie zu pruefen" {
+            $script:info.NSRecordCount | Should -Be 22
+        }
+        It "traegt kein Status- oder Verdikt-Feld" {
+            $names = $script:info.PSObject.Properties.Name
+            $names | Should -Not -Contain "Status"
+            $names | Should -Not -Contain "ICMP"
+            $names | Should -Not -Contain "Service"
+            $names | Should -Not -Contain "IsSigned"
+            $names | Should -Not -Contain "ZoneStatus"
+        }
+        It "liefert eine leere Trust-Point-Liste, wenn keine konfiguriert sind" {
+            @($script:info.TrustPoints) | Should -HaveCount 0
+        }
+    }
+
+    Context "Weder Zone noch Trust Points vorhanden" {
+        BeforeAll {
+            Mock -CommandName Get-DnsServerResourceRecord -ModuleName ADHealthCheck.DNS -MockWith { }
+            Mock -CommandName Get-DnsServerTrustPoint -ModuleName ADHealthCheck.DNS -MockWith { }
+            Mock -CommandName Write-ADHCLog -ModuleName ADHealthCheck.DNS -MockWith { }
+        }
+
+        It 'gibt $null zurueck' {
+            $zones = @([PSCustomObject]@{ ZoneName = "contoso.local"; ZoneType = "Primary"; ReplicationScope = "Domain" })
+            Get-ADHCTrustAnchorInfo -Zone $zones | Should -BeNullOrEmpty
+        }
+    }
+
+    Context "Trust Points vorhanden" {
+        BeforeAll {
+            Mock -CommandName Get-DnsServerResourceRecord -ModuleName ADHealthCheck.DNS -MockWith { }
+            Mock -CommandName Get-DnsServerTrustPoint -ModuleName ADHealthCheck.DNS -MockWith {
+                [PSCustomObject]@{ TrustPointName = "."; TrustPointState = "Valid" }
+            }
+            Mock -CommandName Get-DnsServerTrustAnchor -ModuleName ADHealthCheck.DNS -MockWith {
+                @([PSCustomObject]@{ Type = "DS" }, [PSCustomObject]@{ Type = "DNSKEY" })
+            }
+            Mock -CommandName Write-ADHCLog -ModuleName ADHealthCheck.DNS -MockWith { }
+        }
+
+        It "meldet Trust Points auch ohne die Zone TrustAnchors" {
+            $result = Get-ADHCTrustAnchorInfo -Zone @()
+            $result                       | Should -Not -BeNullOrEmpty
+            $result.ZonePresent           | Should -BeFalse
+            @($result.TrustPoints)        | Should -HaveCount 1
+            $result.TrustPoints[0].Name   | Should -Be "."
+            $result.TrustPoints[0].State  | Should -Be "Valid"
+            $result.TrustPoints[0].AnchorCount | Should -Be 2
+        }
+    }
+}

@@ -417,6 +417,17 @@ function Get-ADHCMockData {
                 Aging            = $null     # Kein Scavenging
             }
         )
+        # Rein informativ, wird NICHT geprueft und fliesst in keine Empfehlung ein.
+        # Insbesondere nicht in TotalZoneCount, DNSSEC- oder Scavenging-Bewertung.
+        TrustAnchors = [PSCustomObject]@{
+            ZonePresent      = $true
+            ZoneName         = "TrustAnchors"
+            ZoneType         = "Primary"
+            IsADIntegrated   = $true
+            ReplicationScope = "Forest"
+            NSRecordCount    = 22
+            TrustPoints      = @()
+        }
         NSStatus = @(
             [PSCustomObject]@{ Name = "mock-dc-01.contoso.local"; IP = "10.0.0.1"; Service = "Running"; ICMP = "OK"   }
             [PSCustomObject]@{ Name = "mock-dc-02.contoso.local"; IP = "10.0.0.2"; Service = "Stopped"; ICMP = "Fail" }  # -> DNS-03

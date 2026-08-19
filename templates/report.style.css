@@ -226,6 +226,26 @@ td.status-ok, td.status-warning, td.status-error { background: transparent; }
     margin-top: 25px;
 }
 
+/* Trust Anchors: bewusst neutral. Keine Ampelfarbe, keine Pill — der Block
+   ist Information, keine Pruefung, und darf nicht wie eine aussehen. */
+.info-note {
+    margin-top: 8px;
+    padding: 14px 16px;
+    background: #f7f8fa;
+    border-left: 3px solid #c3c8d0;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    color: #3a3f47;
+    line-height: 1.6;
+}
+
+.info-note-hint {
+    margin-top: 6px;
+    font-size: 0.78rem;
+    color: #777;
+    font-style: italic;
+}
+
 /* --- BACKUP TABLE SPECIFIC STYLES --- */
 .card .styled-table.backup-table {
     table-layout: auto !important;

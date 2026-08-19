@@ -1,4 +1,4 @@
-{
+﻿{
     "Title": "Active Directory Health Check Report",
     "GenDate": "Generated on",
     "Sections": {
@@ -118,6 +118,12 @@
 		"Status": "Status",
 		"Replication": "Replication",
 		"NameserverStatus": "Status of Nameserver (NS)",
+		"TrustAnchors": "Trust Anchors (DNSSEC)",
+		"TrustAnchorsNotChecked": "Informational, not verified. This zone replicates forest-wide and is never cleaned up; its entries say nothing about the health of the environment.",
+		"TrustAnchorNSCount": "{0} NS records (not verified)",
+		"TrustAnchorCount": "{0} anchors",
+		"TrustPoint": "Trust point",
+		"NoTrustPoints": "No trust points configured",
 		"DNSForwarder": "DNS Forwarder",
 		"DNSZoneHealth": "DNS Zone",
 		"Infrastructure": "Infrastructure",

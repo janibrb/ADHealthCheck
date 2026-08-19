@@ -1,4 +1,4 @@
-{
+﻿{
     "Title": "Active Directory Health Report",
     "GenDate": "Erstellt am",
     "Sections": {
@@ -117,6 +117,12 @@
 		"ReverseZones": "Reverse Lookup Zonen",
 		"NoZonesFound": "Keine Zonen gefunden",
 		"NameserverStatus": "Status der Nameserver (NS)",
+		"TrustAnchors": "Trust Anchors (DNSSEC)",
+		"TrustAnchorsNotChecked": "Information, nicht geprüft. Diese Zone wird forestweit repliziert und nicht bereinigt; ihre Einträge erlauben keine Aussage über den Zustand der Umgebung.",
+		"TrustAnchorNSCount": "{0} NS-Records (nicht geprüft)",
+		"TrustAnchorCount": "{0} Anker",
+		"TrustPoint": "Trust Point",
+		"NoTrustPoints": "Keine Trust Points konfiguriert",
 		"DNSForwarder": "DNS Forwarder",
 		"DNSZoneHealth": "DNS Zonen",
 		"Infrastructure": "Infrastruktur",

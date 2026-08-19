@@ -1,6 +1,6 @@
-# AD Health Check Pro
+﻿# AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.7.3-blue)
+![Version](https://img.shields.io/badge/Version-2.7.5-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -233,7 +233,7 @@ ADHealthCheck prüft bei jedem Start ob auf GitHub eine neuere Version verfügba
 **Neue Version veröffentlichen:** Seit v2.4.7 genügt **eine einzige Stelle** — der `.NOTES`-Header in `ADHealthCheck.ps1` (Zeile 6):
 
 ```powershell
-Version:    2.7.3                    # Einzige Stelle. $script:LocalVersion
+Version:    2.7.5                    # Einzige Stelle. $script:LocalVersion
                                      # wird daraus zur Laufzeit abgeleitet.
 ```
 
@@ -346,6 +346,36 @@ Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ---
 
 ## Changelog
+
+### v2.7.5 — Geister-Nameserver aus `TrustAnchors`
+Gefunden im Feldtest. Die Tabelle **Status der Nameserver (NS)** listete rund zwei Dutzend DNS-Server, die alle `Stopped` / `Fail` meldeten — und damit die Empfehlung `NSUnreachable` auslösten. Auf demselben Server lieferte `Get-DnsServerTrustPoint` nichts, `Get-DnsServerResourceRecord -ZoneName TrustAnchors -RRType NS` dagegen genau diese Liste.
+
+- **fix:** Die NS-Records wurden über **alle** Zonen des Servers eingesammelt (`foreach ($zone in $allZones)`). Darin steckt die DNSSEC-Systemzone `TrustAnchors`: forestweit AD-integriert, nie gescavenged, mit NS-Einträgen längst entfernter DCs. Der Befund war ein reines Artefakt der Abfrage, kein Zustand der Umgebung.
+
+- Neue exportierte Funktion `Select-ADHCNameserverZone` entscheidet, welche Zonen überhaupt eine Aussage über die eigenen Nameserver treffen. Ausgeschlossen werden:
+
+  | Ausgeschlossen | Grund |
+  |---|---|
+  | `TrustAnchors` | DNSSEC-Systemzone, NS werden nie bereinigt |
+  | `.` | Root Hints — NS zeigen auf die Internet-Rootserver |
+  | `0/127/255.in-addr.arpa` | automatisch angelegte Reverse-Systemzonen |
+  | Zonentyp `Stub` | hält per Definition NS einer fremden Domäne |
+  | Zonentyp `Forwarder` | hält per Definition NS fremder Server |
+
+- **`TrustAnchors` wird separat ausgewiesen, aber nicht geprüft.** Die Zone fällt aus `ForwardZones` heraus und damit automatisch aus `TotalZoneCount`, der Scavenging-Kachel sowie den Regeln `DNSSECNotConfigured`, `ScavengingGloballyDisabled`, `NonADIntegrated` und `ZoneStopped` — alle leiten sich aus Forward + Reverse ab.
+
+- Stattdessen erscheint im DNS-Abschnitt ein rein informativer Block (`Get-ADHCTrustAnchorInfo`), der nur auftaucht, wenn überhaupt etwas vorhanden ist:
+
+  ```
+  Trust Anchors (DNSSEC)
+  DNS Zone TrustAnchors (Primary, AD-integriert, Forest) · 22 NS-Records (nicht geprüft) · Keine Trust Points konfiguriert
+  Information, nicht geprüft. Diese Zone wird forestweit repliziert und nicht bereinigt;
+  ihre Einträge erlauben keine Aussage über den Zustand der Umgebung.
+  ```
+
+  Sind Trust Points konfiguriert (`Get-DnsServerTrustPoint`), werden sie mit Name, State und Anzahl der Anker gelistet. Das Rückgabeobjekt trägt bewusst **kein** Statusfeld — es gibt nichts, woraus das Reporting ein Verdikt ableiten könnte. Der Block ist neutral gestaltet (`.info-note`), ohne Ampelfarbe und ohne Status-Pill.
+
+> **Warum das zählt:** Veraltete NS-Records in der Domänenzone sind ein echter Befund und bleiben sichtbar. Ein Systemartefakt als „Nameserver nicht erreichbar" zu melden, macht die Kachel dagegen unbrauchbar — 24 Fehlbefunde verdecken den einen, der zählt.
 
 ### v2.7.3 — `Coverage` behauptete mehr, als es belegte
 Gefunden im Feldtest von v2.7.2. Die Partitions-Erweiterung funktionierte — `Coverage: "AllPartitions"`, sechs Einträge statt zwei. Zurück kamen aber nur **drei der fünf bekannten Partitionen**: `ForestDnsZones` und `DomainDnsZones` fehlten, obwohl sie nachweislich existieren (sie stehen im Backup-Block).
@@ -635,4 +665,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.7.3 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.7.5 — LAKE Solutions AG*
