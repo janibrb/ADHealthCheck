@@ -1,0 +1,24 @@
+# Output-Verzeichnis — enthält generierte Reports, CSVs und JSON-Exports
+# (können personenbezogene AD-Daten enthalten — Datenschutz!)
+output/
+
+# Lokale Konfigurationsbackups
+*.json.bak
+config/settings.json.bak
+
+# Log-Dateien
+*.log
+logs/
+
+# PowerShell-Temporärdateien
+*.ps1.bak
+
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# VS Code / Editor
+.vscode/
+.idea/
+*.code-workspace
