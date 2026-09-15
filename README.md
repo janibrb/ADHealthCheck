@@ -1,6 +1,6 @@
 ﻿# AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.10.4-blue)
+![Version](https://img.shields.io/badge/Version-2.10.5-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -131,7 +131,7 @@ ADHealthCheck/
 │   ├── Test-ADHCCatalog.ps1       Katalogproben (ohne Domäne/Pester, < 1 s, Exit 0/1)
 │   ├── New-ADHCPreviewReports.ps1 Berichte aus Mock-Daten, je Sprache ein Unterverzeichnis
 │   └── pester/
-│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (336 Tests)
+│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (341 Tests)
 │
 └── output/                        Durch .gitignore ausgeschlossen
     ├── reports/                   Generierte HTML-Reports
@@ -346,7 +346,7 @@ Install-Module Pester -Force -MinimumVersion 5.0
 Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ```
 
-**336 Tests** (Stand v2.10.4, 319 grün / 17 vorbestehend rot — Umgebungsgrenzen ohne `DnsServer`/`ActiveDirectory`-Modul). Die Zahl ist seit v2.10.1 auch unter mehreren gleichzeitigen Läufen reproduzierbar. Die ursprünglichen sechs Blöcke:
+**341 Tests** (Stand v2.10.5, 324 grün / 17 vorbestehend rot — Umgebungsgrenzen ohne `DnsServer`/`ActiveDirectory`-Modul). Die Zahl ist seit v2.10.1 auch unter mehreren gleichzeitigen Läufen reproduzierbar. Die ursprünglichen sechs Blöcke:
 
 | Block | Beschreibung |
 |---|---|
@@ -401,6 +401,19 @@ Eigennamen wie „Active Directory" legitim identisch und bleiben aussen vor).
 
 ## Changelog
 
+### v2.10.5 — Reverse-Systemzonen stehen nicht mehr im Bericht
+
+- **change:** `0.in-addr.arpa`, `127.in-addr.arpa` und `255.in-addr.arpa` werden nicht mehr
+  aufgelistet. Windows legt sie beim Einrichten des DNS-Dienstes selbst an; sie enthalten nur
+  statische Systemeinträge, und ihre Konfiguration ist nicht veränderbar — Scavenging lässt sich
+  dort gar nicht einschalten. Im Bericht standen damit drei Zeilen ohne jede Handlungsoption, die
+  beim Kunden regelmäßig Rückfragen auslösten.
+- Die Zonen fallen **schon bei der Erhebung** heraus (neue Funktion
+  `Select-ADHCReportableReverseZone` in `ADHealthCheck.DNS.psm1`), nicht erst beim Rendern. Sonst
+  hätte die Zonenzahl im Kopf des Berichts mehr Zonen genannt, als die Tabelle darunter auflistet.
+  Sie entfallen damit auch aus `TotalZoneCount` und aus dem Upload-JSON.
+- Die Ausnahmen in den Bewertungsregeln (seit v2.7.7) **bleiben bestehen**: ein Bericht, der aus
+  älteren Erhebungsdaten erzeugt wird, rechnet weiter korrekt.
 ### v2.10.4 — Der Bericht-Stil kam nie beim Kunden an
 
 - ⚠ **Der Self-Updater lud `templates/report.style.css` nicht.** Die Datei wird zur **Laufzeit**
@@ -952,4 +965,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.10.4 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.10.5 — LAKE Solutions AG*

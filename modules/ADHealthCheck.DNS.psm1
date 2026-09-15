@@ -117,6 +117,37 @@ function Select-ADHCNameserverZone {
     })
 }
 
+function Select-ADHCReportableReverseZone {
+    <#
+    .SYNOPSIS
+        Entfernt die automatischen Reverse-Systemzonen aus einer Zonenliste.
+    .DESCRIPTION
+        0/127/255.in-addr.arpa legt Windows beim Einrichten des DNS-Dienstes selbst
+        an. Sie enthalten nur statische Systemeintraege, und ihre Konfiguration ist
+        nicht veraenderbar — Scavenging etwa laesst sich dort gar nicht einschalten.
+        Im Bericht standen sie damit als Zeilen ohne jede Handlungsoption und
+        erzeugten beim Kunden regelmaessig Rueckfragen.
+
+        Sie werden deshalb schon bei der Erhebung verworfen, nicht erst beim
+        Rendern: sonst zeigte die Zonenzahl im Kopf des Berichts mehr Zonen an,
+        als die Tabelle darunter auflistet.
+    .PARAMETER Zone
+        Die Reverse-Zonen des Zielservers.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [AllowEmptyCollection()]
+        [AllowNull()]
+        [object[]]$Zone
+    )
+
+    return @($Zone | Where-Object {
+        $_ -and
+        $script:ADHCSystemReverseZones -notcontains ("$($_.ZoneName)").Trim().ToLower()
+    })
+}
+
 function Get-ADHCZoneAging {
     <#
     .SYNOPSIS
@@ -275,7 +306,12 @@ function Get-ADDNSHealthStatus {
         }
 
         # --- Reverse Lookup Zonen aufbereiten ---
-        $reverseZones = foreach ($zone in ($allZones | Where-Object { $_.IsReverseLookupZone -eq $true })) {
+        # Die automatischen Systemzonen 0/127/255.in-addr.arpa fallen hier bereits
+        # weg — begruendet in Select-ADHCReportableReverseZone.
+        $reverseZoneSource = Select-ADHCReportableReverseZone -Zone @(
+            $allZones | Where-Object { $_.IsReverseLookupZone -eq $true }
+        )
+        $reverseZones = foreach ($zone in $reverseZoneSource) {
             $typeStr = if ($zone.ReplicationScope -ne "None") { 
                 "$($zone.ZoneType), AD-Integrated" 
             } else { 
@@ -445,4 +481,4 @@ function Get-ADDNSHealthStatus {
     }
 }
 
-Export-ModuleMember -Function Get-ADDNSHealthStatus, Select-ADHCNameserverZone, Get-ADHCTrustAnchorInfo, Get-ADHCZoneAging, Get-ADHCServerScavenging
+Export-ModuleMember -Function Get-ADDNSHealthStatus, Select-ADHCNameserverZone, Select-ADHCReportableReverseZone, Get-ADHCTrustAnchorInfo, Get-ADHCZoneAging, Get-ADHCServerScavenging

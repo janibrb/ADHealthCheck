@@ -3,8 +3,28 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.10.4
-    Changelog:  - FIX: Der Self-Updater laedt jetzt auch templates/report.style.css
+    Version:    2.10.5
+    Changelog:  - CHANGE: Die automatisch angelegten Reverse-Systemzonen
+                  0.in-addr.arpa, 127.in-addr.arpa und 255.in-addr.arpa
+                  erscheinen nicht mehr im Bericht. Sie waren dort Zeilen
+                  ohne jede Handlungsoption -- Scavenging laesst sich in
+                  ihnen gar nicht einschalten -- und erzeugten beim Kunden
+                  regelmaessig Rueckfragen. Sie fallen jetzt schon bei der
+                  Erhebung heraus (neue Funktion
+                  Select-ADHCReportableReverseZone in
+                  ADHealthCheck.DNS.psm1), nicht erst beim Rendern: sonst
+                  haette die Zonenzahl im Kopf des Berichts mehr Zonen
+                  genannt, als die Tabelle darunter auflistet. Damit
+                  entfallen sie auch aus TotalZoneCount und dem
+                  Upload-JSON. Die Bewertungsregeln nahmen sie schon seit
+                  v2.7.7 aus; ihre Ausnahmen bleiben bestehen, damit ein
+                  Bericht aus aelteren Erhebungsdaten weiter sauber
+                  rechnet.
+                - Katalog unveraendert bei 77 Regeln. Suite 341 Tests,
+                  324 gruen / 17 vorbestehend rot.
+
+                Version 2.10.4
+                - FIX: Der Self-Updater laedt jetzt auch templates/report.style.css
                   und die beiden Logos. Die CSS wird zur LAUFZEIT gebraucht
                   (Reporting.psm1 liest sie und inliniert sie in ein
                   <style>-Element), fehlte aber in der Dateiliste -- ⚠ JEDE
