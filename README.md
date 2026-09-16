@@ -1,6 +1,6 @@
 ﻿# AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.10.5-blue)
+![Version](https://img.shields.io/badge/Version-2.10.6-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -131,7 +131,7 @@ ADHealthCheck/
 │   ├── Test-ADHCCatalog.ps1       Katalogproben (ohne Domäne/Pester, < 1 s, Exit 0/1)
 │   ├── New-ADHCPreviewReports.ps1 Berichte aus Mock-Daten, je Sprache ein Unterverzeichnis
 │   └── pester/
-│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (341 Tests)
+│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (350 Tests)
 │
 └── output/                        Durch .gitignore ausgeschlossen
     ├── reports/                   Generierte HTML-Reports
@@ -346,7 +346,7 @@ Install-Module Pester -Force -MinimumVersion 5.0
 Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ```
 
-**341 Tests** (Stand v2.10.5, 324 grün / 17 vorbestehend rot — Umgebungsgrenzen ohne `DnsServer`/`ActiveDirectory`-Modul). Die Zahl ist seit v2.10.1 auch unter mehreren gleichzeitigen Läufen reproduzierbar. Die ursprünglichen sechs Blöcke:
+**350 Tests** (Stand v2.10.6, 333 grün / 17 vorbestehend rot — Umgebungsgrenzen ohne `DnsServer`/`ActiveDirectory`-Modul). Die Zahl ist seit v2.10.1 auch unter mehreren gleichzeitigen Läufen reproduzierbar. Die ursprünglichen sechs Blöcke:
 
 | Block | Beschreibung |
 |---|---|
@@ -401,6 +401,32 @@ Eigennamen wie „Active Directory" legitim identisch und bleiben aussen vor).
 
 ## Changelog
 
+### v2.10.6 — Listen mit genau einem Eintrag kamen im Dashboard nicht an
+
+- ⚠ **Ein Listenfeld mit genau einem Eintrag wurde als Objekt serialisiert, nicht als Array.**
+  PowerShell unterscheidet nicht zwischen „ein Element" und „Liste mit einem Element": eine
+  Erhebungsschleife mit genau einem Durchlauf liefert einen Skalar, und `ConvertTo-Json` schreibt
+  daraus `{…}` statt `[{…}]`. Ein auswertendes System, das die Liste mit `forEach`/`map` liest,
+  findet dann **nichts** — obwohl der Wert im JSON steht.
+- An einer echten Umgebung mit einer Reverse-Zone, einem Standort und einem Domänencontroller
+  waren **neun Felder** betroffen, darunter `DNS.ReverseZones`, `Sites.Sites`, `Replication` und
+  `DCDiag`.
+- ⚠ **Der HTML-Bericht war unauffällig** — er iteriert über den Skalar klaglos. Der Fehler war
+  ausschließlich im Dashboard zu sehen. Genau diese Asymmetrie hat die Suche zunächst in die
+  falsche Richtung geschickt.
+- **Der Fehler ist älter als v2.10.5.** Für `DNS.ReverseZones` wurde er erst dadurch erreichbar,
+  dass die drei Systemzonen wegfielen und nur noch eine Zone übrig blieb.
+- **fix:** Neue Funktion `Set-ADHCJsonListShape` bringt die Listenfelder unmittelbar vor dem
+  Serialisieren in Array-Form. Die Pfadliste (`$script:ADHCJsonListPaths`) fasst ausdrücklich nur
+  die genannten Felder an — ein blindes Einpacken würde aus Objekten wie `QuickChecks`
+  einelementige Listen machen. ⚠ `$null` bleibt `$null`: „nicht erhoben" und „erhoben, nichts
+  gefunden" dürfen nicht verschmelzen.
+- **fix:** `UserCount`, `SecGroupCount`, `DistGroupCount` und `ContactCount` lieferten `[]` statt
+  einer Zahl, wenn die Abfrage **genau ein** Objekt fand: `(Get-ADGroup …).Count` greift dann nicht
+  auf die Anzahl zu, sondern auf das gleichnamige AD-Attribut dieses Objekts — das es nicht gibt.
+  Jetzt `@(…)` um die Abfrage, wie es `DomainCount` seit jeher macht.
+- **`schemaVersion` bleibt 4.** Kein Feld kommt hinzu oder fällt weg; betroffene Felder tragen nur
+  wieder den Typ, den der Vertrag ohnehin nennt.
 ### v2.10.5 — Reverse-Systemzonen stehen nicht mehr im Bericht
 
 - **change:** `0.in-addr.arpa`, `127.in-addr.arpa` und `255.in-addr.arpa` werden nicht mehr
@@ -965,4 +991,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.10.5 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.10.6 — LAKE Solutions AG*

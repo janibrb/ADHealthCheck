@@ -3,8 +3,44 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.10.5
-    Changelog:  - CHANGE: Die automatisch angelegten Reverse-Systemzonen
+    Version:    2.10.6
+    Changelog:  - FIX: Listenfelder im Upload-JSON kamen als EINZELOBJEKT statt
+                  als Array an, sobald sie genau einen Eintrag hatten.
+                  PowerShell unterscheidet nicht zwischen "ein Element" und
+                  "Liste mit einem Element": eine Erhebungsschleife mit genau
+                  einem Durchlauf liefert einen Skalar, und ConvertTo-Json
+                  schreibt daraus ein Objekt. ⚠ Ein auswertendes System, das
+                  die Liste mit forEach/map liest, findet dann NICHTS --
+                  obwohl der Wert im JSON steht. An einer echten Umgebung mit
+                  einer Reverse-Zone, einem Standort und einem
+                  Domaenencontroller waren NEUN Felder betroffen
+                  (u.a. DNS.ReverseZones, Sites.Sites, Replication, DCDiag).
+                  Der HTML-Bericht war unauffaellig, weil er ueber den Skalar
+                  klaglos iteriert -- der Fehler war nur im Dashboard zu
+                  sehen. Neue Funktion Set-ADHCJsonListShape bringt die
+                  Listenfelder unmittelbar vor dem Serialisieren in
+                  Array-Form; die Pfadliste steht als
+                  $script:ADHCJsonListPaths in Reporting.psm1.
+                  ⚠ $null bleibt dabei $null -- "nicht erhoben" und
+                  "erhoben, nichts gefunden" duerfen nicht verschmelzen.
+                  Der Fehler ist AELTER als 2.10.5, wurde fuer
+                  DNS.ReverseZones aber erst dadurch erreichbar, dass die drei
+                  Systemzonen wegfielen und nur eine Zone uebrig blieb.
+                - FIX: UserCount, SecGroupCount, DistGroupCount und
+                  ContactCount lieferten eine leere Liste statt einer Zahl,
+                  wenn die Abfrage GENAU EIN Objekt fand. (Get-ADGroup ...)
+                  .Count greift dann nicht auf die Anzahl zu, sondern auf das
+                  gleichnamige AD-Attribut dieses Objekts -- das es nicht
+                  gibt. Im Export stand [] statt 1. Jetzt @(...) um die
+                  Abfrage, wie es DomainCount seit jeher macht.
+                  schemaVersion bleibt 4: kein Feld kommt hinzu oder faellt
+                  weg, betroffene Felder tragen nur wieder den Typ, den der
+                  Vertrag nennt.
+                - Katalog unveraendert bei 77 Regeln. Suite 350 Tests,
+                  333 gruen / 17 vorbestehend rot.
+
+                Version 2.10.5
+                - CHANGE: Die automatisch angelegten Reverse-Systemzonen
                   0.in-addr.arpa, 127.in-addr.arpa und 255.in-addr.arpa
                   erscheinen nicht mehr im Bericht. Sie waren dort Zeilen
                   ohne jede Handlungsoption -- Scavenging laesst sich in

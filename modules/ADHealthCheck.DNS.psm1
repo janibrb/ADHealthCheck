@@ -461,8 +461,12 @@ function Get-ADDNSHealthStatus {
 		
 		# Rückgabe-Objekt vervollständigen
 		return [PSCustomObject]@{
-			ForwardZones = $forwardZones
-			ReverseZones = $reverseZones
+			# @() ist Pflicht, nicht Zierde: laeuft die Schleife oben genau
+			# EINMAL, liefert sie einen Skalar — und ConvertTo-Json schreibt
+			# daraus ein Objekt statt eines Arrays. Siehe
+			# $script:ADHCJsonListPaths in Reporting.psm1.
+			ForwardZones = @($forwardZones)
+			ReverseZones = @($reverseZones)
 			NSStatus     = $serverStatus
 			TrustAnchors = $trustAnchorInfo
 			QuickChecks  = @{

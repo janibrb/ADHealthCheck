@@ -1,5 +1,97 @@
 ﻿# MODULE: ADHealthCheck.Reporting.psm1
 
+# Listenfelder des Upload-JSON, Pfade relativ zum Knoten "data".
+#
+# ⚠ Warum es diese Liste braucht: PowerShell kennt keinen Unterschied zwischen
+# "ein Element" und "eine Liste mit einem Element". Eine Erhebungsschleife, die
+# genau EINMAL durchlaeuft, liefert einen Skalar — und ConvertTo-Json schreibt
+# daraus ein Objekt statt eines Arrays. Ein Konsument, der die Liste mit
+# forEach/map liest, findet dann NICHTS, obwohl der Wert im JSON steht.
+#
+# Im Feld beobachtet an einer Umgebung mit genau einer Reverse-Zone, einem
+# Standort und einem Domaenencontroller: neun Felder kamen als Objekt an.
+# Der Bericht war unauffaellig — HTML iteriert ueber den Skalar klaglos.
+$script:ADHCJsonListPaths = @(
+    'Backup', 'DCDiag', 'Discovery', 'EventLog', 'FSMO', 'Services', 'Replication',
+    'Replication[].PartitionsFound',
+    'DNS.ForwardZones', 'DNS.ReverseZones', 'DNS.NSStatus',
+    'DNS.TrustAnchors.TrustPoints',
+    'DNS.QuickChecks.MissingScavenging', 'DNS.QuickChecks.ScavengingUnknown',
+    'DNS.QuickChecks.NSCondition', 'DNS.QuickChecks.SRVDetails',
+    'Entra.ServiceDetails',
+    'OUAccountSecurity.DisabledInheritanceOU', 'OUAccountSecurity.DisabledInheritanceUser',
+    'OUAccountSecurity.TopOrphanedSIDs',
+    'Security.ProtectedGroupMemberDNs',
+    'Sites.Sites', 'Sites.Subnets', 'Sites.Transports',
+    'Sites.Sites[].Servers', 'Sites.Sites[].Connections'
+)
+
+function Set-ADHCJsonListShape {
+    <#
+    .SYNOPSIS
+        Erzwingt Array-Form fuer die genannten Felder, vor dem Serialisieren.
+    .DESCRIPTION
+        Fasst ausdruecklich NUR die uebergebenen Pfade an — ein blindes Einpacken
+        aller Felder wuerde aus Objekten wie QuickChecks einelementige Listen
+        machen und den Vertrag an anderer Stelle brechen.
+
+        ⚠ $null bleibt $null. Der Unterschied traegt Bedeutung: $null heisst
+        "nicht erhoben", [] heisst "erhoben, nichts gefunden". @($null) wuerde
+        das eine still in das andere verwandeln.
+    .PARAMETER Data
+        Der zu serialisierende Datenknoten. Wird in place geaendert.
+    .PARAMETER Path
+        Pfade mit "." als Trenner. Ein Segment mit "[]" steigt in die Elemente
+        einer Liste ab, z.B. "Sites.Sites[].Servers".
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [AllowNull()]
+        $Data,
+
+        [Parameter(Mandatory=$true)]
+        [AllowEmptyCollection()]
+        [string[]]$Path
+    )
+
+    foreach ($p in $Path) {
+        Set-ADHCListShapeAt -Node $Data -Segment @($p -split '\.')
+    }
+    return $Data
+}
+
+function Set-ADHCListShapeAt {
+    # Rekursiver Helfer zu Set-ADHCJsonListShape. Nicht exportiert.
+    [CmdletBinding()]
+    param($Node, [string[]]$Segment)
+
+    if ($null -eq $Node -or $Segment.Count -eq 0) { return }
+    if ($Node -isnot [psobject]) { return }
+
+    $name         = $Segment[0]
+    $ueberElement = $false
+    if ($name -match '^(.+)\[\]$') { $name = $Matches[1]; $ueberElement = $true }
+
+    $prop = $Node.PSObject.Properties[$name]
+    if (-not $prop) { return }
+
+    $rest = @($Segment | Select-Object -Skip 1)
+    if ($rest.Count -eq 0) {
+        # $null bleibt $null — siehe Kopfkommentar.
+        if ($null -ne $prop.Value -and $prop.Value -isnot [object[]]) {
+            $prop.Value = @($prop.Value)
+        }
+        return
+    }
+
+    if ($ueberElement) {
+        foreach ($element in @($prop.Value)) { Set-ADHCListShapeAt -Node $element -Segment $rest }
+    } else {
+        Set-ADHCListShapeAt -Node $prop.Value -Segment $rest
+    }
+}
+
 function New-ADHCReport {
     param($Data, $Settings, $I18n, $Mapping, $TemplatePath, $LangCode="de", $CollectorVersion="unknown")
     
@@ -3423,6 +3515,11 @@ function New-ADHCReport {
 		$dataClone.OUAccountSecurity | Add-Member -NotePropertyName 'DisabledInheritanceUserCount' -NotePropertyValue $duCount -Force
 	}
 
+	# (c) Listenfelder auf Array-Form bringen — LETZTER Schritt vor dem
+	#     Serialisieren, damit auch die Umbauten oben davon erfasst sind.
+	#     Begruendung an $script:ADHCJsonListPaths.
+	$null = Set-ADHCJsonListShape -Data $dataClone -Path $script:ADHCJsonListPaths
+
 	$exportData = [ordered]@{
 		# 2 = Verdikte fuehren zusaetzlich ActualValue, Unit, AffectedItems,
 		#     ExpectedValue und Operator. Rein additiv — Konsumenten von
@@ -3540,4 +3637,4 @@ function New-ADHCReport {
     return $htmlFile
 }
 
-Export-ModuleMember -Function New-ADHCReport
+Export-ModuleMember -Function New-ADHCReport, Set-ADHCJsonListShape

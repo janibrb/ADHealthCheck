@@ -916,10 +916,17 @@ function Get-ADDomainStats {
             }
         }
 
-        $userCount = (Get-ADUser -Filter * -ResultPageSize 1000).Count
-        $secGroupCount = (Get-ADGroup -Filter "GroupCategory -eq 'Security'" -ResultPageSize 1000).Count
-        $distGroupCount = (Get-ADGroup -Filter "GroupCategory -eq 'Distribution'" -ResultPageSize 1000).Count
-        $contactCount = (Get-ADObject -LDAPFilter "(objectClass=contact)" -ResultPageSize 1000).Count
+        # ⚠ @() um die Abfrage ist Pflicht. Liefert sie GENAU EIN Objekt, greift
+        # .Count nicht auf die Anzahl zu, sondern auf das gleichnamige
+        # AD-Attribut dieses Objekts -- das es nicht gibt. Im Export stand dann
+        # eine leere Liste, wo eine Zahl stehen muss. An einer echten Umgebung
+        # beobachtet: DistGroupCount kam als [] statt als 1 an, waehrend
+        # ContactCount (null Treffer) korrekt 0 lieferte. $domainCount unten
+        # macht es seit jeher richtig.
+        $userCount = @(Get-ADUser -Filter * -ResultPageSize 1000).Count
+        $secGroupCount = @(Get-ADGroup -Filter "GroupCategory -eq 'Security'" -ResultPageSize 1000).Count
+        $distGroupCount = @(Get-ADGroup -Filter "GroupCategory -eq 'Distribution'" -ResultPageSize 1000).Count
+        $contactCount = @(Get-ADObject -LDAPFilter "(objectClass=contact)" -ResultPageSize 1000).Count
 
         # U3/AD-FSMO-07: Anzahl Domaenen der Gesamtstruktur. $forest liegt an
         # dieser Stelle bereits vor (kein zusaetzlicher AD-Aufruf); scheitert das
