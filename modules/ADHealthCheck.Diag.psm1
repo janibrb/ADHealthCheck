@@ -105,8 +105,9 @@ function Get-ADHCMockData {
     # DC SYSTEM HEALTH
     # Ausgeloeste Regeln:
     #   OS-01:   OSSupportStatus = "OutOfSupport"  -> High
-    #   SRV-01-E: DiskSpace = "Error" (< 5%)       -> High
-    #   SRV-01-W: DiskSpace = "Warning" (< 15%)    -> Medium (zweiter DC)
+    #   SRV-01-E: DiskSpace = "Error" (< 5%)              -> High
+    #   SRV-01-W: DiskSpace = "Warning", "Error" (< 15%)  -> Medium (beide DCs)
+    #   SRV-01-W ist die Obermenge: unter 5% feuern beide Regeln.
     #   SRV-02:  Status = "Error" (nicht erreichbar) -> High
     # -----------------------------------------------------------------------
     $discoveryData = @(
@@ -118,7 +119,7 @@ function Get-ADHCMockData {
             UptimeHrs        = 8760
             FreeDiskGB       = 1.2
             FreeDiskPct      = "2 %"
-            Status           = "Error"                     # -> SRV-01-E + SRV-02
+            Status           = "Error"                     # -> SRV-01-E + SRV-01-W
         }
         [PSCustomObject]@{
             Server           = "MOCK-DC-02"
@@ -149,8 +150,9 @@ function Get-ADHCMockData {
     # -----------------------------------------------------------------------
     # BACKUP
     # Ausgeloeste Regeln:
-    #   BK-01: Status = "Warning" (> 24h, <= 7 Tage)  -> Medium
-    #   BK-02: Status = "Critical" (> 7 Tage)          -> High
+    #   BK-01: Status = "Warning", "Critical", "Error" (> 24h oder unbekannt) -> Medium
+    #   BK-02: Status = "Critical", "Error"            (> 7 Tage oder unbekannt) -> High
+    #   BK-01 ist die Obermenge: ab 7 Tagen feuern beide Regeln.
     # -----------------------------------------------------------------------
     $backupData = @(
         [PSCustomObject]@{
@@ -158,7 +160,7 @@ function Get-ADHCMockData {
             LastBackup = (Get-Date).AddDays(-35).ToString("dd.MM.yyyy HH:mm")
             Days       = 35
             Hours      = 0
-            Status     = "Critical"   # -> BK-02
+            Status     = "Critical"   # -> BK-01, BK-02
         }
         [PSCustomObject]@{
             Partition  = "CN=Configuration,DC=contoso,DC=local"
@@ -172,7 +174,7 @@ function Get-ADHCMockData {
             LastBackup = $null
             Days       = 0
             Hours      = 0
-            Status     = "Error"      # -> BK-02
+            Status     = "Error"      # -> BK-01, BK-02
         }
     )
 

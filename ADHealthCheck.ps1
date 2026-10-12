@@ -3,8 +3,42 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.10.6
-    Changelog:  - FIX: Listenfelder im Upload-JSON kamen als EINZELOBJEKT statt
+    Version:    2.10.8
+    Changelog:  - FIX: SRV-01-W ("Festplattenspeicher knapp") meldete PASS,
+                  sobald ein DC auch unter der kritischen Schwelle lag. Die
+                  Condition lautete nur "Warning"; "Error" ging allein an
+                  SRV-01-E. Neben einem DC mit 3 % frei stand dadurch
+                  "knapp: bestanden" -- obwohl der eigene Katalogtext schon
+                  sagte, SRV-01-E erscheine "zusaetzlich". SRV-01-W prueft
+                  jetzt Warning und Error und ist die Obermenge; unter der
+                  kritischen Schwelle feuern beide Regeln. Dasselbe Muster
+                  wie BK-01 in 2.10.7.
+                  Nicht erreichbare DCs bleiben ausgenommen: Sie tragen
+                  ebenfalls Status "Error" und werden allein ueber
+                  OS = "Unreachable" herausgefiltert (SRV-02).
+                  SRV-01-E, SRV-02 und die Schwellen unveraendert.
+                  schemaVersion bleibt 4.
+                - Katalog unveraendert bei 77 Regeln. Suite 365 Tests,
+                  348 gruen / 17 vorbestehend rot.
+
+                Version 2.10.7
+                - FIX: BK-01 ("AD-Backup aelter als 24 Stunden") meldete PASS,
+                  sobald die Sicherung aelter als 7 Tage oder ihr Zeitpunkt
+                  nicht ermittelbar war. Die Condition lautete nur "Warning"
+                  (24 h bis 7 Tage); "Critical" und "Error" gingen allein an
+                  BK-02. Im Feld stand dadurch "bestanden" neben einer
+                  3087 Stunden alten Sicherung. BK-01 prueft jetzt
+                  Warning, Critical und Error und ist damit die Obermenge;
+                  ab 7 Tagen oder ohne Zeitpunkt feuern beide Regeln.
+                  Katalogtexte (Requirement, Description, Recommendation)
+                  in beiden Sprachen nachgezogen. BK-02 und die Schwellen
+                  in Get-ADBackupStatus unveraendert.
+                  schemaVersion bleibt 4, die Form von AffectedValues auch.
+                - Katalog unveraendert bei 77 Regeln. Suite 357 Tests,
+                  340 gruen / 17 vorbestehend rot.
+
+                Version 2.10.6
+                - FIX: Listenfelder im Upload-JSON kamen als EINZELOBJEKT statt
                   als Array an, sobald sie genau einen Eintrag hatten.
                   PowerShell unterscheidet nicht zwischen "ein Element" und
                   "Liste mit einem Element": eine Erhebungsschleife mit genau

@@ -1209,7 +1209,8 @@
       },
       "Property": "DiskSpace",
       "Condition": [
-        "Warning"
+        "Warning",
+        "Error"
       ],
       "Requirement": {
         "de": "Auf dem Systemlaufwerk jedes Domänencontrollers sollte mehr freier Speicher verfügbar sein als die Warnschwelle (Vorgabe: 15 Prozent).",
@@ -1277,23 +1278,25 @@
       },
       "Property": "Status",
       "Condition": [
-        "Warning"
+        "Warning",
+        "Critical",
+        "Error"
       ],
       "Requirement": {
-        "de": "Für jede Verzeichnispartition sollte eine Sicherung vorliegen, die nicht älter als 24 Stunden ist.",
-        "en": "For every directory partition there should be a backup no older than 24 hours."
+        "de": "Für jede Verzeichnispartition sollte eine Sicherung vorliegen, die nicht älter als 24 Stunden ist und deren Zeitpunkt sich ermitteln lässt.",
+        "en": "For every directory partition there should be a backup no older than 24 hours whose timestamp can be determined."
       },
       "Description": {
-        "de": "Dies ist die mildere der beiden Sicherungsregeln: Sie meldet Partitionen, deren letzte Sicherung zwischen 24 Stunden und sieben Tagen zurückliegt. Der Befund nennt je Partition, wie lange das her ist. Massgeblich ist der Systemstatus - eine gewöhnliche Dateisicherung des Servers erfüllt die Anforderung nicht, weil sich aus ihr das Verzeichnis nicht wiederherstellen lässt.",
-        "en": "This is the milder of the two backup rules: it reports partitions whose last backup lies between 24 hours and seven days ago. The finding states, per partition, how long ago that was. What counts is a system state backup - an ordinary file backup of the server does not satisfy the requirement, because the directory cannot be restored from it."
+        "de": "Dies ist die breitere der beiden Sicherungsregeln: Sie meldet jede Partition, deren letzte Sicherung länger als 24 Stunden zurückliegt, und jede, deren Sicherungszeitpunkt sich nicht ermitteln lässt. BK-02 hebt die Partitionen über sieben Tagen und die ohne ermittelbaren Zeitpunkt zusätzlich als schweren Fall hervor - dort schlagen beide Regeln an. Der Befund nennt je Partition, wie lange die Sicherung her ist. Massgeblich ist der Systemstatus - eine gewöhnliche Dateisicherung des Servers erfüllt die Anforderung nicht, weil sich aus ihr das Verzeichnis nicht wiederherstellen lässt.",
+        "en": "This is the broader of the two backup rules: it reports every partition whose last backup lies more than 24 hours ago, and every partition whose backup timestamp cannot be determined. BK-02 additionally singles out partitions older than seven days and those without a determinable timestamp as the severe case - there, both rules fire. The finding states, per partition, how long ago the backup was. What counts is a system state backup - an ordinary file backup of the server does not satisfy the requirement, because the directory cannot be restored from it."
       },
       "Impact": {
         "de": "Der Abstand zur letzten Sicherung ist zugleich die Menge an Arbeit, die im Ernstfall verloren geht: neu angelegte Konten, geänderte Gruppenmitgliedschaften, angepasste Richtlinien. Ein Rückstand von wenigen Tagen ist meist verkraftbar - der Wert dieser Regel liegt darin, dass sie anspricht, bevor daraus ein Rückstand von Wochen wird.",
         "en": "The distance to the last backup is also the amount of work lost in an emergency: newly created accounts, changed group memberships, adjusted policies. A lag of a few days is usually bearable - the value of this rule lies in speaking up before it turns into a lag of weeks."
       },
       "Recommendation": {
-        "de": "Hinweis: Das AD-Backup ist älter als 24 Stunden. Prüfen Sie, ob die geplanten Backup-Tasks ordnungsgemäss laufen.",
-        "en": "Note: The AD backup is older than 24 hours. Check if scheduled backup tasks are running correctly."
+        "de": "Hinweis: Das AD-Backup ist älter als 24 Stunden oder sein Zeitpunkt konnte nicht ermittelt werden. Prüfen Sie, ob die geplanten Backup-Tasks ordnungsgemäss laufen.",
+        "en": "Note: The AD backup is older than 24 hours or its timestamp could not be determined. Check if scheduled backup tasks are running correctly."
       },
       "Priority": "Medium"
     },

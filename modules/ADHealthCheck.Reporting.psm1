@@ -1634,6 +1634,10 @@ function New-ADHCReport {
 
 					# FALL 2: Festplattenplatz (SRV-01)
 					elseif ($rule.Property -eq "DiskSpace") {
+						# Die OS-Wache ist der EINZIGE Ausschluss nicht erreichbarer
+						# Server: Get-ADHealthDiscovery setzt fuer sie Status "Error",
+						# denselben Wert wie "unter der kritischen Schwelle". Seit
+						# SRV-01-W "Error" mitprueft, haengen beide Regeln daran.
 						if ($rule.Condition -contains $srv.Status -and $srv.OS -ne "Unreachable") {
 							# AffectedItems traegt nur noch den Bezeichner. Der
 							# Messwert und seine Einheit wandern nach AffectedValues,
@@ -1794,7 +1798,7 @@ function New-ADHCReport {
 						# In AffectedItems steht nur noch die Partition; das Alter
 						# wandert als Stundenwert nach AffectedValues.
 						# value = $null bedeutet "Sicherungszeitpunkt nicht
-						# ermittelbar" — genau der Fall, den BK-02 meldet.
+						# ermittelbar" — Status "Error", den BK-01 und BK-02 melden.
 						$failedPartitions  += $b.Partition
 						# $displayPartitions traegt den heutigen Text weiter, damit
 						# der Befundsatz im Bericht unveraendert bleibt.
@@ -1817,14 +1821,11 @@ function New-ADHCReport {
 				# Partitionen ohne Datum), ist auch der Skalar nicht ermittelbar:
 				# $null statt einer erfundenen Zahl.
 				#
-				# X4/D2 -- Richtigstellung der X2-Begruendung: Dort stand, eine
-				# Partition ohne Datum koenne im PASS-Zweig ohnehin nicht
-				# auftreten, weil "Error" in der Condition stehe. Das gilt NUR
-				# fuer BK-02 (Condition: Critical, Error). BK-01s Condition ist
-				# "Warning" allein -- eine undatierte Partition laesst BK-01
-				# also sehr wohl bestehen, und der Skalar stammt dann aus einer
-				# ANDEREN Partition. Ebenso kann eine Partition mit Status
-				# "Critical" den Skalar stellen, waehrend BK-01 besteht.
+				# Eine Partition ohne Datum kann im PASS-Zweig nicht auftreten:
+				# "Error" steht in der Condition beider Regeln. Bis v2.10.6 galt
+				# das nur fuer BK-02 -- BK-01 pruefte "Warning" allein und
+				# bestand deshalb neben einer 128 Tage alten Sicherung, deren
+				# Alter hier als Skalar mitlief.
 				#
 				# Die Form bleibt trotzdem so, und zwar bewusst: Der Skalar ist
 				# hier eine BLOCK-Groesse ("Alter der aeltesten datierten

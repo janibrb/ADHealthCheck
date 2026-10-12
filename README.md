@@ -1,6 +1,6 @@
 ﻿# AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.10.6-blue)
+![Version](https://img.shields.io/badge/Version-2.10.8-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -131,7 +131,7 @@ ADHealthCheck/
 │   ├── Test-ADHCCatalog.ps1       Katalogproben (ohne Domäne/Pester, < 1 s, Exit 0/1)
 │   ├── New-ADHCPreviewReports.ps1 Berichte aus Mock-Daten, je Sprache ein Unterverzeichnis
 │   └── pester/
-│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (350 Tests)
+│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (365 Tests)
 │
 └── output/                        Durch .gitignore ausgeschlossen
     ├── reports/                   Generierte HTML-Reports
@@ -346,7 +346,7 @@ Install-Module Pester -Force -MinimumVersion 5.0
 Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ```
 
-**350 Tests** (Stand v2.10.6, 333 grün / 17 vorbestehend rot — Umgebungsgrenzen ohne `DnsServer`/`ActiveDirectory`-Modul). Die Zahl ist seit v2.10.1 auch unter mehreren gleichzeitigen Läufen reproduzierbar. Die ursprünglichen sechs Blöcke:
+**365 Tests** (Stand v2.10.8, 348 grün / 17 vorbestehend rot — Umgebungsgrenzen ohne `DnsServer`/`ActiveDirectory`-Modul). Die Zahl ist seit v2.10.1 auch unter mehreren gleichzeitigen Läufen reproduzierbar. Die ursprünglichen sechs Blöcke:
 
 | Block | Beschreibung |
 |---|---|
@@ -401,6 +401,35 @@ Eigennamen wie „Active Directory" legitim identisch und bleiben aussen vor).
 
 ## Changelog
 
+### v2.10.8 — SRV-01-W bestand neben einem fast vollen Systemlaufwerk
+
+- ⚠ **`SRV-01-W` („Festplattenspeicher knapp") meldete `PASS`, sobald ein Domänencontroller auch
+  unter der kritischen Schwelle lag.** Die `Condition` lautete nur `["Warning"]`; `Error` ging
+  allein an `SRV-01-E`. Neben einem Server mit 3 % frei stand „knapp: bestanden" — obwohl der
+  Katalogtext von `SRV-01-W` schon sagte, `SRV-01-E` erscheine **zusätzlich**. Dasselbe Muster wie
+  `BK-01` in v2.10.7.
+- **fix:** `SRV-01-W` prüft jetzt `Warning` und `Error` und ist damit die Obermenge, `SRV-01-E`
+  die schärfere Teilmenge. Unter der kritischen Schwelle schlagen **beide** Regeln an.
+- ⚠ Nicht erreichbare Domänencontroller tragen in der Erhebung **ebenfalls** `Status = "Error"`.
+  Ausgenommen werden sie allein über `OS = "Unreachable"` — sie gehören weiterhin zu `SRV-02`
+  und erscheinen in keiner der beiden Speicherregeln.
+- `SRV-01-E`, `SRV-02`, die Schwellen sowie Titel, `Priority` und Texte bleiben unverändert;
+  `schemaVersion` bleibt 4.
+### v2.10.7 — BK-01 bestand neben einer vier Monate alten Sicherung
+
+- ⚠ **`BK-01` („AD-Backup älter als 24 Stunden") meldete `PASS`, sobald die Sicherung älter als
+  sieben Tage oder ihr Zeitpunkt nicht ermittelbar war.** Die `Condition` lautete nur
+  `["Warning"]` (24 Stunden bis 7 Tage); `Critical` und `Error` gingen allein an `BK-02`. Die
+  beiden Regeln schlossen sich dadurch gegenseitig aus. In einem echten Export stand „bestanden"
+  neben einer Partition, deren letzte Sicherung 3087 Stunden zurücklag.
+- **fix:** `BK-01` prüft jetzt `Warning`, `Critical` und `Error` und ist damit die Obermenge,
+  `BK-02` die schärfere Teilmenge. Ab sieben Tagen oder ohne ermittelbaren Zeitpunkt schlagen
+  **beide** Regeln an — gewollt. `BK-02`, die Schwellen in `Get-ADBackupStatus` sowie Titel und
+  `Priority` beider Regeln bleiben unverändert.
+- Katalogtexte von `BK-01` (`Requirement`, `Description`, `Recommendation`) in beiden
+  Sprachen nachgezogen — sie beschrieben noch das alte Fenster.
+- `schemaVersion` bleibt 4, die Form von `AffectedValues` ebenfalls. Folge für das Dashboard:
+  Umgebungen mit Sicherungen über sieben Tagen bekommen einen Fehlschlag mehr.
 ### v2.10.6 — Listen mit genau einem Eintrag kamen im Dashboard nicht an
 
 - ⚠ **Ein Listenfeld mit genau einem Eintrag wurde als Objekt serialisiert, nicht als Array.**
@@ -991,4 +1020,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.10.6 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.10.8 — LAKE Solutions AG*
