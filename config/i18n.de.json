@@ -18,6 +18,7 @@
 		"NotDetermined": "Nicht ermittelbare Prüfungen"
     },
 	"CsvHeaders": {
+		"SamAccountName": "Anmeldename",
 		"Surname": "Nachname",
 		"GivenName": "Vorname",
 		"UPN": "UPN",

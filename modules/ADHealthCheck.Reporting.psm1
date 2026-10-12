@@ -3638,4 +3638,42 @@ function New-ADHCReport {
     return $htmlFile
 }
 
-Export-ModuleMember -Function New-ADHCReport, Set-ADHCJsonListShape
+function Export-ADHCAccountCsv {
+	# Schreibt die Kontenliste aus Get-ADSecurityInfo (RawExportData) als CSV.
+	#
+	# Ziel ist bewusst der Ordner des HTML-Berichts und nicht ein eigener Pfad:
+	# frueher landete die CSV unter <Skriptordner>\output\reports, der Bericht
+	# aber unter Paths.Output -- und das ist relativ zum AKTUELLEN Verzeichnis
+	# aufgeloest. Wer das Skript von woanders startete, fand neben dem Bericht
+	# nie eine CSV und hielt die Kontenliste fuer nicht vorhanden.
+	# Der Zeitstempel wird aus dem Berichtsnamen uebernommen, damit Bericht und
+	# Liste eines Laufs eindeutig zusammengehoeren.
+	param(
+		[Parameter(Mandatory = $true)] [string] $ReportPath,
+		$Rows
+	)
+
+	$rowList = @($Rows | Where-Object { $_ })
+	if ($rowList.Count -eq 0) {
+		Write-ADHCLog -Message "Keine auffaelligen Konten -- keine Konten-CSV erzeugt." -Component "Reporting"
+		return $null
+	}
+
+	$reportDir = Split-Path -Parent $ReportPath
+	$baseName  = [System.IO.Path]::GetFileNameWithoutExtension($ReportPath)
+	$stamp     = if ($baseName -match '_(\d{8}_\d{4,6})$') { $Matches[1] } else { Get-Date -Format "yyyyMMdd_HHmm" }
+	$csvPath   = Join-Path $reportDir ("ADHC_Security_Details_{0}.csv" -f $stamp)
+
+	try {
+		# Semikolon und UTF-8 mit BOM (Standard von -Encoding UTF8 unter 5.1),
+		# damit ein deutsches Excel Umlaute und Spalten ohne Importdialog liest.
+		$rowList | Export-Csv -Path $csvPath -NoTypeInformation -Delimiter ";" -Encoding UTF8 -ErrorAction Stop
+		Write-ADHCLog -Message "Konten-CSV: $csvPath ($($rowList.Count) Zeilen)" -Component "Reporting"
+		return $csvPath
+	} catch {
+		Write-ADHCLog -Message "Fehler beim CSV-Export: $($_.Exception.Message)" -Level Error
+		return $null
+	}
+}
+
+Export-ModuleMember -Function New-ADHCReport, Set-ADHCJsonListShape, Export-ADHCAccountCsv

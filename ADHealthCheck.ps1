@@ -3,8 +3,24 @@
     Haupt-Launcher fuer AD Health Check mit GUI
 
 .NOTES
-    Version:    2.10.8
-    Changelog:  - FIX: SRV-01-W ("Festplattenspeicher knapp") meldete PASS,
+    Version:    2.10.9
+    Changelog:  - FIX: Die Konten-CSV (inaktive, deaktivierte Konten, ohne
+                  Passwortablauf, Passwort aelter als Richtlinie, Admin-
+                  Gruppen) lag unter <Skriptordner>\output\reports, der
+                  HTML-Bericht aber unter Paths.Output, relativ zum
+                  aktuellen Verzeichnis. Beim Start aus einem anderen
+                  Verzeichnis fand man neben dem Bericht keine CSV. Sie
+                  entsteht jetzt im Ordner des Berichts, mit dessen
+                  Zeitstempel, und vor dem Oeffnen des Berichts.
+                - NEU: Spalte "Anmeldename" (SamAccountName) in der CSV --
+                  Systemkonten ohne UPN und Namen waren sonst leere Zeilen.
+                - Der HTML-Bericht nennt weiterhin keine Konten; das
+                  Upload-JSON ist unveraendert, schemaVersion bleibt 4.
+                - Katalog unveraendert bei 77 Regeln. Suite 370 Tests,
+                  353 gruen / 17 vorbestehend rot.
+
+                Version 2.10.8
+                - FIX: SRV-01-W ("Festplattenspeicher knapp") meldete PASS,
                   sobald ein DC auch unter der kritischen Schwelle lag. Die
                   Condition lautete nur "Warning"; "Error" ging allein an
                   SRV-01-E. Neben einem DC mit 3 % frei stand dadurch
@@ -1355,24 +1371,15 @@ function Start-Analysis {
     $reportPath = New-ADHCReport -Data $rptData -Settings $Settings -I18n $I18n `
                                  -Mapping $Mapping -TemplatePath $template -LangCode $LangCode `
                                  -CollectorVersion $script:LocalVersion
-    Invoke-Item $reportPath
 
-    # CSV/Security-Export
-    if ($rptData.Security.RawExportData -and $rptData.Security.RawExportData.Count -gt 0) {
-        $reportFolder = Join-Path $OutputPath "reports"
-        if (-not (Test-Path $reportFolder)) {
-            New-Item -ItemType Directory -Path $reportFolder -Force | Out-Null
-        }
-        $dateStr = Get-Date -Format "yyyyMMdd_HHmm"
-        $csvPath = Join-Path $reportFolder "ADHC_Security_Details_$dateStr.csv"
-        try {
-            $rptData.Security.RawExportData | Export-Csv -Path $csvPath -NoTypeInformation `
-                -Delimiter ";" -Encoding UTF8 -ErrorAction Stop
-            Write-ADHCLog "Sicherheits-Export erstellt: $csvPath" -Component "Reporting"
-        } catch {
-            Write-ADHCLog "Fehler beim CSV-Export: $($_.Exception.Message)" -Level Error
-        }
+    # Konten-CSV neben den Bericht legen, VOR Invoke-Item: wirft das Oeffnen
+    # (Server Core ohne Dateizuordnung), soll die Liste trotzdem entstehen.
+    if ($rptData.Security) {
+        $csvPath = Export-ADHCAccountCsv -ReportPath $reportPath -Rows $rptData.Security.RawExportData
+        if ($csvPath) { Write-Host "Konten-CSV: $csvPath" -ForegroundColor Cyan }
     }
+
+    Invoke-Item $reportPath
 
     # Fix #2: UseMockData nach Analyse immer zurücksetzen
     $script:UseMockData = $false

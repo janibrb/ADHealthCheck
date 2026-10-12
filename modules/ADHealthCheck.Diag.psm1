@@ -496,6 +496,7 @@ function Get-ADHCMockData {
     $rawExport = @()
     for ($i = 1; $i -le 15; $i++) {
         $rawExport += [PSCustomObject]@{
+            ($I18n.CsvHeaders.SamAccountName)      = "mmustermann$i"
             ($I18n.CsvHeaders.Surname)             = "Mustermann_$i"
             ($I18n.CsvHeaders.GivenName)           = "Max"
             ($I18n.CsvHeaders.UPN)                 = "max$i@contoso.local"
@@ -1170,6 +1171,9 @@ function Get-ADSecurityInfo {
 			$hSurname    = if ($I18n.CsvHeaders.Surname) { $I18n.CsvHeaders.Surname } else { "Nachname" }
 			$hGivenName  = if ($I18n.CsvHeaders.GivenName) { $I18n.CsvHeaders.GivenName } else { "Vorname" }
 			$hUPN        = if ($I18n.CsvHeaders.UPN) { $I18n.CsvHeaders.UPN } else { "UPN" }
+			# Dienst- und Systemkonten (krbtgt, svc_*) haben oft weder UPN noch
+			# Vor-/Nachnamen -- ohne den Anmeldenamen waere ihre Zeile leer.
+			$hSam        = if ($I18n.CsvHeaders.SamAccountName) { $I18n.CsvHeaders.SamAccountName } else { "Anmeldename" }
 			$hActive     = if ($I18n.CsvHeaders.Active) { $I18n.CsvHeaders.Active } else { "Aktiv" }
 			$hLastLogin  = if ($I18n.CsvHeaders.LastLogin) { $I18n.CsvHeaders.LastLogin } else { "LetzterLogin" }
 			$hPwdSet     = if ($I18n.CsvHeaders.PasswordSet) { $I18n.CsvHeaders.PasswordSet } else { "PasswortGesetzt" }
@@ -1185,7 +1189,8 @@ function Get-ADSecurityInfo {
 		
 				# Erstellung des Objekts
 				$obj = [PSCustomObject]@{
-					$hSurname  = $u.Surname
+					$hSam       = $u.SamAccountName
+					$hSurname   = $u.Surname
 					$hGivenName = $u.GivenName
 					$hUPN       = $u.UserPrincipalName
 					$hActive    = $isActive

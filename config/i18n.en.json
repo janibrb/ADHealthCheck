@@ -18,6 +18,7 @@
 		"NotDetermined": "Checks Not Determined"
     },
 	"CsvHeaders": {
+		"SamAccountName": "Logon Name",
 		"Surname": "Surname",
 		"GivenName": "Given Name",
 		"UPN": "UPN",

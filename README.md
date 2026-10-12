@@ -1,6 +1,6 @@
 ﻿# AD Health Check Pro
 
-![Version](https://img.shields.io/badge/Version-2.10.8-blue)
+![Version](https://img.shields.io/badge/Version-2.10.9-blue)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
@@ -131,7 +131,7 @@ ADHealthCheck/
 │   ├── Test-ADHCCatalog.ps1       Katalogproben (ohne Domäne/Pester, < 1 s, Exit 0/1)
 │   ├── New-ADHCPreviewReports.ps1 Berichte aus Mock-Daten, je Sprache ein Unterverzeichnis
 │   └── pester/
-│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (365 Tests)
+│       └── ADHealthCheck.Tests.ps1  Pester v5 Tests (370 Tests)
 │
 └── output/                        Durch .gitignore ausgeschlossen
     ├── reports/                   Generierte HTML-Reports
@@ -184,7 +184,9 @@ Beim ersten Start prüft ADHealthCheck automatisch alle Abhängigkeiten und biet
    - Empfehlungen pro Bereich aktivieren
 4. **"Report erstellen"** klicken
 5. HTML-Report öffnet sich automatisch im Browser
-6. CSV-Export unter `output\reports\ADHC_Security_Details_*.csv`
+6. Kontenliste als CSV **im selben Ordner wie der HTML-Report**, mit dessen Zeitstempel:
+   `ADHC_Security_Details_<yyyyMMdd_HHmmss>.csv` — je Konto und Grund eine Zeile (inaktiv,
+   Passwort läuft nie ab, Passwort älter als Richtlinie, deaktiviert, Mitglied einer Admin-Gruppe)
 
 > Nicht installierte optionale Module (z.B. DNS-Tools) werden automatisch erkannt — die betroffene Checkbox wird deaktiviert und mit einem Tooltip versehen.
 
@@ -346,7 +348,7 @@ Install-Module Pester -Force -MinimumVersion 5.0
 Invoke-Pester -Path .\tests\pester\ADHealthCheck.Tests.ps1 -Output Detailed
 ```
 
-**365 Tests** (Stand v2.10.8, 348 grün / 17 vorbestehend rot — Umgebungsgrenzen ohne `DnsServer`/`ActiveDirectory`-Modul). Die Zahl ist seit v2.10.1 auch unter mehreren gleichzeitigen Läufen reproduzierbar. Die ursprünglichen sechs Blöcke:
+**370 Tests** (Stand v2.10.9, 353 grün / 17 vorbestehend rot — Umgebungsgrenzen ohne `DnsServer`/`ActiveDirectory`-Modul). Die Zahl ist seit v2.10.1 auch unter mehreren gleichzeitigen Läufen reproduzierbar. Die ursprünglichen sechs Blöcke:
 
 | Block | Beschreibung |
 |---|---|
@@ -400,6 +402,21 @@ Eigennamen wie „Active Directory" legitim identisch und bleiben aussen vor).
 ---
 
 ## Changelog
+
+### v2.10.9 — Die Kontenliste lag nicht neben dem Bericht
+
+- ⚠ **Die CSV mit den gefundenen Konten** (inaktiv, deaktiviert, ohne Passwortablauf, Passwort
+  älter als Richtlinie, Mitglied einer Admin-Gruppe) **entstand unter
+  `<Skriptordner>\output\reports`, der HTML-Bericht aber unter `Paths.Output`** — und das wird
+  relativ zum **aktuellen Verzeichnis** aufgelöst. Wer das Skript von woanders startete, fand neben
+  dem Bericht keine CSV.
+- **fix:** Die CSV entsteht jetzt im Ordner des Berichts, mit dessen Zeitstempel
+  (`ADHC_Security_Details_<yyyyMMdd_HHmmss>.csv`), und **vor** dem Öffnen des Berichts — auf einem
+  Server ohne Dateizuordnung für HTML entsteht sie trotzdem. Der Pfad erscheint in der Konsole.
+- **feat:** Neue erste Spalte **„Anmeldename“** (`SamAccountName`). Dienst- und Systemkonten haben
+  oft weder UPN noch Vor-/Nachnamen und standen sonst als Zeile ohne jeden Bezeichner in der Liste.
+- Der HTML-Bericht nennt weiterhin **keine** Konten. Upload-JSON unverändert, `schemaVersion`
+  bleibt 4.
 
 ### v2.10.8 — SRV-01-W bestand neben einem fast vollen Systemlaufwerk
 
@@ -1020,4 +1037,4 @@ Die Nutzung erfolgt auf eigene Gefahr. Eine vorherige Prüfung in einer Testumge
 
 ---
 
-*ADHealthCheck Pro v2.10.8 — LAKE Solutions AG*
+*ADHealthCheck Pro v2.10.9 — LAKE Solutions AG*
